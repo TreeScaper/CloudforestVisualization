@@ -2,6 +2,7 @@
 
 const file_name_regex = RegExp(/NLDR.*Coordinates/);
 let coordinate_data = undefined;
+let event_buld_fn = undefined;
 
 const clean_data = function (data) {
     let cleaned = {};
@@ -13,7 +14,6 @@ const clean_data = function (data) {
     return cleaned;
 }
 
-
 const parse_dimensions = function () {
     const rx = RegExp(/Dim_(\d)_/);
     let avail_dimensions = [];
@@ -23,15 +23,12 @@ const parse_dimensions = function () {
             avail_dimensions.push(m[1]);
         }
     });
-    dispatchEvent(new CustomEvent('DimensionDataReady', {
-        bubbles: true,
-        detail: { dimensions: avail_dimensions }
-    }));
+    dispatchEvent(event_buld_fn("DimensionDataReady", { dimensions: avail_dimensions }));
 }
 
-
 const nldr_plot_init = function (init_obj) {
-    let { guid_fn } = init_obj;
+    let { guid_fn, event_fn } = init_obj;
+    event_buld_fn = event_fn;
     const my_guid = guid_fn();
 
     addEventListener("FileContents", e => {
@@ -46,20 +43,14 @@ const nldr_plot_init = function (init_obj) {
         Object.keys(e.detail).forEach(k => {
             foi = e.detail.files.filter(f => file_name_regex.test(f));
         });
-        dispatchEvent(new CustomEvent('FileContentsRequest', {
-            bubbles: true,
-            detail: { guid: my_guid, files: foi }
-        }));
+        dispatchEvent(event_buld_fn("FileContentsRequest", { guid: my_guid, files: foi }));
     });
 
     addEventListener("PlotNLDRDim", e => {
 
     });
 
-    dispatchEvent(new CustomEvent('AvailableFilesRequest', {
-        bubbles: true,
-        detail: { guid: my_guid }
-    }));
+    dispatchEvent(event_buld_fn("AvailableFilesRequest", { guid: my_guid }));
 }
 
 export { nldr_plot_init };

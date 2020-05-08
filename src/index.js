@@ -11,6 +11,13 @@ const get_guid = function () {
     return msg_guid;
 }
 
+const build_event = function (name, details) {
+    return new CustomEvent(name, {
+        bubbles: true,
+        detail: details
+    });
+}
+
 const dimension_plot_tasks = function (dimensions) {
     let m = Math.max(...dimensions.map(e => Number(e)));
     if (m <= 3) {
@@ -20,27 +27,13 @@ const dimension_plot_tasks = function (dimensions) {
     if (m > 3) {
         document.getElementById(`dim_4`).disabled = false;
     }
-
 }
 
 const dom_prep = function () {
-    document.getElementById("dim_2").addEventListener('click', () => {
-        dispatchEvent(new CustomEvent('PlotNLDRDim', {
-            bubbles: true,
-            detail: { dimension: 2 }
-        }));
-    });
-    document.getElementById("dim_3").addEventListener('click', () => {
-        dispatchEvent(new CustomEvent('PlotNLDRDim', {
-            bubbles: true,
-            detail: { dimension: 3 }
-        }));
-    });
-    document.getElementById("dim_4").addEventListener('click', () => {
-        dispatchEvent(new CustomEvent('PlotNLDRDim', {
-            bubbles: true,
-            detail: { dimension: 4 }
-        }));
+    [["dim_2", 2], ["dim_3", 3], ["dim_4", 4]].forEach(item => {
+        document.getElementById(item[0]).addEventListener('click', () => {
+            dispatchEvent(build_event("PlotNLDRDim", { dimension: item[1] }));
+        });
     });
 }
 
@@ -55,9 +48,9 @@ const run_app = function () {
     });
 
     nldr_plot_init({
-        guid_fn: get_guid
+        guid_fn: get_guid,
+        event_fn: build_event
     });
-
 
 }
 
