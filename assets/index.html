@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CloudForest Two</title>
+</head>
+
+<body style="display: none;">
+    <div class="section">
+        <div class="container">
+            <nav class="navbar is-spaced is-light" role="navigation" aria-label="main navigation">
+                <div class="navbar-brand">
+                    <h1 class="title">CloudForest</h1>
+                </div>
+
+                <div id="navbarBasicExample" class="navbar-menu">
+                    <div class="navbar-start">
+                        <a class="navbar-item">
+                            Documentation
+                        </a>
+                    </div>
+
+                    <div class="navbar-end">
+                        <div class="navbar-item">
+                            <div class="buttons">
+                                <a class="button is-light">
+                                    Full Screen
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </nav>
+        </div>
+    </div>
+
+    <div class="section">
+        <div class="container">
+            <div class="tile is-ancestor">
+                <div class="tile is-2 is-vertical is-parent">
+                    <div class="tile is-child box">
+                        <h5>NLDR</h5>
+                        <div class="tile is-vertical is-parent">
+                            <div class="tile is-child">
+                                <button id="dim_2" class="button is-small" disabled>Two-dimension</button>
+                            </div>
+                            <div class="tile is-child">
+                                <button id="dim_3" class="button is-small" disabled>Three-dimension</button>
+                            </div>
+                            <div class="tile is-child">
+                                <button id="dim_4" class="button is-small" disabled>Multi-dimension</button>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="tile is-child box">
+                        <h5>Trees</h5>
+                        <div class="tile is-vertical is-parent">
+                            <div class="tile is-child">
+                                <button class="button is-small" disabled>Bipartition</button>
+                            </div>
+                            <div class="tile is-child">
+                                <button class="button is-small" disabled>Covariance</button>
+                            </div>
+                            <div class="tile is-child">
+                                <button id="foo" class="button is-small" disabled>Affinity</button>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="tile is-child box">
+                        <h5>Community Detection</h5>
+                    </div>
+                </div>
+                <div class="tile box">
+                    <div id="plot"></div>
+                </div>
+            </div>
+        </div> <!-- Container-->
+    </div>
+    <!--Section-->
+
+    <!-- Galaxy Config Settings -->
+    <!-- dbkey: '?',
+            href: document.location.origin,
+            dataName: 'NLDR_Dim_3_Trustworthiness',
+            historyID: 'f597429621d6eb2b',
+            datasetID: '3f5830403180d620',
+            dom_base: 'start_div', -->
+</body>
+
+</html>
