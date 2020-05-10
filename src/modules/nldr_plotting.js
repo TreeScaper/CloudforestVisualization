@@ -1,5 +1,6 @@
 // Module for parsing and plotting NLDR coordinate data.
 import Plotly from 'plotly.js-basic-dist';
+import * as Plotly3D from 'plotly.js-gl3d-dist';
 import { htmlToElement, removeChildNodes } from './html_templates';
 
 let coordinate_data = undefined;
@@ -67,18 +68,117 @@ const scatter_2d = function (file_contents) {
 }
 
 const scatter_3d = function (file_contents) {
+    const three_d_dom = "dim-scatter-plot";
+    let row_data = {
+        'x': [],
+        'y': [],
+        'z': []
+    };
+    file_contents.forEach(r => {
+        console.log(`row : ${row_data}`);
+        row_data['x'].push(Number(r[0]));
+        row_data['y'].push(Number(r[1]));
+        row_data['z'].push(Number(r[2]));
+    });
+    const data = [{
+        x: row_data['x'],
+        y: row_data['y'],
+        z: row_data['z'],
+        mode: 'markers',
+        type: 'scatter3d',
+        marker: {
+            symbol: 'circle',
+            color: row_data['z'],
+            size: 2
+        },
+        hovertemplate: "Data Point: %{pointNumber} <br> Coordinates: x: %{x} y: %{y} z: %{z}",
 
+    },];
+    const layout = {
+        autosize: true,
+        height: 800,
+        scene: {
+            aspectratio: {
+                x: 1.25,
+                y: 1.25,
+                z: 1.25
+            },
+            xaxis: {
+                type: 'linear',
+                zeroline: false
+            },
+            yaxis: {
+                type: 'linear',
+                zeroline: false
+            }
+        }
+    };
+
+    const btns = {
+        displaylogo: false,
+        modeBarButtonsToAdd: [
+            [{
+                name: 'All points black',
+                icon: Plotly.Icons.pencil,
+                click: function () {
+                    Plotly.restyle(three_d_dom, 'marker.color', ['black']);
+                }
+            },
+            {
+                name: 'Point color Z-axis',
+                icon: Plotly.Icons.pencil,
+                click: function () {
+                    Plotly.restyle(three_d_dom, 'marker.color', [row_data['z']]);
+                }
+            },
+            {
+                name: 'Point color Y-axis',
+                icon: Plotly.Icons.pencil,
+                click: function () {
+                    Plotly.restyle(three_d_dom, 'marker.color', [row_data['y']]);
+                }
+            },
+            {
+                name: 'Point color X-axis',
+                icon: Plotly.Icons.pencil,
+                click: function () {
+                    Plotly.restyle(three_d_dom, 'marker.color', [row_data['x']]);
+                }
+            },
+            {
+                name: 'Enlarge Points',
+                icon: Plotly.Icons.pencil,
+                click: function (data) {
+                    let curr_size = data.data[0].marker.size
+                    Plotly.restyle(three_d_dom, 'marker.size', curr_size += 2);
+                }
+            },
+            {
+                name: 'Shrink Points',
+                icon: Plotly.Icons.pencil,
+                click: function (data) {
+                    let curr_size = data.data[0].marker.size;
+                    if (curr_size === 2) {
+                        console.log('Nope, too small');
+                    } else {
+                        Plotly.restyle(three_d_dom, 'marker.size', curr_size -= 2);
+                    }
+                }
+            }
+            ],
+        ]
+    }
+    Plotly3D.newPlot(three_d_dom, data, layout, btns);
 }
 
-const plot_dimensions = function (dims, contents) {
-    removeChildNodes('plot');
+const build_2d_3d = function (contents) {
     document.getElementById("plot").append(htmlToElement(`
     <div id="scatter_dimensions" class="tabs is-centered is-small is-toggle">
     <ul>
-      <li class="is-active">
+      <li>
         <a id="2d" value="2d">2-D</a>
       </li>
-      <li>
+      <li class="is-active">
         <a id="3d" value="3d">3-D</a>
       </li>
     </ul>
@@ -90,17 +190,38 @@ const plot_dimensions = function (dims, contents) {
             console.log(`User wants a ${e.target.getAttribute('value')} plot`);
             document.getElementById("scatter_dimensions").querySelectorAll('li').forEach(n => { n.classList = '' });
             document.getElementById(e.target.getAttribute('value')).parentElement.classList = 'is-active';
+
+            if (e.target.getAttribute('value') === '3d') {
+                scatter_3d(contents);
+            } else {
+                scatter_2d(contents);
+            }
         });
     });
-
-
-    scatter_2d(contents);
-
-
+    scatter_3d(contents);
 }
 
+const build_2d = function (contents) {
+    document.getElementById("plot").append(htmlToElement(`<div id="dim-scatter-plot"/>`));
+    scatter_2d(contents);
+}
 
+const build_multidimension = function (contents) {
+    console.log(`Not implemented`);
+}
 
+const plot_dimensions = function (dims, contents) {
+    removeChildNodes('plot');
+    if (dims === 2) {
+        build_2d(contents);
+    }
+    if (dims === 3) {
+        build_2d_3d(contents);
+    }
+    if (dims > 3) {
+        build_multidimension(contents);
+    }
+}
 
 const nldr_plot_init = function (init_obj) {
     let { guid_fn, event_fn } = init_obj;
