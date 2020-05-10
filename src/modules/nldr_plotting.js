@@ -1,6 +1,7 @@
 // Module for parsing and plotting NLDR coordinate data.
 import Plotly from 'plotly.js-basic-dist';
 import * as Plotly3D from 'plotly.js-gl3d-dist';
+import * as PlotlyParallel from 'plotly.js-gl2d-dist';
 import { htmlToElement, removeChildNodes } from './html_templates';
 
 let coordinate_data = undefined;
@@ -20,6 +21,49 @@ const clean_data = function (data) {
         cleaned[k] = step2;
     });
     return cleaned;
+}
+
+const rows_to_dimensions = function (row_data) {
+    let dimension_data = {};
+    row_data.forEach(row => {
+        row.forEach((item, idx) => {
+            let dim_name = `Dimension_${idx}`;
+            if (Object.keys(dimension_data).indexOf(dim_name) === -1) {
+                dimension_data[dim_name] = [];
+            }
+            dimension_data[dim_name].push(item);
+        });
+    });
+    return dimension_data;
+}
+
+const parallel_coordinates = function (file_contents) {
+    document.getElementById("plot").append(htmlToElement(`<div id="dim-scatter-plot"/>`));
+    let dims = [];
+    let dim_data = rows_to_dimensions(file_contents);
+    Object.keys(dim_data).forEach(k => {
+        dims.push({
+            range: [Math.min(...dim_data[k]), Math.max(...dim_data[k])],
+            label: k,
+            values: dim_data[k]
+        })
+    });
+    let data = [{
+        type: "parcoords",
+        line: {
+            showscale: false,
+            colorscale: 'Jet',
+            color: dim_data[Object.keys(dim_data)[0]]
+        },
+        dimensions: dims,
+    }];
+    let layout = {
+        height: 800,
+        width: 1200
+    }
+    PlotlyParallel.newPlot('dim-scatter-plot', data, layout, {
+        displaylogo: false,
+    });
 }
 
 const scatter_2d = function (file_contents) {
@@ -207,7 +251,7 @@ const build_2d = function (contents) {
 }
 
 const build_multidimension = function (contents) {
-    console.log(`Not implemented`);
+    parallel_coordinates(contents);
 }
 
 const plot_dimensions = function (dims, contents) {
