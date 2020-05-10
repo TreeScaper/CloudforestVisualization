@@ -9,9 +9,12 @@ function htmlToElement(html) {
     return template.content.firstChild;
 }
 
-/**
- * var td = htmlToElement('<td>foo</td>'),
-    div = htmlToElement('<div><span>nested</span> <span>stuff</span></div>');
- */
+function removeChildNodes(parent_id) {
+    let node = document.getElementById(parent_id);
 
-export { htmlToElement }
+    while (node.hasChildNodes()) {
+        node.removeChild(node.lastChild);
+    }
+
+}
+export { htmlToElement, removeChildNodes }

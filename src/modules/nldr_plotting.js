@@ -1,7 +1,7 @@
 // Module for parsing and plotting NLDR coordinate data.
 import Plotly from 'plotly.js-basic-dist';
+import { htmlToElement, removeChildNodes } from './html_templates';
 
-const file_name_regex = RegExp(/NLDR.*Coordinates/);
 let coordinate_data = undefined;
 let event_buld_fn = undefined;
 
@@ -21,20 +21,8 @@ const clean_data = function (data) {
     return cleaned;
 }
 
-const parse_dimensions = function () {
-    const rx = RegExp(/Dim_(\d)_/);
-    let avail_dimensions = [];
-    Object.keys(coordinate_data).forEach(k => {
-        let m = rx.exec(k);
-        if (m) {
-            avail_dimensions.push(m[1]);
-        }
-    });
-    dispatchEvent(event_buld_fn("DimensionDataReady", { dimensions: avail_dimensions }));
-}
-
-
 const scatter_2d = function (file_contents) {
+    removeChildNodes('dim-scatter-plot');
     let axis_max_min = function (axis_data) {
         const max_mag = Math.ceil(Math.max(...axis_data.map(Math.abs)));
         let data_min = undefined;
@@ -43,7 +31,6 @@ const scatter_2d = function (file_contents) {
         } else {
             data_min = Math.floor(Math.min(...axis_data));
         }
-        console.log(`${data_min} ${max_mag}`);
         return [data_min, max_mag];
     };
 
@@ -76,8 +63,44 @@ const scatter_2d = function (file_contents) {
 
     const config = { responsive: true, displaylogo: false, scrollZoom: true }
 
-    Plotly.newPlot("plot", [trace1], layout, config);
+    Plotly.newPlot("dim-scatter-plot", [trace1], layout, config);
 }
+
+const scatter_3d = function (file_contents) {
+
+}
+
+const plot_dimensions = function (dims, contents) {
+    removeChildNodes('plot');
+    document.getElementById("plot").append(htmlToElement(`
+    <div id="scatter_dimensions" class="tabs is-centered is-small is-toggle">
+    <ul>
+      <li class="is-active">
+        <a id="2d" value="2d">2-D</a>
+      </li>
+      <li>
+        <a id="3d" value="3d">3-D</a>
+      </li>
+    </ul>
+  </div>
+  `));
+    document.getElementById("plot").append(htmlToElement(`<div id="dim-scatter-plot"/>`));
+    document.getElementById("scatter_dimensions").querySelectorAll('a').forEach(n => {
+        n.addEventListener('click', e => {
+            console.log(`User wants a ${e.target.getAttribute('value')} plot`);
+            document.getElementById("scatter_dimensions").querySelectorAll('li').forEach(n => { n.classList = '' });
+            document.getElementById(e.target.getAttribute('value')).parentElement.classList = 'is-active';
+        });
+    });
+
+
+    scatter_2d(contents);
+
+
+}
+
+
+
 
 const nldr_plot_init = function (init_obj) {
     let { guid_fn, event_fn } = init_obj;
@@ -87,31 +110,16 @@ const nldr_plot_init = function (init_obj) {
     addEventListener("FileContents", e => {
         if (e.detail.guid === my_guid) {
             coordinate_data = clean_data(e.detail.contents);
-            parse_dimensions();
+            let plot_dimension = coordinate_data[Object.keys(coordinate_data)[0]][0].length;
+            console.log(`Plotting a ${plot_dimension}-D plot`);
+            plot_dimensions(plot_dimension, coordinate_data[Object.keys(coordinate_data)[0]]);
         }
     });
 
-    addEventListener("AvailableFiles", e => {
-        let foi = undefined;
-        Object.keys(e.detail).forEach(k => {
-            foi = e.detail.files.filter(f => file_name_regex.test(f));
-        });
-        dispatchEvent(event_buld_fn("FileContentsRequest", { guid: my_guid, files: foi }));
+    addEventListener("NLDRPlotRequest", e => {
+        console.log(`An NLDR plot has been requested for file ${e.detail.file_name}`);
+        dispatchEvent(event_buld_fn("FileContentsRequest", { guid: my_guid, files: [e.detail.file_name] }));
     });
-
-    addEventListener("PlotNLDRDim", e => {
-        console.log(`Generating a ${e.detail.dimension} dimenson plot.`);
-        switch (e.detail.dimension) {
-            case 2:
-                scatter_2d(coordinate_data["NLDR_Dim_3_Coordinates"]);
-                break;
-
-            default:
-                break;
-        }
-    });
-
-    dispatchEvent(event_buld_fn("AvailableFilesRequest", { guid: my_guid }));
 }
 
 export { nldr_plot_init };
