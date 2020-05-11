@@ -3,6 +3,9 @@ import "./bulma.min.css";
 import { data_manager_init } from "./modules/dev_datamanager";
 import { nldr_plot_init } from "./modules/nldr_plotting";
 import { affinity_plot_init } from "./modules/affinity_plotting";
+import { hierarchy_plot_init } from "./modules/hierarchy_plotting";
+import { covariance_plot_init } from "./modules/covariance_plotting";
+
 import { page_mgr_init } from "./modules/page_manager";
 
 const get_guid = function () {
@@ -34,6 +37,14 @@ const run_app = function () {
         event_fn: build_event
     });
     nldr_plot_init({
+        guid_fn: get_guid,
+        event_fn: build_event
+    });
+    covariance_plot_init({
+        guid_fn: get_guid,
+        event_fn: build_event
+    });
+    hierarchy_plot_init({
         guid_fn: get_guid,
         event_fn: build_event
     });

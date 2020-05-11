@@ -1,28 +1,16 @@
 import { hierarchy, cluster } from 'd3-hierarchy'
 import { create } from 'd3-selection';
 import { ascending } from 'd3-array';
+import { removeChildNodes } from "./html_templates";
+
+let event_buld_fn = undefined;
+
+const FILE_NAME = "Consensus Tree";
 
 const d3 = Object.assign(
     {},
     { hierarchy, cluster, create, ascending }
 );
-
-const string_parser = function (s) {
-    const split_data = s.split(/\r?\n|\r/g).filter(v => v.length > 0);
-    let parsed_data = [];
-    split_data.forEach(d => {
-        parsed_data.push(d.split(/\t/));
-    });
-    return parsed_data;
-};
-
-const data = {
-    "consensus_tree": `(LngfishAu:1.000000,(LngfishSA:1.000000,LngfishAf:1.000000):1.000000,(Frog:1.000000,(((Platypus:1.000000,Opossum:1.000000):0.983000,((Mouse:1.000000,Rat:1.000000):1.000000,(Human:1.000000,(Seal:1.000000,(Cow:1.000000,Whale:1.000000):0.994000):0.683000):0.894000):0.991000):1.000000,(Sphenodon:1.000000,Lizard:1.000000,(Turtle:1.000000,(Crocodile:1.000000,Bird:1.000000):0.977000):0.713000):0.981000):0.999000):1.000000);`
-};
-
-const get_data = function (data_name) {
-    return string_parser(data[data_name]);
-};
 
 // https://github.com/jasondavies/newick.js
 const parseNewick = function (s) {
@@ -60,9 +48,6 @@ const parseNewick = function (s) {
     return tree;
 };
 
-let newick_string = get_data("consensus_tree").toLocaleString();
-let parsed_data = parseNewick(newick_string);
-
 const autoBox = function () {
     document.body.appendChild(this);
     const {
@@ -77,6 +62,7 @@ const autoBox = function () {
 
 const chart_phylogram = function (obj) {
     const { parsed_data, dom_id } = obj;
+    removeChildNodes(dom_id);
     const root = d3.hierarchy(parsed_data, d => d.branchset)
         .sum(d => d.branchset ? 0 : 1)
         .sort((a, b) => (a.value - b.value) || d3.ascending(a.data.length, b.data.length));
@@ -147,8 +133,26 @@ const chart_phylogram = function (obj) {
         .attr("stroke", "white");
     document.getElementById(dom_id).append(svg.attr("viewBox", autoBox).node());
 }
-chart_phylogram({
-    parsed_data: parsed_data,
-    dom_id: "plot"
-});
-console.log("PK");
+
+const hierarchy_plot_init = function (init_obj) {
+    let { guid_fn, event_fn } = init_obj;
+    event_buld_fn = event_fn;
+    const my_guid = guid_fn();
+
+    addEventListener("FileContents", e => {
+        if (e.detail.guid === my_guid) {
+            let parsed_branchset = parseNewick(e.detail.contents[FILE_NAME][0][0]);
+            chart_phylogram({ parsed_data: parsed_branchset, dom_id: "plot" });
+        }
+    });
+
+    addEventListener("TreePlotRequest", e => {
+        if (e.detail.file_name === FILE_NAME) {
+            console.log(`Received a TreePlotRequest for ${e.detail.file_name}`);
+            dispatchEvent(event_buld_fn("FileContentsRequest", { guid: my_guid, files: [e.detail.file_name] }));
+        }
+    });
+
+}
+
+export { hierarchy_plot_init }
