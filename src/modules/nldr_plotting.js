@@ -119,7 +119,6 @@ const scatter_3d = function (file_contents) {
         'z': []
     };
     file_contents.forEach(r => {
-        console.log(`row : ${row_data}`);
         row_data['x'].push(Number(r[0]));
         row_data['y'].push(Number(r[1]));
         row_data['z'].push(Number(r[2]));
@@ -231,7 +230,6 @@ const build_2d_3d = function (contents) {
     document.getElementById("plot").append(htmlToElement(`<div id="dim-scatter-plot"/>`));
     document.getElementById("scatter_dimensions").querySelectorAll('a').forEach(n => {
         n.addEventListener('click', e => {
-            console.log(`User wants a ${e.target.getAttribute('value')} plot`);
             document.getElementById("scatter_dimensions").querySelectorAll('li').forEach(n => { n.classList = '' });
             document.getElementById(e.target.getAttribute('value')).parentElement.classList = 'is-active';
 
@@ -276,13 +274,11 @@ const nldr_plot_init = function (init_obj) {
         if (e.detail.guid === my_guid) {
             coordinate_data = clean_data(e.detail.contents);
             let plot_dimension = coordinate_data[Object.keys(coordinate_data)[0]][0].length;
-            console.log(`Plotting a ${plot_dimension}-D plot`);
             plot_dimensions(plot_dimension, coordinate_data[Object.keys(coordinate_data)[0]]);
         }
     });
 
     addEventListener("NLDRPlotRequest", e => {
-        console.log(`An NLDR plot has been requested for file ${e.detail.file_name}`);
         dispatchEvent(event_buld_fn("FileContentsRequest", { guid: my_guid, files: [e.detail.file_name] }));
     });
 }

@@ -26,7 +26,6 @@ const wire_page = function () {
             .querySelectorAll('option')
             .forEach(n => {
                 n.addEventListener("click", e => {
-                    console.log(e.target.value);
                     dispatchEvent(event_build_fn(select_objs[k].event, { file_name: e.target.value }));
                 })
             })
@@ -40,7 +39,6 @@ const populate_selects = function () {
             document.getElementById(k).append(htmlToElement(s));
         });
         if (select_objs[k].files.length > 0) {
-            console.log(k);
             document.getElementById(k).disabled = false;
         }
     });

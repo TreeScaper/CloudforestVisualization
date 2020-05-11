@@ -2,6 +2,7 @@ import "./bulma.min.css";
 
 import { data_manager_init } from "./modules/dev_datamanager";
 import { nldr_plot_init } from "./modules/nldr_plotting";
+import { affinity_plot_init } from "./modules/affinity_plotting";
 import { page_mgr_init } from "./modules/page_manager";
 
 const get_guid = function () {
@@ -24,6 +25,11 @@ const run_app = function () {
     data_manager_init({});
 
     page_mgr_init({
+        guid_fn: get_guid,
+        event_fn: build_event
+    });
+
+    affinity_plot_init({
         guid_fn: get_guid,
         event_fn: build_event
     });
