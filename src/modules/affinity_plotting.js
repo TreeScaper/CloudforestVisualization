@@ -37,6 +37,7 @@ const build_slider = function (e) {
         document.getElementById("affinity-value").textContent = score_array[s.value];
         filter_links(parsed_data, score_array[s.value]);
     });
+    e.classList.add("box");
 }
 
 const build_dom = function () {

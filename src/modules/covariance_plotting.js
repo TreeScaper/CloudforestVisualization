@@ -105,6 +105,7 @@ const profile_node = function (node) {
 
 const draw_profile_legend = function (p) {
     const elm = document.getElementById("plot-metadata");
+    elm.classList.add("box");
     let e_string = `
     <h4>Partition ${p.id}</h4>
     <table class="table"><thead><tr>
@@ -267,7 +268,7 @@ const update_graph = function (conf_update) {
 
 const build_link_edit_ui = function () {
     let pcc = document.getElementById("plot-controls");
-
+    pcc.classList.add("box");
     pcc.append(htmlToElement(`<div class="field has-addons">
         <h4>Remove Links Below X% of Maximum Magnitude</h4>
         <div class="control">
