@@ -7,6 +7,7 @@ import { htmlToElement, removeChildNodes } from './html_templates';
 
 let score_array = undefined;
 let event_buld_fn = undefined;
+let parsed_data = undefined;
 let score_set = new Set();
 const FILE_NAME = "Affinity Matrix";
 
@@ -23,13 +24,30 @@ const d3 = Object.assign(
     }
 )
 
+const build_slider = function (e) {
+    let a_slider = `
+                <p>Group by Affinitity Score:</p >
+                    <input type="range" id="affinity-slider" name="affinity"
+                        min="0" max="${score_array.length - 1}" step="1" value="${score_array[score_array.length - 1]}">
+                        <span id="affinity-value">${score_array[score_array.length - 1]}</span>`;
+    e.innerHTML = a_slider;
+
+    let s = document.getElementById("affinity-slider");
+    s.addEventListener("input", () => {
+        document.getElementById("affinity-value").textContent = score_array[s.value];
+        filter_links(parsed_data, score_array[s.value]);
+    });
+}
+
 const build_dom = function () {
     removeChildNodes('plot');
-
-    let doc_width = document.getElementById("plot").clientWidth;
+    let plot_div = document.getElementById("plot");
+    let doc_width = plot_div.clientWidth;
     let div_width = Math.floor((doc_width - (doc_width * .15)) / 100) * 100;
     let div_height = div_width / 2;
-    document.getElementById('plot').append(htmlToElement(`<canvas id="ballons" width=${div_width} height=${div_height}></canvas>`));
+    plot_div.append(htmlToElement(`<canvas id="ballons" width=${div_width} height=${div_height}></canvas>`));
+    plot_div.append(htmlToElement(`<div id="affinity-control"/>`));
+    build_slider(document.getElementById("affinity-control"));
 }
 
 const draw_ballon_graph = function (b_nodes) {
@@ -246,9 +264,9 @@ const affinity_plot_init = function (init_obj) {
 
     addEventListener("FileContents", e => {
         if (e.detail.guid === my_guid) {
-            let parsed_data = parse_affinity_matrix(e.detail.contents);
-            build_dom();
+            parsed_data = parse_affinity_matrix(e.detail.contents);
             score_array = [...score_set].sort((a, b) => a - b); //low to high unique affinity scores
+            build_dom();
             filter_links(parsed_data, score_array[score_array.length - 1]);
         }
     });
