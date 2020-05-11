@@ -1,11 +1,11 @@
 import { hierarchy, cluster } from 'd3-hierarchy'
 import { create } from 'd3-selection';
 import { ascending } from 'd3-array';
-import { removeChildNodes, cleanExistingPlot } from "./html_templates";
+import { cleanExistingPlot } from "./html_templates";
 
 let event_buld_fn = undefined;
 
-const FILE_NAME = "Consensus Tree";
+const FILE_NAMES = ["Consensus Tree", "Boottrees"];
 
 const d3 = Object.assign(
     {},
@@ -134,6 +134,10 @@ const chart_phylogram = function (obj) {
     document.getElementById(dom_id).append(svg.attr("viewBox", autoBox).node());
 }
 
+const boottrees_dom = function (data) {
+
+}
+
 const hierarchy_plot_init = function (init_obj) {
     let { guid_fn, event_fn } = init_obj;
     event_buld_fn = event_fn;
@@ -141,14 +145,20 @@ const hierarchy_plot_init = function (init_obj) {
 
     addEventListener("FileContents", e => {
         if (e.detail.guid === my_guid) {
-            let parsed_branchset = parseNewick(e.detail.contents[FILE_NAME][0][0]);
-            chart_phylogram({ parsed_data: parsed_branchset, dom_id: "plot" });
+            if ("Consensus Tree" in e.detail.contents) {
+                let parsed_branchset = parseNewick(e.detail.contents["Consensus Tree"][0][0]);
+                chart_phylogram({ parsed_data: parsed_branchset, dom_id: "plot" });
+            }
+            if ("Boottrees" in e.detail.contents) {
+                let parsed_branchset = parseNewick(e.detail.contents["Boottrees"][0][0]);
+                chart_phylogram({ parsed_data: parsed_branchset, dom_id: "plot" });
+                boottrees_dom(e.detail.contents["Boottrees"]);
+            }
         }
     });
 
     addEventListener("TreePlotRequest", e => {
-        if (e.detail.file_name === FILE_NAME) {
-            console.log(`Received a TreePlotRequest for ${e.detail.file_name}`);
+        if (FILE_NAMES.indexOf(e.detail.file_name) > -1) {
             dispatchEvent(event_buld_fn("FileContentsRequest", { guid: my_guid, files: [e.detail.file_name] }));
         }
     });

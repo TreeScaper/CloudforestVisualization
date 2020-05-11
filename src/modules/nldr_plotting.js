@@ -211,7 +211,16 @@ const scatter_3d = function (file_contents) {
             ],
         ]
     }
+    const s_plot = document.getElementById(three_d_dom);
     Plotly3D.newPlot(three_d_dom, data, layout, btns);
+    s_plot.on("plotly_click", function (data) {
+        let tree_idx = data.points[0]['pointNumber'] - 1;
+        console.log(`Draw tree for ${tree_idx}`);
+        // publish("GenerateTreePlot", {
+        //     tree_id: tree_idx,
+        //     div_id: "tree_of_interest"
+        // });
+    });
 }
 
 const build_2d_3d = function (contents) {
