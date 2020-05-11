@@ -3,7 +3,7 @@ import { interpolatePiYG } from "d3-scale-chromatic";
 import { forceSimulation, forceCollide, forceManyBody, forceX, forceY } from "d3-force";
 import { select, event } from "d3-selection";
 import { drag } from "d3-drag";
-import { htmlToElement, removeChildNodes } from './html_templates';
+import { htmlToElement, cleanExistingPlot } from './html_templates';
 
 let score_array = undefined;
 let event_buld_fn = undefined;
@@ -40,14 +40,13 @@ const build_slider = function (e) {
 }
 
 const build_dom = function () {
-    removeChildNodes('plot');
+    cleanExistingPlot();
     let plot_div = document.getElementById("plot");
     let doc_width = plot_div.clientWidth;
     let div_width = Math.floor((doc_width - (doc_width * .15)) / 100) * 100;
     let div_height = div_width / 2;
     plot_div.append(htmlToElement(`<canvas id="ballons" width=${div_width} height=${div_height}></canvas>`));
-    plot_div.append(htmlToElement(`<div id="affinity-control"/>`));
-    build_slider(document.getElementById("affinity-control"));
+    build_slider(document.getElementById("plot-controls"));
 }
 
 const draw_ballon_graph = function (b_nodes) {

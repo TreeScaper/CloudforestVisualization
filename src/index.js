@@ -5,6 +5,7 @@ import { nldr_plot_init } from "./modules/nldr_plotting";
 import { affinity_plot_init } from "./modules/affinity_plotting";
 import { hierarchy_plot_init } from "./modules/hierarchy_plotting";
 import { covariance_plot_init } from "./modules/covariance_plotting";
+import { community_detection_init } from "./modules/community_detection_plotting";
 
 import { page_mgr_init } from "./modules/page_manager";
 
@@ -45,6 +46,10 @@ const run_app = function () {
         event_fn: build_event
     });
     hierarchy_plot_init({
+        guid_fn: get_guid,
+        event_fn: build_event
+    });
+    community_detection_init({
         guid_fn: get_guid,
         event_fn: build_event
     });

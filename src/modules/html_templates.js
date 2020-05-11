@@ -17,4 +17,9 @@ function removeChildNodes(parent_id) {
     }
 
 }
-export { htmlToElement, removeChildNodes }
+
+function cleanExistingPlot() {
+    removeChildNodes("plot");
+    removeChildNodes("plot-controls");
+}
+export { htmlToElement, removeChildNodes, cleanExistingPlot }

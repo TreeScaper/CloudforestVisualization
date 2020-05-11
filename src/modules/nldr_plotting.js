@@ -2,7 +2,7 @@
 import Plotly from 'plotly.js-basic-dist';
 import * as Plotly3D from 'plotly.js-gl3d-dist';
 import * as PlotlyParallel from 'plotly.js-gl2d-dist';
-import { htmlToElement, removeChildNodes } from './html_templates';
+import { htmlToElement, cleanExistingPlot } from './html_templates';
 
 let coordinate_data = undefined;
 let event_buld_fn = undefined;
@@ -253,7 +253,7 @@ const build_multidimension = function (contents) {
 }
 
 const plot_dimensions = function (dims, contents) {
-    removeChildNodes('plot');
+    cleanExistingPlot();
     if (dims === 2) {
         build_2d(contents);
     }

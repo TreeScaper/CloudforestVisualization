@@ -3,7 +3,7 @@ import { forceSimulation, forceCollide, forceManyBody, forceLink, forceX, forceY
 import { select, event } from "d3-selection";
 import { drag } from "d3-drag";
 
-import { removeChildNodes, htmlToElement } from "./html_templates";
+import { cleanExistingPlot, htmlToElement } from "./html_templates";
 
 const getEvent = () => event; // This is necessary when using webpack >> https://github.com/d3/d3-zoom/issues/32
 const d3 = Object.assign(
@@ -173,7 +173,7 @@ const draw_graph = function (graph_data) {
 }
 
 const build_dom = function () {
-    removeChildNodes("plot");
+    cleanExistingPlot();
     let doc_width = document.getElementById("plot").clientWidth;
     let div_width = Math.floor((doc_width - (.15 * doc_width)) / 100) * 100;
     let div_height = div_width / 2;
