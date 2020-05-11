@@ -21,5 +21,7 @@ function removeChildNodes(parent_id) {
 function cleanExistingPlot() {
     removeChildNodes("plot");
     removeChildNodes("plot-controls");
+    removeChildNodes("plot-metadata");
+
 }
 export { htmlToElement, removeChildNodes, cleanExistingPlot }

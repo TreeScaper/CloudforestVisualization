@@ -2,7 +2,7 @@
 import Plotly from 'plotly.js-basic-dist';
 import * as Plotly3D from 'plotly.js-gl3d-dist';
 import * as PlotlyParallel from 'plotly.js-gl2d-dist';
-import { htmlToElement, cleanExistingPlot } from './html_templates';
+import { htmlToElement, cleanExistingPlot, removeChildNodes } from './html_templates';
 
 let coordinate_data = undefined;
 let event_buld_fn = undefined;

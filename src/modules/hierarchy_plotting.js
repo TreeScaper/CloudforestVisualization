@@ -1,7 +1,7 @@
 import { hierarchy, cluster } from 'd3-hierarchy'
 import { create } from 'd3-selection';
 import { ascending } from 'd3-array';
-import { removeChildNodes } from "./html_templates";
+import { removeChildNodes, cleanExistingPlot } from "./html_templates";
 
 let event_buld_fn = undefined;
 
@@ -62,7 +62,7 @@ const autoBox = function () {
 
 const chart_phylogram = function (obj) {
     const { parsed_data, dom_id } = obj;
-    removeChildNodes(dom_id);
+    cleanExistingPlot();
     const root = d3.hierarchy(parsed_data, d => d.branchset)
         .sum(d => d.branchset ? 0 : 1)
         .sort((a, b) => (a.value - b.value) || d3.ascending(a.data.length, b.data.length));
