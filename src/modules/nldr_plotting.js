@@ -164,28 +164,28 @@ const scatter_3d = function (file_contents) {
                 name: 'All points black',
                 icon: Plotly.Icons.pencil,
                 click: function () {
-                    Plotly.restyle(three_d_dom, 'marker.color', ['black']);
+                    Plotly3D.restyle(three_d_dom, 'marker.color', ['black']);
                 }
             },
             {
                 name: 'Point color Z-axis',
                 icon: Plotly.Icons.pencil,
                 click: function () {
-                    Plotly.restyle(three_d_dom, 'marker.color', [row_data['z']]);
+                    Plotly3D.restyle(three_d_dom, 'marker.color', [row_data['z']]);
                 }
             },
             {
                 name: 'Point color Y-axis',
                 icon: Plotly.Icons.pencil,
                 click: function () {
-                    Plotly.restyle(three_d_dom, 'marker.color', [row_data['y']]);
+                    Plotly3D.restyle(three_d_dom, 'marker.color', [row_data['y']]);
                 }
             },
             {
                 name: 'Point color X-axis',
                 icon: Plotly.Icons.pencil,
                 click: function () {
-                    Plotly.restyle(three_d_dom, 'marker.color', [row_data['x']]);
+                    Plotly3D.restyle(three_d_dom, 'marker.color', [row_data['x']]);
                 }
             },
             {
@@ -193,7 +193,7 @@ const scatter_3d = function (file_contents) {
                 icon: Plotly.Icons.pencil,
                 click: function (data) {
                     let curr_size = data.data[0].marker.size
-                    Plotly.restyle(three_d_dom, 'marker.size', curr_size += 2);
+                    Plotly3D.restyle(three_d_dom, 'marker.size', curr_size += 2);
                 }
             },
             {
@@ -204,7 +204,7 @@ const scatter_3d = function (file_contents) {
                     if (curr_size === 2) {
                         console.log('Nope, too small');
                     } else {
-                        Plotly.restyle(three_d_dom, 'marker.size', curr_size -= 2);
+                        Plotly3D.restyle(three_d_dom, 'marker.size', curr_size -= 2);
                     }
                 }
             }
