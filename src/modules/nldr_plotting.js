@@ -216,10 +216,10 @@ const scatter_3d = function (file_contents) {
     s_plot.on("plotly_click", function (data) {
         let tree_idx = data.points[0]['pointNumber'] - 1;
         console.log(`Draw tree for ${tree_idx}`);
-        // publish("GenerateTreePlot", {
-        //     tree_id: tree_idx,
-        //     div_id: "tree_of_interest"
-        // });
+        dispatchEvent(
+            event_buld_fn("TreeRequest",
+                { guid: "", tree_number: tree_idx }
+            ));
     });
 }
 

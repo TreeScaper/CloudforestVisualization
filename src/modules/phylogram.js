@@ -1,5 +1,14 @@
-import { htmlToElement } from "./html_templates";
+import { hierarchy, cluster } from "d3-hierarchy";
+import { create, select } from "d3-selection";
+import { ascending } from "d3-array";
+import { removeChildNodes } from "./html_templates";
 
+const d3 = Object.assign(
+    {},
+    { hierarchy, cluster, create, select, ascending }
+);
+let data_files = undefined;
+let event_build_fn = undefined;
 /**
 * Newick tree parsing from 
 * https://github.com/jasondavies/newick.js
@@ -93,10 +102,6 @@ let boottrees_parse = function (s) {
     return newick_objs;
 };
 
-// ------------- Tree Graph
-let data_files = undefined;
-
-const tree_parse = tree_parser();
 
 const autoBox = function () {
     document.body.appendChild(this);
@@ -110,23 +115,8 @@ const autoBox = function () {
     return [x, y, width, height];
 }
 
-const build_dom = function (dom_id, tree_id) {
-    let clr_btn = htmlToElement('<button type="button" class="btn btn-primary btn-sm">Clear Tree</button>');
-    let e = document.getElementById(dom_id);
-    let p_text = htmlToElement('<p class="lead">Tree: ' + String(tree_id) + '</p>');
-    clr_btn.addEventListener('click', function (event) {
-        let element = event.target.parentNode;
-        while (element.firstChild) {
-            element.removeChild(element.firstChild);
-        }
-    });
-    e.append(p_text);
-    e.append(clr_btn);
-    return e;
-}
-
 const chart_phylogram = function (obj) {
-    const { parsed_data, dom_id, tree_id } = obj;
+    const { parsed_data, dom_id } = obj;
     const root = d3.hierarchy(parsed_data, d => d.branchset)
         .sum(d => d.branchset ? 0 : 1)
         .sort((a, b) => (a.value - b.value) || d3.ascending(a.data.length, b.data.length));
@@ -145,11 +135,11 @@ const chart_phylogram = function (obj) {
         .data(root.links())
         .join("path")
         .attr("d", d => `
-            M${d.target.y},${d.target.x}
-            C${d.source.y + root.dy / 2},${d.target.x}
-             ${d.source.y + root.dy / 2},${d.source.x}
-             ${d.source.y},${d.source.x}
-          `);
+        M${d.target.y},${d.target.x}
+        C${d.source.y + root.dy / 2},${d.target.x}
+         ${d.source.y + root.dy / 2},${d.source.x}
+         ${d.source.y},${d.source.x}
+      `);
 
     svg.append("g")
         .selectAll("circle")
@@ -189,43 +179,26 @@ const chart_phylogram = function (obj) {
         .filter(function (d) {
             return d.data.name.length != 0;
         })
-        .text(d => d.data.name + " : " + d.data.length.toPrecision(3))
+        //.text(d => d.data.name + " : " + d.data.length.toPrecision(3))
+        .text(d => d.data.name)
         .filter(d => d.children)
         .attr("text-anchor", "end")
         .clone(true).lower()
         .attr("stroke", "white");
-    let e = build_dom(dom_id, tree_id + 1);
     document.getElementById(dom_id).append(svg.attr("viewBox", autoBox).node());
-    e.scrollIntoView({ behavior: "smooth", block: "end", inline: "nearest" });
-}
-
-let reset_pyhlogram = function (obj) {
-    const { dom_id, tree_id } = obj;
-    let element = document.getElementById(dom_id);
-    while (element.firstChild) {
-        element.removeChild(element.firstChild);
-    }
-    //TODO: tree data if there are multiple tree files in a history???
-    let d_tree = undefined;
-    Object.keys(data_files).forEach(k => {
-        if (data_files[k].length >= tree_id) {
-            d_tree = data_files[k][tree_id];
-        }
-    });
-    chart_phylogram({ parsed_data: d_tree, dom_id: dom_id, tree_id: tree_id });
 }
 
 const format_data_files = function (raw_data) {
     let r_val = {};
     Object.keys(raw_data).forEach(k => {
-        if (k.includes("boottrees")) {
-            r_val[k] = tree_parse.boottrees_parse(raw_data[k]);
+        if (RegExp(/[Bb]oottrees/).test(k)) {
+            r_val[k] = boottrees_parse(raw_data[k]);
         }
-        if (k.endsWith('nex')) {
-            r_val[k] = tree_parse.nexus_parse(raw_data[k].join('\n'));
+        if (RegExp(/.*nex^/).test(k)) {
+            r_val[k] = nexus_parse(raw_data[k].join('\n'));
         }
-        if (k.endsWith('newick') || k.endsWith('nhk')) {
-            r_val[k] = tree_parse.newick_parse(raw_data[k].join('\n'));
+        if (RegExp(/.*newick^||.*nhk^/).test(k)) {
+            r_val[k] = newick_parse(raw_data[k].join('\n'));
         }
     });
     return r_val;
@@ -233,20 +206,28 @@ const format_data_files = function (raw_data) {
 
 const pyhlogram_plot_init = function (init_obj) {
     let { guid_fn, event_fn } = init_obj;
-    event_buld_fn = event_fn;
+    event_build_fn = event_fn;
     const my_guid = guid_fn();
 
-    addEventListener("FileContents", e => {
-        if (e.detail.guid === my_guid) {
-            coordinate_data = clean_data(e.detail.contents);
-            let plot_dimension = coordinate_data[Object.keys(coordinate_data)[0]][0].length;
-            plot_dimensions(plot_dimension, coordinate_data[Object.keys(coordinate_data)[0]]);
+    addEventListener("TreeRequest", e => {
+        let tree_num = e.detail.tree_number;
+        //Do we have more than one bootstap file?
+        if (data_files.length > 1) {
+            //Ask the user
+        } else {
+            removeChildNodes("plot-metadata");
+            chart_phylogram({ parsed_data: newick_parse(data_files["Boottrees"][tree_num][0]), dom_id: "plot-metadata", tree_id: tree_num });
+            document.getElementById("plot-metadata").scrollIntoView({ behavior: "smooth", block: "end", inline: "nearest" });
         }
     });
 
-    addEventListener("TreePlotRequest", e => {
-        dispatchEvent(event_buld_fn("FileContentsRequest", { guid: my_guid, files: [e.detail.file_name] }));
+    addEventListener("BootstrappedTreeData", e => {
+        //Expecting all data files containing bootstrapped trees
+        data_files = e.detail.files;
+        console.log(`BootstrappedTreeData : ${data_files}`);
     });
+
+    dispatchEvent(event_build_fn("BootstrappedTrees", { guid: my_guid }))
 }
 
 export { pyhlogram_plot_init }
