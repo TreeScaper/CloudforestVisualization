@@ -1,7 +1,7 @@
-import { hierarchy, cluster } from 'd3-hierarchy'
-import { create } from 'd3-selection';
-import { ascending } from 'd3-array';
-import { cleanExistingPlot } from "./html_templates";
+import { hierarchy, cluster } from "d3-hierarchy";
+import { create, select } from "d3-selection";
+import { ascending } from "d3-array";
+import { removeChildNodes, cleanExistingPlot, htmlToElement } from "./html_templates";
 
 let event_buld_fn = undefined;
 
@@ -9,7 +9,7 @@ const FILE_NAMES = ["Consensus Tree", "Boottrees"];
 
 const d3 = Object.assign(
     {},
-    { hierarchy, cluster, create, ascending }
+    { hierarchy, cluster, create, select, ascending }
 );
 
 // https://github.com/jasondavies/newick.js
@@ -62,7 +62,6 @@ const autoBox = function () {
 
 const chart_phylogram = function (obj) {
     const { parsed_data, dom_id } = obj;
-    cleanExistingPlot();
     const root = d3.hierarchy(parsed_data, d => d.branchset)
         .sum(d => d.branchset ? 0 : 1)
         .sort((a, b) => (a.value - b.value) || d3.ascending(a.data.length, b.data.length));
@@ -134,8 +133,25 @@ const chart_phylogram = function (obj) {
     document.getElementById(dom_id).append(svg.attr("viewBox", autoBox).node());
 }
 
-const boottrees_dom = function (data) {
+const animate = function (data) {
+    let tree_num = 0;
+    let parsed_branchset = parseNewick(data[tree_num][0]);
+    cleanExistingPlot();
+    chart_phylogram({ parsed_data: parsed_branchset, dom_id: "plot" });
+    const control_div = document.getElementById("plot-controls");
+    control_div.classList.add("box");
+    control_div.append(htmlToElement(`
+    <div class="field"><div class="control"><label for="boottree-slider">Tree Number: <span id="boottree-number">1</span></label>
+    <input type="range" id="boottree-slider" name="boottree"
+    min="1" max="${data.length - 1}" step="1" value="1" style="width: 60em;"></div></div>`));
 
+    document.getElementById("boottree-slider").addEventListener("input", () => {
+        let tn = Number(document.getElementById("boottree-slider").value);
+        document.getElementById("boottree-number").textContent = tn;
+        removeChildNodes("plot");
+        let pn = parseNewick(data[tn - 1][0]);
+        chart_phylogram({ parsed_data: pn, dom_id: "plot" });
+    });
 }
 
 const hierarchy_plot_init = function (init_obj) {
@@ -147,12 +163,11 @@ const hierarchy_plot_init = function (init_obj) {
         if (e.detail.guid === my_guid) {
             if ("Consensus Tree" in e.detail.contents) {
                 let parsed_branchset = parseNewick(e.detail.contents["Consensus Tree"][0][0]);
+                cleanExistingPlot();
                 chart_phylogram({ parsed_data: parsed_branchset, dom_id: "plot" });
             }
             if ("Boottrees" in e.detail.contents) {
-                let parsed_branchset = parseNewick(e.detail.contents["Boottrees"][0][0]);
-                chart_phylogram({ parsed_data: parsed_branchset, dom_id: "plot" });
-                boottrees_dom(e.detail.contents["Boottrees"]);
+                animate(e.detail.contents["Boottrees"]);
             }
         }
     });
