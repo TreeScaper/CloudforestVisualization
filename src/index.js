@@ -24,11 +24,7 @@ const build_event = function (name, details) {
     });
 }
 
-const run_app = function () {
-    document.querySelector("body").removeAttribute("style");
-
-    data_manager_init({});
-
+const init_modules = function () {
     page_mgr_init({
         guid_fn: get_guid,
         event_fn: build_event
@@ -58,7 +54,16 @@ const run_app = function () {
         guid_fn: get_guid,
         event_fn: build_event
     });
+}
 
+const run_app = function () {
+    document.querySelector("body").removeAttribute("style");
+    addEventListener("DataPrimed", () => { init_modules(); });
+    data_manager_init({
+        guid_fn: get_guid,
+        event_fn: build_event,
+        conf_elem_id: "galaxy_config"
+    });
 }
 
 run_app();
