@@ -1,6 +1,7 @@
 import "./bulma.min.css";
 
-import { data_manager_init } from "./modules/dev_datamanager";
+//import { data_manager_init } from "./modules/dev_datamanager";
+import { galaxy_data_init as data_manager_init } from "./modules/galaxy_data";
 import { nldr_plot_init } from "./modules/nldr_plotting";
 import { affinity_plot_init } from "./modules/affinity_plotting";
 import { hierarchy_plot_init } from "./modules/hierarchy_plotting";
@@ -62,7 +63,7 @@ const run_app = function () {
     data_manager_init({
         guid_fn: get_guid,
         event_fn: build_event,
-        conf_elem_id: "galaxy_config"
+        conf_elem_id: "galaxy-config"
     });
 }
 

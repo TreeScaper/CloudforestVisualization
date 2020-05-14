@@ -2,8 +2,9 @@
  * Module for all Galaxy interaction
  */
 let event_build_fn = undefined;
-let data_files = {}; //Holds the history data entries
 let file_objects = undefined; //Holds array of file objects from history
+let file_data = {}; //content cache
+let href = undefined;
 
 const string_parser = function (s) {
     const split_data = s.split(/\r?\n|\r/g).filter(v => v.length > 0);
@@ -14,18 +15,37 @@ const string_parser = function (s) {
     return parsed_data;
 };
 
-const get_data = function (data_name) {
-    return string_parser(data[data_name]);
-};
+const fetch_decode = (f_obj) => {
+    return async () => {
+        if (f_obj.name in file_data) {
+            let r_obj = {};
+            r_obj[f_obj.name] = file_data[f_obj.name];
+            return r_obj;
+        } else {
+            const api_url = `${href}${f_obj.url}/display?key=admin`;
+            let response = await fetch(api_url);
+            let contents = await response.text();
+            let formatted_contents = string_parser(contents);
+            //cache it
+            file_data[f_obj.name] = formatted_contents;
 
-//HOW THIS? 
-// 1-are contents in cache
-// 2-get contents from galaxy, place in cache
-const send_file_contents = function (obj) {
-    let file_contents = {};
-    obj.files.forEach(f => {
-        file_contents[f] = get_data(f);
+            let r_obj = {};
+            r_obj[f_obj.name] = formatted_contents;
+            return r_obj;
+        }
+    }
+}
+
+const send_file_contents = async (obj) => {
+    let funcs = [];
+    obj.files.forEach(file_name => {
+        const g_f_obj = file_objects.filter(fo => fo.name === file_name);
+        funcs.push(fetch_decode(g_f_obj[0]));
     });
+    let file_contents = [];
+    for (const f of funcs) {
+        file_contents.push(await f());
+    }
     dispatchEvent(event_build_fn("FileContents", {
         guid: obj.guid,
         contents: file_contents
@@ -46,16 +66,15 @@ const send_file_contents = function (obj) {
  * @param {*} raw_data 
  */
 const filter_data = function (raw_data) {
-    const data = JSON.parse(raw_data);
     const filename_check = function (name) {
         let r_val = false;
         if (RegExp(/.*tree.*/).test(name)) {
             r_val = true;
         }
-        if (RegExp(/.*nex^||*.nexus^/).test(name)) {
+        if (RegExp(/.*nex^|.*nexus^/).test(name)) {
             r_val = true;
         }
-        if (RegExp(/.*newick^||.*nhx^/).test(name)) {
+        if (RegExp(/.*newick^|.*nhx^/).test(name)) {
             r_val = true;
         }
         return r_val;
@@ -73,7 +92,7 @@ const filter_data = function (raw_data) {
         }
         return r_val;
     };
-    let r_val = data.filter(obj => {
+    let r_val = raw_data.filter(obj => {
         return (filetype_check(obj.extension) || filename_check(obj.name)) && obj.state === 'ok' && !obj.deleted;
     });
     return r_val;
@@ -82,18 +101,18 @@ const filter_data = function (raw_data) {
 const process_history_contents = function (data) {
     let f_data = filter_data(data);
     file_objects = f_data;
-    dispatchEvent("DataPrimed", {});
+    dispatchEvent(event_build_fn("DataPrimed", {}));
 };
 
 const parse_galaxy_history = function (href, history_id) {
-    const prod_api_call = `${href}/api/histories/${history_id}/contents`;
+    const prod_api_call = `${href}/api/histories/${history_id}/contents?key=admin`;
 
     fetch(prod_api_call)
         .then(response => {
             return response.text();
         })
         .then(data => {
-            process_history_contents(data);
+            process_history_contents(JSON.parse(data));
         })
         .catch(function (error) {
             console.error(`We have an error trying to discover history ${history_id} : ${error}`);
@@ -103,7 +122,7 @@ const parse_galaxy_history = function (href, history_id) {
 
 const file_names = function () {
     let r_val = [];
-    data_files.forEach(f_obj => {
+    file_objects.forEach(f_obj => {
         r_val.push(f_obj.name);
     });
     return r_val;
@@ -126,14 +145,14 @@ const set_event_listeners = function () {
         });
     });
 
-    addEventListener("BootstrappedTrees", () => {
-        let fc = {};
-        fc["Boottrees"] = get_data("Boottrees");
-        dispatchEvent(event_build_fn("BootstrappedTreeData"), {
-            guid: "",
-            files: fc
-        });
-    });
+    // addEventListener("BootstrappedTrees", () => {
+    //     let fc = {};
+    //     fc["Boottrees"] = get_data("Boottrees");
+    //     dispatchEvent(event_build_fn("BootstrappedTreeData"), {
+    //         guid: "",
+    //         files: fc
+    //     });
+    // });
 }
 
 const galaxy_data_init = function (init_obj) {
@@ -144,7 +163,7 @@ const galaxy_data_init = function (init_obj) {
     set_event_listeners();
 
     const config_elem = document.getElementById(conf_elem_id);
-    const href = config_elem.getAttribute("href")
+    href = config_elem.getAttribute("href")
     const history_id = config_elem.getAttribute("history-id");
     parse_galaxy_history(href, history_id);
 }
