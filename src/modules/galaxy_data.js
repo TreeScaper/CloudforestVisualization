@@ -1,3 +1,5 @@
+import { tree } from "d3-hierarchy";
+
 /**
  * Module for all Galaxy interaction
  */
@@ -36,7 +38,16 @@ const fetch_decode = (f_obj) => {
     }
 }
 
-const send_file_contents = async (obj) => {
+const array_to_dict = function (arr) {
+    let r_dict = {};
+    arr.forEach(e => {
+        let k = Object.keys(e)[0];
+        r_dict[k] = e[k];
+    })
+    return r_dict;
+}
+
+const send_file_contents = async (obj, event = "FileContents") => {
     let funcs = [];
     obj.files.forEach(file_name => {
         const g_f_obj = file_objects.filter(fo => fo.name === file_name);
@@ -46,9 +57,9 @@ const send_file_contents = async (obj) => {
     for (const f of funcs) {
         file_contents.push(await f());
     }
-    dispatchEvent(event_build_fn("FileContents", {
+    dispatchEvent(event_build_fn(event, {
         guid: obj.guid,
-        contents: file_contents
+        contents: array_to_dict(file_contents)
     }));
 }
 
@@ -145,14 +156,36 @@ const set_event_listeners = function () {
         });
     });
 
-    // addEventListener("BootstrappedTrees", () => {
-    //     let fc = {};
-    //     fc["Boottrees"] = get_data("Boottrees");
-    //     dispatchEvent(event_build_fn("BootstrappedTreeData"), {
-    //         guid: "",
-    //         files: fc
-    //     });
-    // });
+    //a consensus tree file will be named: Consensus Tree
+    //a bootstrapped tree file will, generally, contain the *.boottrees.* in the name.
+    addEventListener("TreeFileContentsRequest", e => {
+        let tree_files = [];
+        file_objects.forEach(fo => {
+            if (RegExp(/.*boottrees*/).test(fo.name)) {
+                tree_files.push(fo.name);
+            }
+            if (RegExp(/[Cc]onsensus [Tt]ree/).test(fo.name)) {
+                tree_files.push(fo.name);
+            }
+        });
+        send_file_contents({
+            guid: e.detail.guid,
+            files: tree_files
+        }, "TreeFileContents");
+    });
+
+    addEventListener("BootstrappedTrees", e => {
+        let tree_files = [];
+        file_objects.forEach(fo => {
+            if (RegExp(/.*boottrees*/).test(fo.name)) {
+                tree_files.push(fo.name);
+                send_file_contents({
+                    guid: e.detail.guid,
+                    files: tree_files
+                }, "BootstrappedTreeData");
+            }
+        });
+    });
 }
 
 const galaxy_data_init = function (init_obj) {

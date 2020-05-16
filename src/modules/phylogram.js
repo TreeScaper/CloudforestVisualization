@@ -213,10 +213,15 @@ const pyhlogram_plot_init = function (init_obj) {
         let tree_num = e.detail.tree_number;
         //Do we have more than one bootstap file?
         if (data_files.length > 1) {
-            //Ask the user
+            //TODO: Ask the user
         } else {
             removeChildNodes("plot-metadata");
-            chart_phylogram({ parsed_data: newick_parse(data_files["Boottrees"][tree_num][0]), dom_id: "plot-metadata", tree_id: tree_num });
+            let f = data_files[Object.keys(data_files)[0]];
+            chart_phylogram({
+                parsed_data: newick_parse(f[tree_num][0]),
+                dom_id: "plot-metadata",
+                tree_id: tree_num
+            });
             document.getElementById("plot-metadata").scrollIntoView({ behavior: "smooth", block: "end", inline: "nearest" });
         }
     });

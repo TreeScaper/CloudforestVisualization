@@ -159,22 +159,27 @@ const hierarchy_plot_init = function (init_obj) {
     event_buld_fn = event_fn;
     const my_guid = guid_fn();
 
-    addEventListener("FileContents", e => {
+    addEventListener("TreeFileContents", e => {
         if (e.detail.guid === my_guid) {
-            if ("Consensus Tree" in e.detail.contents) {
-                let parsed_branchset = parseNewick(e.detail.contents["Consensus Tree"][0][0]);
-                cleanExistingPlot();
-                chart_phylogram({ parsed_data: parsed_branchset, dom_id: "plot" });
-            }
-            if ("Boottrees" in e.detail.contents) {
-                animate(e.detail.contents["Boottrees"]);
-            }
+            //contents is a dict key is file name value is array of data.
+            Object.keys(e.detail.contents).forEach(k => {
+                if ("Consensus Tree" === k) {
+                    let parsed_branchset = parseNewick(e.detail.contents[k][0][0]);
+                    cleanExistingPlot();
+                    chart_phylogram({ parsed_data: parsed_branchset, dom_id: "plot" });
+                }
+                if (RegExp(/.*boottree.*/).test(k)) { //TODO: this needs fixing.
+                    alert("Lets animate a boottree");
+                    animate(e.detail.contents[k]);
+                }
+            })
+
         }
     });
 
     addEventListener("TreePlotRequest", e => {
         if (FILE_NAMES.indexOf(e.detail.file_name) > -1) {
-            dispatchEvent(event_buld_fn("FileContentsRequest", { guid: my_guid, files: [e.detail.file_name] }));
+            dispatchEvent(event_buld_fn("TreeFileContentsRequest", { guid: my_guid, files: [e.detail.file_name] }));
         }
     });
 
