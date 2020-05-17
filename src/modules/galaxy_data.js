@@ -160,13 +160,13 @@ const set_event_listeners = function () {
     //a bootstrapped tree file will, generally, contain the *.boottrees.* in the name.
     addEventListener("TreeFileContentsRequest", e => {
         let tree_files = [];
-        file_objects.forEach(fo => {
-            if (RegExp(/.*boottrees*/).test(fo.name)) {
-                tree_files.push(fo.name);
-            }
-            if (RegExp(/[Cc]onsensus [Tt]ree/).test(fo.name)) {
-                tree_files.push(fo.name);
-            }
+
+        e.detail.files.forEach(f => {
+            file_objects.forEach(fo => {
+                if (f === fo.name) {
+                    tree_files.push(f);
+                }
+            });
         });
         send_file_contents({
             guid: e.detail.guid,

@@ -228,8 +228,7 @@ const pyhlogram_plot_init = function (init_obj) {
 
     addEventListener("BootstrappedTreeData", e => {
         //Expecting all data files containing bootstrapped trees
-        data_files = e.detail.files;
-        console.log(`BootstrappedTreeData : ${data_files}`);
+        data_files = e.detail.contents;
     });
 
     dispatchEvent(event_build_fn("BootstrappedTrees", { guid: my_guid }))

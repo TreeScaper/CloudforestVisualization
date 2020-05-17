@@ -5,7 +5,7 @@ import { removeChildNodes, cleanExistingPlot, htmlToElement } from "./html_templ
 
 let event_buld_fn = undefined;
 
-const FILE_NAMES = ["Consensus Tree", "Boottrees"];
+const FILE_NAMES = [RegExp(/[Cc]onsensus Tree/), RegExp(/.*boot.*tree.*/)];
 
 const d3 = Object.assign(
     {},
@@ -169,7 +169,6 @@ const hierarchy_plot_init = function (init_obj) {
                     chart_phylogram({ parsed_data: parsed_branchset, dom_id: "plot" });
                 }
                 if (RegExp(/.*boottree.*/).test(k)) { //TODO: this needs fixing.
-                    alert("Lets animate a boottree");
                     animate(e.detail.contents[k]);
                 }
             })
@@ -178,9 +177,11 @@ const hierarchy_plot_init = function (init_obj) {
     });
 
     addEventListener("TreePlotRequest", e => {
-        if (FILE_NAMES.indexOf(e.detail.file_name) > -1) {
-            dispatchEvent(event_buld_fn("TreeFileContentsRequest", { guid: my_guid, files: [e.detail.file_name] }));
-        }
+        FILE_NAMES.forEach(rx => {
+            if (rx.test(e.detail.file_name)) {
+                dispatchEvent(event_buld_fn("TreeFileContentsRequest", { guid: my_guid, files: [e.detail.file_name] }));
+            }
+        });
     });
 
 }
