@@ -300,7 +300,10 @@ const build_link_edit_ui = function () {
     });
 
     document.getElementById("publish-graph").addEventListener("click", () => {
-        dispatchEvent(event_buld_fn("PublishData", { guid: my_guid, data: filtered_adjacency_list }));
+        dispatchEvent(event_buld_fn("PublishData", {
+            data: filtered_adjacency_list,
+            file_name: `Filtered Adjacency at ${document.getElementById("link-strength").value}`
+        }));
     });
 }
 

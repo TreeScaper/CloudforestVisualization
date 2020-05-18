@@ -7,6 +7,7 @@ let event_build_fn = undefined;
 let file_objects = undefined; //Holds array of file objects from history
 let file_data = {}; //content cache
 let href = undefined;
+let history_id = undefined;
 
 const string_parser = function (s) {
     const split_data = s.split(/\r?\n|\r/g).filter(v => v.length > 0);
@@ -139,8 +140,43 @@ const file_names = function () {
     return r_val;
 };
 
+const galaxy_upload = function (data, file_name) {
+    let payload = {
+        'files_0|url_paste': null,
+        'dbkey': '?',
+        'file_type': 'txt',
+        'files_0|type': 'upload_dataset',
+        'files_0|space_to_tab': null,
+        'files_0|to_posix_lines': 'Yes',
+        'files_0|NAME': file_name
+    };
+    let postData = {
+        history_id: history_id,
+        tool_id: 'upload1',
+        inputs: null
+    };
+    payload['files_0|url_paste'] = JSON.stringify(data);
+    postData.inputs = payload;
+
+    fetch(`${href}/api/tools?key=admin`, {
+        method: 'POST',
+        body: JSON.stringify(postData),
+    })
+        .then(response => response.json())
+        .then(data => {
+            console.log('Upload Success:', data);
+        })
+        .catch((error) => {
+            console.error('Error:', error);
+        });
+}
 
 const set_event_listeners = function () {
+
+    addEventListener("PublishData", e => {
+        galaxy_upload(e.detail.data, e.detail.file_name);
+    });
+
     addEventListener("AvailableFilesRequest", e => {
         const request_guid = e.detail.guid;
         dispatchEvent(event_build_fn("AvailableFiles", {
@@ -197,7 +233,7 @@ const galaxy_data_init = function (init_obj) {
 
     const config_elem = document.getElementById(conf_elem_id);
     href = config_elem.getAttribute("href")
-    const history_id = config_elem.getAttribute("history-id");
+    history_id = config_elem.getAttribute("history-id");
     parse_galaxy_history(href, history_id);
 }
 
