@@ -1,13 +1,13 @@
-import { tree } from "d3-hierarchy";
-
 /**
  * Module for all Galaxy interaction
  */
 let event_build_fn = undefined;
 let file_objects = undefined; //Holds array of file objects from history
-let file_data = {}; //content cache
 let href = undefined;
 let history_id = undefined;
+
+const admin_key = "?key=admin";
+const USE_KEY = false;
 
 const string_parser = function (s) {
     const split_data = s.split(/\r?\n|\r/g).filter(v => v.length > 0);
@@ -20,22 +20,16 @@ const string_parser = function (s) {
 
 const fetch_decode = (f_obj) => {
     return async () => {
-        if (f_obj.name in file_data) {
-            let r_obj = {};
-            r_obj[f_obj.name] = file_data[f_obj.name];
-            return r_obj;
-        } else {
-            const api_url = `${href}${f_obj.url}/display?key=admin`;
-            let response = await fetch(api_url);
-            let contents = await response.text();
-            let formatted_contents = string_parser(contents);
-            //cache it
-            file_data[f_obj.name] = formatted_contents;
-
-            let r_obj = {};
-            r_obj[f_obj.name] = formatted_contents;
-            return r_obj;
+        let api_url = `${href}${f_obj.url}/display`;
+        if (USE_KEY) {
+            api_url += admin_key;
         }
+        let response = await fetch(api_url);
+        let contents = await response.text();
+        let formatted_contents = string_parser(contents);
+        let r_obj = {};
+        r_obj[f_obj.name] = formatted_contents;
+        return r_obj;
     }
 }
 
@@ -117,8 +111,10 @@ const process_history_contents = function (data) {
 };
 
 const parse_galaxy_history = function (href, history_id) {
-    const prod_api_call = `${href}/api/histories/${history_id}/contents?key=admin`;
-
+    let prod_api_call = `${href}/api/histories/${history_id}/contents`;
+    if (USE_KEY) {
+        prod_api_url += admin_key;
+    }
     fetch(prod_api_call)
         .then(response => {
             return response.text();
@@ -158,7 +154,12 @@ const galaxy_upload = function (data, file_name) {
     payload['files_0|url_paste'] = JSON.stringify(data);
     postData.inputs = payload;
 
-    fetch(`${href}/api/tools?key=admin`, {
+    let api_url = `${href}/api/tools`;
+    if (USE_KEY) {
+        api_url += admin_key;
+    }
+
+    fetch(api_url, {
         method: 'POST',
         body: JSON.stringify(postData),
     })

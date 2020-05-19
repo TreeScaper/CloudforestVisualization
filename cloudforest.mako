@@ -20,7 +20,7 @@
                         <a class="navbar-item">
                             Documentation
                         </a>
-                        <a class="button is-light">
+                        <a class="button is-light" href="#" target="_blank">
                             Full Screen
                         </a>
                     </div>
@@ -82,7 +82,7 @@
         </div> <!-- Container-->
     </div>
     
-    <div id="galaxy-config" href=document.location.origin history-id="${trans.security.encode_id( hda.history_id )}"></div>
+    <div id="galaxy-config" href="${h.url_for('', qualified=True)}" history-id="${trans.security.encode_id( hda.history_id )}"></div>
     <script src="/static/plugins/visualizations/cloudforest/static/bundle.js"></script>
 </body>
 
