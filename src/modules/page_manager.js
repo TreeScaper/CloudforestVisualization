@@ -26,16 +26,20 @@ const wire_page = function () {
             .querySelectorAll('option')
             .forEach(n => {
                 n.addEventListener("click", e => {
-                    dispatchEvent(event_build_fn(select_objs[k].event, { file_name: e.target.value }));
+                    dispatchEvent(event_build_fn(select_objs[k].event, {
+                        file_name: e.target.getAttribute("data_name"),
+                        file_id: e.target.getAttribute("data_id")
+                    }));
                 })
             })
     });
 }
 
 const populate_selects = function () {
+    ///{ name: f_obj.name, id: f_obj.dataset_id }
     Object.keys(select_objs).forEach(k => {
         select_objs[k].files.forEach(f => {
-            let s = `<option value="${f}">${f}</option>`;
+            let s = `<option data_id="${f.id}" data_name="${f.name}">${f.name}</option>`;
             document.getElementById(k).append(htmlToElement(s));
         });
         if (select_objs[k].files.length > 0) {
@@ -46,10 +50,11 @@ const populate_selects = function () {
 }
 
 const process_available_files = function (files) {
+    //{ name: f_obj.name, id: f_obj.dataset_id }
     Object.keys(select_objs).forEach(k => {
         select_objs[k].regex.forEach(rx => {
             files.forEach(f => {
-                if (rx.test(f)) {
+                if (rx.test(f.name)) {
                     select_objs[k].files.push(f);
                 }
             });

@@ -1,3 +1,4 @@
+
 /**
  * Module for all Galaxy interaction
  */
@@ -5,6 +6,7 @@ let event_build_fn = undefined;
 let file_objects = undefined; //Holds array of file objects from history
 let href = undefined;
 let history_id = undefined;
+let bipartition_files = undefined
 
 const admin_key = "?key=admin";
 const USE_KEY = false;
@@ -44,8 +46,8 @@ const array_to_dict = function (arr) {
 
 const send_file_contents = async (obj, event = "FileContents") => {
     let funcs = [];
-    obj.files.forEach(file_name => {
-        const g_f_obj = file_objects.filter(fo => fo.name === file_name);
+    obj.files.forEach(file_id => {
+        const g_f_obj = file_objects.filter(fo => fo.dataset_id === file_id);
         funcs.push(fetch_decode(g_f_obj[0]));
     });
     let file_contents = [];
@@ -107,6 +109,10 @@ const filter_data = function (raw_data) {
 const process_history_contents = function (data) {
     let f_data = filter_data(data);
     file_objects = f_data;
+
+    bipartition_files = file_objects.filter(obj => RegExp(/[Bb]ipartition [Mm]atrix/).test(obj.name));
+
+    dispatchEvent(event_build_fn("BipartitionFiles", { files: bipartition_files }));
     dispatchEvent(event_build_fn("DataPrimed", {}));
 };
 
@@ -128,10 +134,10 @@ const parse_galaxy_history = function (href, history_id) {
 
 }
 
-const file_names = function () {
+const file_identifiers = function () {
     let r_val = [];
     file_objects.forEach(f_obj => {
-        r_val.push(f_obj.name);
+        r_val.push({ name: f_obj.name, id: f_obj.dataset_id });
     });
     return r_val;
 };
@@ -182,7 +188,7 @@ const set_event_listeners = function () {
         const request_guid = e.detail.guid;
         dispatchEvent(event_build_fn("AvailableFiles", {
             guid: request_guid,
-            files: file_names()
+            files: file_identifiers()
         }));
     });
 
@@ -200,7 +206,7 @@ const set_event_listeners = function () {
 
         e.detail.files.forEach(f => {
             file_objects.forEach(fo => {
-                if (f === fo.name) {
+                if (f === fo.dataset_id) {
                     tree_files.push(f);
                 }
             });
@@ -215,13 +221,17 @@ const set_event_listeners = function () {
         let tree_files = [];
         file_objects.forEach(fo => {
             if (RegExp(/.*boottrees*/).test(fo.name)) {
-                tree_files.push(fo.name);
+                tree_files.push(fo.dataset_id);
                 send_file_contents({
                     guid: e.detail.guid,
                     files: tree_files
                 }, "BootstrappedTreeData");
             }
         });
+    });
+
+    addEventListener("RequestBipartitionFile", () => {
+        dispatchEvent(event_build_fn("BipartitionFiles", { files: bipartition_files }));
     });
 }
 

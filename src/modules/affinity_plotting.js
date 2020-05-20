@@ -273,7 +273,7 @@ const affinity_plot_init = function (init_obj) {
 
     addEventListener("TreePlotRequest", e => {
         if (e.detail.file_name === FILE_NAME) {
-            dispatchEvent(event_buld_fn("FileContentsRequest", { guid: my_guid, files: [e.detail.file_name] }));
+            dispatchEvent(event_buld_fn("FileContentsRequest", { guid: my_guid, files: [e.detail.file_id] }));
         }
     });
 

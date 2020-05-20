@@ -179,7 +179,7 @@ const hierarchy_plot_init = function (init_obj) {
     addEventListener("TreePlotRequest", e => {
         FILE_NAMES.forEach(rx => {
             if (rx.test(e.detail.file_name)) {
-                dispatchEvent(event_buld_fn("TreeFileContentsRequest", { guid: my_guid, files: [e.detail.file_name] }));
+                dispatchEvent(event_buld_fn("TreeFileContentsRequest", { guid: my_guid, files: [e.detail.file_id] }));
             }
         });
     });

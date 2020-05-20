@@ -22,9 +22,10 @@ const d3 = Object.assign(
 );
 
 
-let event_buld_fn = undefined;
+let event_build_fn = undefined;
 let graph_data = undefined;
 let filtered_adjacency_list = undefined;
+let bipartition_file = undefined;
 let max_covariance = 0;
 let num_trees = 0;
 
@@ -300,7 +301,7 @@ const build_link_edit_ui = function () {
     });
 
     document.getElementById("publish-graph").addEventListener("click", () => {
-        dispatchEvent(event_buld_fn("PublishData", {
+        dispatchEvent(event_build_fn("PublishData", {
             data: filtered_adjacency_list,
             file_name: `Filtered Adjacency at ${document.getElementById("link-strength").value}`
         }));
@@ -309,8 +310,14 @@ const build_link_edit_ui = function () {
 
 const covariance_plot_init = function (init_obj) {
     let { guid_fn, event_fn } = init_obj;
-    event_buld_fn = event_fn;
+    event_build_fn = event_fn;
     const my_guid = guid_fn();
+
+
+    addEventListener("BipartitionFiles", e => {
+        bipartition_file = e.detail.files[0];
+    });
+    dispatchEvent(event_build_fn("RequestBipartitionFile", {}));
 
     addEventListener("FileContents", e => {
         if (e.detail.guid === my_guid) {
@@ -327,7 +334,10 @@ const covariance_plot_init = function (init_obj) {
 
     addEventListener("TreePlotRequest", e => {
         if (e.detail.file_name === FILE_NAME) {
-            dispatchEvent(event_buld_fn("FileContentsRequest", { guid: my_guid, files: [FILE_NAME, "Bipartition Matrix"] }));
+            dispatchEvent(event_build_fn("FileContentsRequest", {
+                guid: my_guid,
+                files: [e.detail.file_id, bipartition_file.id]
+            }));
         }
     });
 

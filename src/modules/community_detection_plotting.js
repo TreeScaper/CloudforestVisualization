@@ -84,14 +84,15 @@ const community_detection_init = function (init_obj) {
 
     addEventListener("FileContents", e => {
         if (e.detail.guid === my_guid) {
-            let parsed_data = parse_results(e.detail.contents["Community Results"]);
+            let key = Object.keys(e.detail.contents).filter(k => RegExp(/[Cc]ommunity/).test(k));
+            let parsed_data = parse_results(e.detail.contents[key[0]]);
             build_dom();
             draw_graph(parsed_data);
         }
     });
 
     addEventListener("CDPlotRequest", e => {
-        dispatchEvent(event_buld_fn("FileContentsRequest", { guid: my_guid, files: [e.detail.file_name] }));
+        dispatchEvent(event_buld_fn("FileContentsRequest", { guid: my_guid, files: [e.detail.file_id] }));
     });
 }
 
