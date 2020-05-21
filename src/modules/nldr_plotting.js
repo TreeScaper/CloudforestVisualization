@@ -1,5 +1,5 @@
 // Module for parsing and plotting NLDR coordinate data.
-import Plotly from 'plotly.js-basic-dist';
+import * as Plotly2D from 'plotly.js-basic-dist';
 import * as Plotly3D from 'plotly.js-gl3d-dist';
 import * as PlotlyParallel from 'plotly.js-gl2d-dist';
 import { htmlToElement, cleanExistingPlot, removeChildNodes } from './html_templates';
@@ -67,7 +67,7 @@ const parallel_coordinates = function (file_contents) {
 }
 
 const scatter_2d = function (file_contents) {
-    removeChildNodes('dim-scatter-plot');
+
     let axis_max_min = function (axis_data) {
         const max_mag = Math.ceil(Math.max(...axis_data.map(Math.abs)));
         let data_min = undefined;
@@ -109,7 +109,7 @@ const scatter_2d = function (file_contents) {
 
     const config = { responsive: true, displaylogo: false, scrollZoom: true }
     const s_plot = document.getElementById("dim-scatter-plot");
-    Plotly.newPlot("dim-scatter-plot", [trace1], layout, config);
+    Plotly2D.newPlot("dim-scatter-plot", [trace1], layout, config);
 
     s_plot.on("plotly_click", function (data) {
         let tree_idx = data.points[0]['pointNumber'] - 1;
@@ -122,6 +122,7 @@ const scatter_2d = function (file_contents) {
 }
 
 const scatter_3d = function (file_contents) {
+
     const three_d_dom = "dim-scatter-plot";
     let row_data = {
         'x': [],
@@ -172,35 +173,35 @@ const scatter_3d = function (file_contents) {
         modeBarButtonsToAdd: [
             [{
                 name: 'All points black',
-                icon: Plotly.Icons.pencil,
+                icon: Plotly3D.Icons.pencil,
                 click: function () {
                     Plotly3D.restyle(three_d_dom, 'marker.color', ['black']);
                 }
             },
             {
                 name: 'Point color Z-axis',
-                icon: Plotly.Icons.pencil,
+                icon: Plotly3D.Icons.pencil,
                 click: function () {
                     Plotly3D.restyle(three_d_dom, 'marker.color', [row_data['z']]);
                 }
             },
             {
                 name: 'Point color Y-axis',
-                icon: Plotly.Icons.pencil,
+                icon: Plotly3D.Icons.pencil,
                 click: function () {
                     Plotly3D.restyle(three_d_dom, 'marker.color', [row_data['y']]);
                 }
             },
             {
                 name: 'Point color X-axis',
-                icon: Plotly.Icons.pencil,
+                icon: Plotly3D.Icons.pencil,
                 click: function () {
                     Plotly3D.restyle(three_d_dom, 'marker.color', [row_data['x']]);
                 }
             },
             {
                 name: 'Enlarge Points',
-                icon: Plotly.Icons.pencil,
+                icon: Plotly3D.Icons.pencil,
                 click: function (data) {
                     let curr_size = data.data[0].marker.size
                     Plotly3D.restyle(three_d_dom, 'marker.size', curr_size += 2);
@@ -208,7 +209,7 @@ const scatter_3d = function (file_contents) {
             },
             {
                 name: 'Shrink Points',
-                icon: Plotly.Icons.pencil,
+                icon: Plotly3D.Icons.pencil,
                 click: function (data) {
                     let curr_size = data.data[0].marker.size;
                     if (curr_size === 2) {
@@ -252,6 +253,9 @@ const build_2d_3d = function (contents) {
             document.getElementById("scatter_dimensions").querySelectorAll('li').forEach(n => { n.classList = '' });
             document.getElementById(e.target.getAttribute('value')).parentElement.classList = 'is-active';
 
+            document.getElementById('dim-scatter-plot').remove();
+            document.getElementById("plot").append(htmlToElement(`<div id="dim-scatter-plot"/>`))
+
             if (e.target.getAttribute('value') === '3d') {
                 scatter_3d(contents);
             } else {
@@ -259,6 +263,7 @@ const build_2d_3d = function (contents) {
             }
         });
     });
+
     scatter_3d(contents);
 }
 
