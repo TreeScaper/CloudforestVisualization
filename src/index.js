@@ -59,9 +59,6 @@ const init_modules = function () {
 }
 
 const run_app = function () {
-    let hidden_nodes = document.querySelectorAll(".hidden");
-    hidden_nodes.forEach(n => n.classList.remove("hidden"));
-
     addEventListener("DataPrimed", () => { init_modules(); });
     data_manager_init({
         guid_fn: get_guid,

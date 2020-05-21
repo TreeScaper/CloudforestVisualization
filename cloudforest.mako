@@ -7,7 +7,7 @@
     <title>CloudForest Visualizations</title>  
 </head>
 
-<body class="hidden">
+<body>
     <div class="section">
         <div class="container">
             <nav class="navbar is-spaced is-light" role="navigation" aria-label="main navigation">
@@ -67,7 +67,7 @@
                         </div>
                     </div>
                 </div>
-                <div class="tile box has-text-centered">
+                <div class="tile box has-text-centered" style="overflow-x: auto;">
                     <div id="plot" style="width: 100%; margin: 0 auto;"></div>
                 </div>
             </div>
