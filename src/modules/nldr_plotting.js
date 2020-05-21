@@ -93,7 +93,8 @@ const scatter_2d = function (file_contents) {
         click_mode: 'select',
         mode: 'markers',
         type: 'scatter',
-        marker: { size: 5 }
+        marker: { size: 5 },
+        hovertemplate: "Data Point: %{pointNumber} <br> Coordinates: x: %{x} y: %{y}",
     };
     const layout = {
         xaxis: {
@@ -107,8 +108,17 @@ const scatter_2d = function (file_contents) {
     };
 
     const config = { responsive: true, displaylogo: false, scrollZoom: true }
-
+    const s_plot = document.getElementById("dim-scatter-plot");
     Plotly.newPlot("dim-scatter-plot", [trace1], layout, config);
+
+    s_plot.on("plotly_click", function (data) {
+        let tree_idx = data.points[0]['pointNumber'] - 1;
+        console.log(`Draw tree for ${tree_idx}`);
+        dispatchEvent(
+            event_buld_fn("TreeRequest",
+                { guid: "", tree_number: tree_idx }
+            ));
+    });
 }
 
 const scatter_3d = function (file_contents) {
