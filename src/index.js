@@ -1,5 +1,4 @@
 import "./bulma.min.css";
-import "./app.css";
 
 //import { data_manager_init } from "./modules/dev_datamanager";
 import { galaxy_data_init as data_manager_init } from "./modules/galaxy_data";
@@ -59,6 +58,8 @@ const init_modules = function () {
 }
 
 const run_app = function () {
+    document.querySelector("body").removeAttribute("style");
+
     addEventListener("DataPrimed", () => { init_modules(); });
     data_manager_init({
         guid_fn: get_guid,

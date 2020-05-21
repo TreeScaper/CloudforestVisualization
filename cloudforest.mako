@@ -7,14 +7,14 @@
     <title>CloudForest Visualizations</title>  
 </head>
 
-<body>
+<body style="display: none;">
     <div class="section">
         <div class="container">
             <nav class="navbar is-spaced is-light" role="navigation" aria-label="main navigation">
                 <div class="navbar-brand">
                     <h1 class="title">CloudForest</h1>
                 </div>
-                <div class="navbar-menu">
+                <div class="navbar-menu is-active">
                     <div class="navbar-start">
                         <a id="documentation-btn" class="button is-light">
                             Documentation
