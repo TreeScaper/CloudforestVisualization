@@ -1,8 +1,8 @@
 import Plotly from 'plotly.js-basic-dist';
 import { htmlToElement, cleanExistingPlot } from "./html_templates";
 
-let event_buld_fn = undefined;
-
+let event_build_fn = undefined;
+let cd_grouping = undefined;
 
 const draw_graph = function (data) {
     const line_width = 2;
@@ -66,34 +66,53 @@ const draw_graph = function (data) {
 
 const build_dom = function () {
     cleanExistingPlot();
-}
+    let e = document.getElementById("plot-metadata");
+    e.append(htmlToElement(`<input type="checkbox" id="use-cd" name="use-cd">`));
+    e.append(htmlToElement(`<label for="use-cd">Use CD grouping in all plots.</label>`));
 
-
-/**
- * Community index (first column is tree index): <==== idx 8
-0	0	0	0	0	0	0	0	0	0	0	0	
-1	0	0	0	0	0	0	0	0	0	0	1	
-2	0	0	0	1	3	3	3	3	3	3	2	
-3	0	0	0	0	0	0	0	0	0	0	3	
-4	0	0	0	3	1	1	1	1	1	1	4	
-5	0	0	0	3	1	1	1	1	1	1	5	
-6	0	0	0	0	0	0	0	0	0	0	6	
-7	0	0	7	1	5	5	5	5	5	5	7	
-8	0	1	5	5	2	2	2	2	2	2	8	
-9	0	1	5	6	12	12	12	12	12	12	9	
-10	0	0	0	7	4	4	4	4	4	4	10	
-11	0	0	7	7	14	14	14	14	14	14	11	
-12	0	0	0	0	0	0	0	0	0	0	12	
-13	0	0	0	0	0	0	0	0	0	0	13	
- * 
- */
-const parse_communities = function (data) {
-    const communities = data.map((arr, idx) => {
-        if (idx > 8) {
-            let vals = arr.map(v => Number(v));
-
+    document.getElementById("use-cd").addEventListener('input', (e) => {
+        console.log(`Use CD ${e.target}`);
+        if (e.target.checked) {
+            dispatchEvent(event_build_fn("CDGroupsAvailable", { groups: cd_grouping }));
         }
     });
+
+}
+
+// Returns an array of index offsets showing where the community ids are.
+const get_cd_indexes = function (arr) {
+    let d = {};
+    arr.forEach((cv, idx) => {
+        if (!(cv in d)) {
+            d[cv] = [];
+        }
+        d[cv].push(idx + 1); //the data line for num of communities has been sliced before this step.
+    });
+    let cd_idxs = Object.keys(d).filter(k => {
+        if (k > 0 && d[k].length > 2) {
+            return k
+        }
+    })
+    return d[Math.min(cd_idxs)];
+}
+
+const parse_communities = function (data, labels) {
+    let cd_indexes = get_cd_indexes(labels);
+    let communities = {};
+    data.forEach((arr, idx) => {
+        if (idx > 8) {
+            let cds = [];
+            cd_indexes.forEach(i => { cds.push(arr[i]) });
+            communities[arr[0]] = cds;
+        }
+    });
+    //sanity check
+    Object.keys(communities).forEach(k => {
+        if (!(Math.min(...communities[k]) === Math.max(...communities[k]))) {
+            console.error(`All values for ${k} should be equal, they are not --> ${communities[k]}`);
+        }
+    });
+    return communities;
 }
 
 const parse_results = function (data) {
@@ -107,7 +126,7 @@ const parse_results = function (data) {
 
 const community_detection_init = function (init_obj) {
     let { guid_fn, event_fn } = init_obj;
-    event_buld_fn = event_fn;
+    event_build_fn = event_fn;
     const my_guid = guid_fn();
 
     addEventListener("FileContents", e => {
@@ -116,11 +135,12 @@ const community_detection_init = function (init_obj) {
             let parsed_data = parse_results(e.detail.contents[key[0]]);
             build_dom();
             draw_graph(parsed_data);
+            cd_grouping = parse_communities(e.detail.contents[key[0]], parsed_data["label_community"]);
         }
     });
 
     addEventListener("CDPlotRequest", e => {
-        dispatchEvent(event_buld_fn("FileContentsRequest", { guid: my_guid, files: [e.detail.file_id] }));
+        dispatchEvent(event_build_fn("FileContentsRequest", { guid: my_guid, files: [e.detail.file_id] }));
     });
 }
 

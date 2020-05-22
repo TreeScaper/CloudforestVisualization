@@ -6,6 +6,7 @@ import { htmlToElement, cleanExistingPlot, removeChildNodes } from './html_templ
 
 let coordinate_data = undefined;
 let event_buld_fn = undefined;
+let cd_groups = undefined;
 
 // Data coming from treescaper is often poorly formatted. Need to 
 // do some cleaning here, mostly remove the artificats from having extra tabs in output.
@@ -293,6 +294,12 @@ const nldr_plot_init = function (init_obj) {
     let { guid_fn, event_fn } = init_obj;
     event_buld_fn = event_fn;
     const my_guid = guid_fn();
+
+    // dispatchEvent(event_build_fn("CDGroupsAvailable", { groups: cd_grouping }));
+    //User has requested that CD groups be used in plotting.
+    addEventListener("CDGroupsAvailable", e => {
+        cd_groups = e.detail.groups;
+    });
 
     addEventListener("FileContents", e => {
         if (e.detail.guid === my_guid) {
