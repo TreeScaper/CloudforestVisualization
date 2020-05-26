@@ -3,10 +3,11 @@ import * as Plotly2D from 'plotly.js-basic-dist';
 import * as Plotly3D from 'plotly.js-gl3d-dist';
 import * as PlotlyParallel from 'plotly.js-gl2d-dist';
 import { htmlToElement, cleanExistingPlot, removeChildNodes } from './html_templates';
+import { tree } from 'd3-hierarchy';
 
 let coordinate_data = undefined;
 let event_buld_fn = undefined;
-let cd_groups = undefined;
+let cd_groups = undefined; //If defined, use CD groups in plotting. Each group is a trace.
 
 // Data coming from treescaper is often poorly formatted. Need to 
 // do some cleaning here, mostly remove the artificats from having extra tabs in output.
@@ -67,6 +68,76 @@ const parallel_coordinates = function (file_contents) {
     });
 }
 
+
+/**
+ * {
+            x: row_data['x'],
+            y: row_data['y'],
+            click_mode: 'select',
+            mode: 'markers',
+            type: 'scatter',
+            marker: { size: 5 },
+            hovertemplate: "Data Point: %{pointNumber} <br> Coordinates: x: %{x} y: %{y}",
+        }
+ */
+const construct_grouped_data = function (file_contents) {
+    let r_val = [];
+    let misc_grps = {
+        x: [],
+        y: [],
+        name: `No CD`,
+        click_mode: 'select',
+        mode: 'markers',
+        type: 'scatter',
+        marker: { size: 5 },
+        text: [],
+        tree_num_offsets: [],
+        showlegend: false
+    };
+
+    Object.keys(cd_groups).forEach(grp_num => {
+        if (cd_groups[grp_num].length > 1) {
+            let grp_trace = {
+                x: [],
+                y: [],
+                name: `CD: ${grp_num}`,
+                click_mode: 'select',
+                mode: 'markers',
+                type: 'scatter',
+                marker: { size: 5 },
+                text: [],
+                tree_num_offsets: [],
+                showlegend: false
+            };
+            cd_groups[grp_num].forEach(tree_num => {
+                let row = file_contents[tree_num - 1];
+                grp_trace.x.push(Number(row[0]));
+                grp_trace.y.push(Number(row[1]));
+                grp_trace.text.push(`Tree ${tree_num}`);
+                grp_trace.tree_num_offsets.push(tree_num - 1);
+
+            });
+            r_val.push(grp_trace);
+        } else {
+            //These are 1 member groups. Aggregate into a 1 member group trace
+            cd_groups[grp_num].forEach(tree_num => {
+                let row = file_contents[tree_num - 1];
+                misc_grps.x.push(Number(row[0]));
+                misc_grps.y.push(Number(row[1]));
+                misc_grps.text.push(`Tree ${tree_num}`);
+                misc_grps.tree_num_offsets.push(tree_num - 1);
+            });
+        }
+    });
+    r_val.push(misc_grps);
+    return r_val;
+}
+
+/**
+ * file_contents is array of 3D coordinates. Array offset is tree number - 1.
+ * 
+ * @param {number[][]} file_contents 
+ */
 const scatter_2d = function (file_contents) {
 
     let axis_max_min = function (axis_data) {
@@ -88,15 +159,22 @@ const scatter_2d = function (file_contents) {
         row_data['x'].push(Number(r[0]));
         row_data['y'].push(Number(r[1]));
     });
-    const trace1 = {
-        x: row_data['x'],
-        y: row_data['y'],
-        click_mode: 'select',
-        mode: 'markers',
-        type: 'scatter',
-        marker: { size: 5 },
-        hovertemplate: "Data Point: %{pointNumber} <br> Coordinates: x: %{x} y: %{y}",
-    };
+
+    let data = [];
+    if (cd_groups) {
+        data = construct_grouped_data(file_contents);
+    } else {
+        data.push({
+            x: row_data['x'],
+            y: row_data['y'],
+            click_mode: 'select',
+            mode: 'markers',
+            type: 'scatter',
+            marker: { size: 5 },
+            hovertemplate: "Data Point: %{pointNumber} <br> Coordinates: x: %{x} y: %{y}",
+        });
+    }
+
     const layout = {
         xaxis: {
             range: axis_max_min(row_data['x']),
@@ -110,10 +188,11 @@ const scatter_2d = function (file_contents) {
 
     const config = { responsive: true, displaylogo: false, scrollZoom: true }
     const s_plot = document.getElementById("dim-scatter-plot");
-    Plotly2D.newPlot("dim-scatter-plot", [trace1], layout, config);
+    Plotly2D.newPlot("dim-scatter-plot", data, layout, config);
 
     s_plot.on("plotly_click", function (data) {
-        let tree_idx = data.points[0]['pointNumber'] - 1;
+        //let tree_idx = data.points[0]['pointNumber'] - 1;
+        let tree_idx = data.points[0].data.tree_num_offsets[data.points[0].pointIndex]
         console.log(`Draw tree for ${tree_idx}`);
         dispatchEvent(
             event_buld_fn("TreeRequest",
@@ -295,7 +374,6 @@ const nldr_plot_init = function (init_obj) {
     event_buld_fn = event_fn;
     const my_guid = guid_fn();
 
-    // dispatchEvent(event_build_fn("CDGroupsAvailable", { groups: cd_grouping }));
     //User has requested that CD groups be used in plotting.
     addEventListener("CDGroupsAvailable", e => {
         cd_groups = e.detail.groups;

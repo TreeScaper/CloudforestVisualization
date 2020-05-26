@@ -124,6 +124,25 @@ const parse_results = function (data) {
     return plot_data;
 }
 
+/**
+ * Clean the raw grouping to k<group number> : v< [tree_num, tree_num, ...] >
+ * @param {{}} cd_obj 
+ */
+const group_groups = function (cd_obj) {
+    let clean_groups = {};
+    Object.keys(cd_obj).forEach(k => {
+        let tree_num = Number(k) + 1;
+        let group_num = Number(cd_obj[k][0]);
+
+        if (!(group_num in clean_groups)) {
+            clean_groups[group_num] = [];
+        }
+
+        clean_groups[group_num].push(tree_num);
+    });
+    return clean_groups;
+}
+
 const community_detection_init = function (init_obj) {
     let { guid_fn, event_fn } = init_obj;
     event_build_fn = event_fn;
@@ -135,7 +154,8 @@ const community_detection_init = function (init_obj) {
             let parsed_data = parse_results(e.detail.contents[key[0]]);
             build_dom();
             draw_graph(parsed_data);
-            cd_grouping = parse_communities(e.detail.contents[key[0]], parsed_data["label_community"]);
+            let raw_cds = parse_communities(e.detail.contents[key[0]], parsed_data["label_community"]);
+            cd_grouping = group_groups(raw_cds);
         }
     });
 
