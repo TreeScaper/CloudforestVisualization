@@ -7,7 +7,8 @@ import { affinity_plot_init } from "./modules/affinity_plotting";
 import { hierarchy_plot_init } from "./modules/hierarchy_plotting";
 import { covariance_plot_init } from "./modules/covariance_plotting";
 import { community_detection_init } from "./modules/community_detection_plotting";
-import { pyhlogram_plot_init } from "./modules/phylogram";
+import { pyhlogram_data_init } from "./modules/phylogram_data";
+import { tree_plot_init } from "./modules/phylogram";
 
 import { page_mgr_init } from "./modules/page_manager";
 
@@ -51,7 +52,10 @@ const init_modules = function () {
         guid_fn: get_guid,
         event_fn: build_event
     });
-    pyhlogram_plot_init({
+    tree_plot_init({
+        event_fn: build_event
+    });
+    pyhlogram_data_init({
         guid_fn: get_guid,
         event_fn: build_event
     });
