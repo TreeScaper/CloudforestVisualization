@@ -177,7 +177,9 @@ const create_tree = function (data) {
         .attr("cx", d => scale_x(d.x))
         .attr("cy", d => scale_y(d.y))
         .attr("fill", "gray")
-        .attr("opacity", "0.8")
+        .attr("opacity", d => {
+            if (d.depth > 0) { return "0.8" } else { return "0.2" }
+        })
         .attr("r", 4);
 
     svg.append("g")
