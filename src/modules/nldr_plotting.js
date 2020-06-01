@@ -191,8 +191,8 @@ const scatter_2d = function (file_contents) {
     Plotly2D.newPlot("dim-scatter-plot", data, layout, config);
 
     s_plot.on("plotly_click", function (data) {
-        //let tree_idx = data.points[0]['pointNumber'] - 1;
-        let tree_idx = data.points[0].data.tree_num_offsets[data.points[0].pointIndex]
+        let tree_idx = data.points[0]['pointNumber'] - 1;
+        //let tree_idx = data.points[0].data.tree_num_offsets[data.points[0].pointIndex]
         console.log(`Draw tree for ${tree_idx}`);
         dispatchEvent(
             event_buld_fn("TreeRequest",
