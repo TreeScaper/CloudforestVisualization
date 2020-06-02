@@ -75,6 +75,31 @@ const build_dom = function () {
         document.getElementById("use-cd").checked = true;
     }
 
+    let rr = document.getElementById("plot-controls");
+    rr.append(htmlToElement(`
+    <div class="columns">
+        <div class="column">
+            <label for="start-lambda">Start Lambda</label>
+            <input type="text" id="start-lambda" name="start-lambda">
+        </div>
+        <div class="column">
+            <label for="end-lambda">End Lambda</label>
+            <input type="text" id="end-lambda" name="end-lambda">
+        </div>
+        <div class="column">
+            <label for="interval-lambda">Lambda Interval</label>
+            <input type="text" id="interval-lambda" name="interval-lambda">
+        </div>
+        <div class="column">
+            <label for="positive-lambda">Positive Lambda</label>
+            <input type="checkbox" id="positive-lambda" name="Positive" checked>
+        </div>
+        <div class="column">
+            <button class="button is-info" id="cd-rerun">Rerun</button>
+        </div>
+    </div>
+    `));
+
     document.getElementById("use-cd").addEventListener('input', (e) => {
         console.log(`Use CD ${e.target}`);
         if (e.target.checked) {
