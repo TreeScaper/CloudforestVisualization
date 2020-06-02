@@ -5,7 +5,6 @@ let event_build_fn = undefined;
 
 const FILE_NAMES = [RegExp(/[Cc]onsensus Tree/), RegExp(/.*boot.*tree.*/)];
 
-
 const animate = function (data) {
 
     let tree_num = 0;
@@ -14,7 +13,7 @@ const animate = function (data) {
     dispatchEvent(event_build_fn("PlotForTree", {
         tree: parsed_branchset,
         width: document.getElementById("plot").clientWidth,
-        height: .5 * document.getElementById("plot").clientWidth,
+        height: .75 * document.getElementById("plot").clientWidth,
         plot_div: "plot"
     }));
 
@@ -33,7 +32,7 @@ const animate = function (data) {
         dispatchEvent(event_build_fn("PlotForTree", {
             tree: pn,
             width: document.getElementById("plot").clientWidth,
-            height: .5 * document.getElementById("plot").clientWidth,
+            height: .75 * document.getElementById("plot").clientWidth,
             plot_div: "plot"
         }));
     });
@@ -55,7 +54,7 @@ const hierarchy_plot_init = function (init_obj) {
                     dispatchEvent(event_build_fn("PlotForTree", {
                         tree: parsed_branchset,
                         width: document.getElementById("plot").clientWidth,
-                        height: .5 * document.getElementById("plot").clientWidth,
+                        height: .75 * document.getElementById("plot").clientWidth,
                         plot_div: "plot"
                     }));
                 }

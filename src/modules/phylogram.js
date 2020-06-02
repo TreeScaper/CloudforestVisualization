@@ -36,7 +36,6 @@ const root_distance = function (root) {
             }
         });
     });
-
 }
 
 /**
@@ -132,7 +131,6 @@ const create_tree = function (data) {
 
 
     const svg = d3.select(`#${plot_div}`).append("svg").attr("width", width).attr("height", height);
-
     svg.append("g")
         .attr("fill", "none")
         .attr("stroke", "#555")
@@ -209,8 +207,6 @@ const tree_plot_init = function (init_obj) {
         plot_div = e.detail.plot_div
 
         create_tree(tree_data)
-        //let tree_svg = create_tree(tree_data);
-        //dispatchEvent(event_build_fn("TreeSVG", { tree: tree_svg }));
     });
 }
 
