@@ -3,6 +3,7 @@ import { htmlToElement, cleanExistingPlot } from "./html_templates";
 
 let event_build_fn = undefined;
 let cd_grouping = undefined;
+let using_groups = false;
 
 const draw_graph = function (data) {
     const line_width = 2;
@@ -70,10 +71,18 @@ const build_dom = function () {
     e.append(htmlToElement(`<input type="checkbox" id="use-cd" name="use-cd">`));
     e.append(htmlToElement(`<label for="use-cd">Use CD grouping in all plots.</label>`));
 
+    if (using_groups) {
+        document.getElementById("use-cd").checked = true;
+    }
+
     document.getElementById("use-cd").addEventListener('input', (e) => {
         console.log(`Use CD ${e.target}`);
         if (e.target.checked) {
-            dispatchEvent(event_build_fn("CDGroupsAvailable", { groups: cd_grouping }));
+            dispatchEvent(event_build_fn("UseCDGroupsTrue", { groups: cd_grouping }));
+            using_groups = true;
+        } else {
+            dispatchEvent(event_build_fn("UseCDGroupsFalse", {}));
+            using_groups = false;
         }
     });
 

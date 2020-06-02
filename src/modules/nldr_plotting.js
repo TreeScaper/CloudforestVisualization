@@ -3,7 +3,6 @@ import * as Plotly2D from 'plotly.js-basic-dist';
 import * as Plotly3D from 'plotly.js-gl3d-dist';
 import * as PlotlyParallel from 'plotly.js-gl2d-dist';
 import { htmlToElement, cleanExistingPlot, removeChildNodes } from './html_templates';
-import { tree } from 'd3-hierarchy';
 
 let coordinate_data = undefined;
 let event_buld_fn = undefined;
@@ -68,35 +67,35 @@ const parallel_coordinates = function (file_contents) {
     });
 }
 
-
-/**
- * {
-            x: row_data['x'],
-            y: row_data['y'],
-            click_mode: 'select',
-            mode: 'markers',
-            type: 'scatter',
-            marker: { size: 5 },
-            hovertemplate: "Data Point: %{pointNumber} <br> Coordinates: x: %{x} y: %{y}",
-        }
- */
-const construct_grouped_data = function (file_contents) {
+const construct_grouped_data = function (init_obj) {
     let r_val = [];
-    let misc_grps = {
+    let { data, dim } = init_obj;
+    //default to 2d
+    let misc_group = {
         x: [],
         y: [],
         name: `No CD`,
         click_mode: 'select',
         mode: 'markers',
         type: 'scatter',
-        marker: { size: 5 },
+        marker: {
+            size: 5
+        },
         text: [],
         tree_num_offsets: [],
         showlegend: false
     };
-
+    if (dim === 3) {
+        misc_group.type = 'scatter3d';
+        misc_group.z = [];
+        misc_group.marker = {
+            symbol: 'circle',
+            size: 2
+        };
+    }
     Object.keys(cd_groups).forEach(grp_num => {
         if (cd_groups[grp_num].length > 1) {
+            //Default to 2d
             let grp_trace = {
                 x: [],
                 y: [],
@@ -109,27 +108,40 @@ const construct_grouped_data = function (file_contents) {
                 tree_num_offsets: [],
                 showlegend: false
             };
+            if (dim === 3) {
+                grp_trace.type = 'scatter3d';
+                grp_trace.z = [];
+                grp_trace.marker = {
+                    symbol: 'circle',
+                    size: 2
+                };
+            }
             cd_groups[grp_num].forEach(tree_num => {
-                let row = file_contents[tree_num - 1];
+                let row = data[tree_num - 1];
                 grp_trace.x.push(Number(row[0]));
                 grp_trace.y.push(Number(row[1]));
+                if (dim === 3) {
+                    grp_trace.z.push(Number(row[2]));
+                }
                 grp_trace.text.push(`Tree ${tree_num}`);
                 grp_trace.tree_num_offsets.push(tree_num - 1);
-
             });
             r_val.push(grp_trace);
         } else {
             //These are 1 member groups. Aggregate into a 1 member group trace
             cd_groups[grp_num].forEach(tree_num => {
-                let row = file_contents[tree_num - 1];
-                misc_grps.x.push(Number(row[0]));
-                misc_grps.y.push(Number(row[1]));
-                misc_grps.text.push(`Tree ${tree_num}`);
-                misc_grps.tree_num_offsets.push(tree_num - 1);
+                let row = data[tree_num - 1];
+                misc_group.x.push(Number(row[0]));
+                misc_group.y.push(Number(row[1]));
+                if (dim === 3) {
+                    misc_group.z.push(Number(row[2]));
+                }
+                misc_group.text.push(`Tree ${tree_num}`);
+                misc_group.tree_num_offsets.push(tree_num - 1);
             });
         }
     });
-    r_val.push(misc_grps);
+    r_val.push(misc_group);
     return r_val;
 }
 
@@ -162,7 +174,38 @@ const scatter_2d = function (file_contents) {
 
     let data = [];
     if (cd_groups) {
-        data = construct_grouped_data(file_contents);
+        data = construct_grouped_data({
+            data: file_contents,
+            dim: 2,
+            misc_group: {
+                x: [],
+                y: [],
+                name: `No CD`,
+                click_mode: 'select',
+                mode: 'markers',
+                type: 'scatter',
+                marker: {
+                    size: 5
+                },
+                text: [],
+                tree_num_offsets: [],
+                showlegend: false
+            },
+            trace_group: {
+                x: [],
+                y: [],
+                name: undefined,
+                click_mode: 'select',
+                mode: 'markers',
+                type: 'scatter',
+                marker: {
+                    size: 5
+                },
+                text: [],
+                tree_num_offsets: [],
+                showlegend: false
+            }
+        });
     } else {
         data.push({
             x: row_data['x'],
@@ -214,20 +257,27 @@ const scatter_3d = function (file_contents) {
         row_data['y'].push(Number(r[1]));
         row_data['z'].push(Number(r[2]));
     });
-    const data = [{
-        x: row_data['x'],
-        y: row_data['y'],
-        z: row_data['z'],
-        mode: 'markers',
-        type: 'scatter3d',
-        marker: {
-            symbol: 'circle',
-            color: row_data['z'],
-            size: 2
-        },
-        hovertemplate: "Data Point: %{pointNumber} <br> Coordinates: x: %{x} y: %{y} z: %{z}",
-
-    },];
+    let data = [];
+    if (cd_groups) {
+        data = construct_grouped_data({
+            data: file_contents,
+            dim: 3
+        });
+    } else {
+        data = [{
+            x: row_data['x'],
+            y: row_data['y'],
+            z: row_data['z'],
+            mode: 'markers',
+            type: 'scatter3d',
+            marker: {
+                symbol: 'circle',
+                color: row_data['z'],
+                size: 2
+            },
+            hovertemplate: "Data Point: %{pointNumber} <br> Coordinates: x: %{x} y: %{y} z: %{z}",
+        },];
+    }
     const layout = {
         autosize: true,
         height: 800,
@@ -375,8 +425,12 @@ const nldr_plot_init = function (init_obj) {
     const my_guid = guid_fn();
 
     //User has requested that CD groups be used in plotting.
-    addEventListener("CDGroupsAvailable", e => {
+    addEventListener("UseCDGroupsTrue", e => {
         cd_groups = e.detail.groups;
+    });
+    //User has requested that CD groups _not_ be used in plotting.
+    addEventListener("UseCDGroupsFalse", e => {
+        cd_groups = undefined;
     });
 
     addEventListener("FileContents", e => {
