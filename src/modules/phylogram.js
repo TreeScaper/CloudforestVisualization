@@ -125,75 +125,48 @@ const create_tree = function (data) {
 
     set_parent_y(root);
 
-    let div = d3.select("body").append("div")
-        .attr("class", "tooltip")
-        .style("opacity", 0);
+    let canvas = document.createElement('canvas');
+    canvas.setAttribute("width", width);
+    canvas.setAttribute("height", height);
+    document.getElementById(`${plot_div}`).append(canvas);
+    let ctx = canvas.getContext('2d');
 
+    ctx.fillStyle = "white";
+    ctx.fillRect(0, 0, width, height);
 
-    const svg = d3.select(`#${plot_div}`).append("svg").attr("width", width).attr("height", height);
-    svg.append("g")
-        .attr("fill", "none")
-        .attr("stroke", "#555")
-        .attr("stroke-opacity", 0.1)
-        .attr("stroke-width", 1.5)
-        .selectAll("path")
-        .data(root.links())
-        .join("path")
-        .attr("d", d => `
-        M ${scale_x(d.source.x)},${scale_y(d.source.y)} 
-        V ${scale_y(d.target.y)}
-        H ${scale_x(d.target.x)}
-        `);
+    ctx.strokeStyle = `rgba(128, 128, 128, .4)`;
+    ctx.lineWidth = 1.5;
+    root.links().forEach(link => {
+        ctx.beginPath();
+        ctx.moveTo(scale_x(link.source.x), scale_y(link.source.y));
+        ctx.lineTo(scale_x(link.source.x), scale_y(link.target.y));
+        ctx.lineTo(scale_x(link.target.x), scale_y(link.target.y));
+        ctx.stroke();
+    });
 
-    svg.append("g")
-        .selectAll("circle")
-        .data(root.leaves())
-        .join("circle")
-        .attr("cx", d => scale_x(d.x))
-        .attr("cy", d => scale_y(d.y))
-        .attr("fill", "blue")
-        .attr("r", 4);
+    root.leaves().forEach(leaf => {
+        ctx.fillStyle = "blue";
+        ctx.beginPath();
+        ctx.arc(scale_x(leaf.x), scale_y(leaf.y), 5, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.fillStyle = "black";
+        ctx.font = '10px sans-serif';
+        ctx.fillText(`${leaf.data.name} ${leaf.data.length.toPrecision(4)}`, scale_x(leaf.x) + 6, scale_y(leaf.y) + 2.5);
+    });
 
-    svg.append("g")
-        .attr("font-size", 10)
-        .attr("font-family", "sans-serif")
-        .selectAll("text")
-        .data(root.leaves())
-        .join("text")
-        .attr("x", d => scale_x(d.x))
-        .attr("y", d => scale_y(d.y))
-        .attr("dx", "1em")
-        .attr("dy", "0.4em")
-        .text(d => { return `${d.data.name}:${d.data.length.toPrecision(4)}` })
-
-
-    svg.append("g")
-        .selectAll("circle")
-        .data(root.descendants())
-        .join("circle")
-        .filter(d => d.height > 0)
-        .attr("cx", d => scale_x(d.x))
-        .attr("cy", d => scale_y(d.y))
-        .attr("fill", "gray")
-        .attr("opacity", d => {
-            if (d.depth > 0) { return "0.8" } else { return "0.2" }
-        })
-        .attr("r", 4);
-
-    svg.append("g")
-        .attr("font-size", 9)
-        .attr("font-family", "sans-serif")
-        .selectAll("text")
-        .data(root.descendants())
-        .join("text")
-        .filter(d => d.height > 0 && d.depth > 0)
-        .attr("x", d => scale_x(d.x))
-        .attr("y", d => scale_y(d.y))
-        .attr("dx", "1em")
-        .attr("dy", "0.4em")
-        .text(d => { return `${d.data.length.toPrecision(3)}` });
-
-    document.getElementById("plot-metadata").scrollIntoView({ behavior: "smooth", block: "end", inline: "nearest" });
+    ctx.fillStyle = `rgba(128, 128, 128, .8)`;
+    root.descendants().forEach(node => {
+        if (node.height > 0) {
+            ctx.beginPath();
+            ctx.arc(scale_x(node.x), scale_y(node.y), 5, 0, Math.PI * 2);
+            ctx.fill();
+            if (node.depth > 0) {
+                ctx.fillStyle = "black";
+                ctx.font = '8px sans-serif';
+                ctx.fillText(`${node.data.length.toPrecision(4)}`, scale_x(node.x) + 6, scale_y(node.y) + 2.5);
+            }
+        }
+    });
 }
 
 const tree_plot_init = function (init_obj) {
