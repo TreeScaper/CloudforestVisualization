@@ -47,3 +47,10 @@
             "rooted_tree":"0",
             "subsample|subsample_selector":"no_subsample"}
     }
+
+
+Via API
+ln -s "/export/galaxy-central/database/files/000/dataset_1.dat"  "dummy_link.dat" &&  /export/galaxy-central/tools/treescaper/CLVTreeScaper -trees -f  dummy_link.dat -ft Trees -o Community -w 0 -r 0 -t Affinity -cm CPM -lm manual -lp 0.0 -lps 0.0 -lpe 1.0 -lpiv 0.1 -hf 0.0 -lf 0.0 >job_log.log 2>&1
+
+Via WebApp
+ln -s "/export/galaxy-central/database/files/000/dataset_1.dat"  "dummy_link.dat" &&  /export/galaxy-central/tools/treescaper/CLVTreeScaper -trees -f  dummy_link.dat -ft Trees -o Community -w 0 -r 0 -t Affinity -cm CPM -lm manual -lp 0.0 -lps 0.0 -lpe 1.0 -lpiv 0.1 -hf 0.0 -lf 0.0 >job_log.log 2>&1

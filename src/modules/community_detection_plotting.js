@@ -65,6 +65,34 @@ const draw_graph = function (data) {
     });
 }
 
+// Generate bar graph showing distribution of trees among groups
+const show_cd_groups = function () {
+    let sortable = [];
+    Object.keys(cd_grouping).forEach(k => {
+        sortable.push([k, cd_grouping[k]]);
+    })
+    sortable.sort((a, b) => { return b[1].length - a[1].length })
+    let x_data = [];
+    let y_data = [];
+    sortable.forEach(vals => {
+        x_data.push(`Group ${vals[0]}`);
+        y_data.push(vals[1].length);
+    });
+    let data = [
+        {
+            x: x_data,
+            y: y_data,
+            type: 'bar'
+        }
+    ];
+    Plotly.newPlot("plot-controls", data, {
+        title: "Tree Count by CD Group",
+        xaxis: {
+            tickangle: -45
+        },
+    });
+}
+
 const build_dom = function () {
     cleanExistingPlot();
     let e = document.getElementById("plot-metadata");
@@ -74,31 +102,6 @@ const build_dom = function () {
     if (using_groups) {
         document.getElementById("use-cd").checked = true;
     }
-
-    let rr = document.getElementById("plot-controls");
-    rr.append(htmlToElement(`
-    <div class="columns">
-        <div class="column">
-            <label for="start-lambda">Start Lambda</label>
-            <input type="text" id="start-lambda" name="start-lambda">
-        </div>
-        <div class="column">
-            <label for="end-lambda">End Lambda</label>
-            <input type="text" id="end-lambda" name="end-lambda">
-        </div>
-        <div class="column">
-            <label for="interval-lambda">Lambda Interval</label>
-            <input type="text" id="interval-lambda" name="interval-lambda">
-        </div>
-        <div class="column">
-            <label for="positive-lambda">Positive Lambda</label>
-            <input type="checkbox" id="positive-lambda" name="Positive" checked>
-        </div>
-        <div class="column">
-            <button class="button is-info" id="cd-rerun">Rerun</button>
-        </div>
-    </div>
-    `));
 
     document.getElementById("use-cd").addEventListener('input', (e) => {
         console.log(`Use CD ${e.target}`);
@@ -110,7 +113,6 @@ const build_dom = function () {
             using_groups = false;
         }
     });
-
 }
 
 // Returns an array of index offsets showing where the community ids are.
@@ -190,6 +192,7 @@ const community_detection_init = function (init_obj) {
             draw_graph(parsed_data);
             let raw_cds = parse_communities(e.detail.contents[key[0]], parsed_data["label_community"]);
             cd_grouping = group_groups(raw_cds);
+            show_cd_groups();
         }
     });
 

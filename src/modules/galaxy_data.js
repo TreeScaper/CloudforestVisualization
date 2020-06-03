@@ -233,6 +233,7 @@ const set_event_listeners = function () {
     addEventListener("RequestBipartitionFile", () => {
         dispatchEvent(event_build_fn("BipartitionFiles", { files: bipartition_files }));
     });
+
 }
 
 const galaxy_data_init = function (init_obj) {
