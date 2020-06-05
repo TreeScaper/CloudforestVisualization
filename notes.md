@@ -54,3 +54,11 @@ ln -s "/export/galaxy-central/database/files/000/dataset_1.dat"  "dummy_link.dat
 
 Via WebApp
 ln -s "/export/galaxy-central/database/files/000/dataset_1.dat"  "dummy_link.dat" &&  /export/galaxy-central/tools/treescaper/CLVTreeScaper -trees -f  dummy_link.dat -ft Trees -o Community -w 0 -r 0 -t Affinity -cm CPM -lm manual -lp 0.0 -lps 0.0 -lpe 1.0 -lpiv 0.1 -hf 0.0 -lf 0.0 >job_log.log 2>&1
+
+
+
+# Embed Twitter
+
+    <a class="twitter-timeline" href="https://twitter.com/TwitterDev?ref_src=twsrc%5Etfw">Tweets by TwitterDev</a> <script async src="https://platform.twitter.com/widgets.js" charset="utf-8"></script> 
+
+    <a href="https://twitter.com/intent/tweet?button_hashtag=LoveTwitter&ref_src=twsrc%5Etfw" class="twitter-hashtag-button" data-show-count="false">Tweet #LoveTwitter</a><script async src="https://platform.twitter.com/widgets.js" charset="utf-8"></script>

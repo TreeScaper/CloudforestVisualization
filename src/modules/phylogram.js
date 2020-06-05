@@ -103,7 +103,7 @@ const set_parent_y = function (root) {
 }
 
 /**
- * Create an SVG element consisting of a phylogenetic tree.
+ * Create an canvas element consisting of a phylogenetic tree.
  * 
  * @param {*} data - tree data
  */

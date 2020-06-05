@@ -31,7 +31,7 @@
     <div class="section">
         <div class="container">
             <div class="tile is-ancestor">
-                <div class="tile is-2 is-vertical is-parent">
+                <div class="tile is-parent">
                     <div class="tile is-child box">
                         <h5>NLDR</h5>
                         <div class="tile is-vertical is-parent">
@@ -48,9 +48,7 @@
                         <div class="tile is-vertical is-parent">
                             <div class="control">
                                 <div class="select">
-                                    <select id="tree-select" class="is-small" disabled>
-
-                                    </select>
+                                    <select id="tree-select" class="is-small" disabled></select>
                                 </div>
                             </div>
                         </div>
@@ -67,17 +65,18 @@
                         </div>
                     </div>
                 </div>
-                <div class="tile box has-text-centered" style="overflow-x: auto;">
-                    <div id="plot" style="width: 100%; margin: 0 auto;"></div>
-                </div>
-            </div>
+            </div><!-- END menu ancestor tile -->
             <div class="tile is-ancestor">
                 <div class="tile is-vertical is-parent">
                     <div id="plot-metadata" class="tile"></div>
                     <div id="plot-controls" class="tile"></div>
                 </div>
-
             </div>
+            <div class="tile is-ancestor">
+                <div class="tile box has-text-centered" style="overflow-x: auto;">
+                    <div id="plot" style="width: 100%; margin: 0 auto;"></div>
+                </div>
+            </div> <!-- end top ancestor -->
         </div> <!-- Container-->
     </div>
     

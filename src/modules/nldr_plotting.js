@@ -74,7 +74,7 @@ const construct_grouped_data = function (init_obj) {
     let misc_group = {
         x: [],
         y: [],
-        name: `No CD`,
+        name: `Single Member CD`,
         click_mode: 'select',
         mode: 'markers',
         type: 'scatter',
@@ -83,7 +83,8 @@ const construct_grouped_data = function (init_obj) {
         },
         text: [],
         tree_num_offsets: [],
-        showlegend: false
+        showlegend: false,
+        hovertemplate: "%{text}"
     };
     if (dim === 3) {
         misc_group.type = 'scatter3d';
@@ -106,7 +107,8 @@ const construct_grouped_data = function (init_obj) {
                 marker: { size: 5 },
                 text: [],
                 tree_num_offsets: [],
-                showlegend: false
+                showlegend: false,
+                hovertemplate: "%{text}"
             };
             if (dim === 3) {
                 grp_trace.type = 'scatter3d';
@@ -165,11 +167,13 @@ const scatter_2d = function (file_contents) {
 
     let row_data = {
         x: [],
-        y: []
+        y: [],
+        text: []
     };
-    file_contents.forEach(r => {
+    file_contents.forEach((r, idx) => {
         row_data['x'].push(Number(r[0]));
         row_data['y'].push(Number(r[1]));
+        row_data['text'].push(`Tree: ${idx + 1}`);
     });
 
     let data = [];
@@ -210,11 +214,12 @@ const scatter_2d = function (file_contents) {
         data.push({
             x: row_data['x'],
             y: row_data['y'],
+            text: row_data['text'],
             click_mode: 'select',
             mode: 'markers',
             type: 'scatter',
             marker: { size: 5 },
-            hovertemplate: "Data Point: %{pointNumber} <br> Coordinates: x: %{x} y: %{y}",
+            hovertemplate: "%{text}<extra></extra>",
         });
     }
 
@@ -234,9 +239,11 @@ const scatter_2d = function (file_contents) {
     Plotly2D.newPlot("dim-scatter-plot", data, layout, config);
 
     s_plot.on("plotly_click", function (data) {
-        let tree_idx = data.points[0]['pointNumber'] - 1;
-        //let tree_idx = data.points[0].data.tree_num_offsets[data.points[0].pointIndex]
-        console.log(`Draw tree for ${tree_idx}`);
+        let tree_idx = data.points[0]['pointNumber'];
+        if (data.points.length > 1) {
+            console.log(`There are ${data.points.length} trees within this one data point marker.`)
+        }
+        console.log(`Draw ${data.points[0].text}`);
         dispatchEvent(
             event_buld_fn("TreeRequest",
                 { guid: "", tree_number: tree_idx }
@@ -250,12 +257,14 @@ const scatter_3d = function (file_contents) {
     let row_data = {
         'x': [],
         'y': [],
-        'z': []
+        'z': [],
+        'text': []
     };
-    file_contents.forEach(r => {
+    file_contents.forEach((r, idx) => {
         row_data['x'].push(Number(r[0]));
         row_data['y'].push(Number(r[1]));
         row_data['z'].push(Number(r[2]));
+        row_data.text.push(`Tree: ${idx + 1}`);
     });
     let data = [];
     if (cd_groups) {
@@ -268,6 +277,7 @@ const scatter_3d = function (file_contents) {
             x: row_data['x'],
             y: row_data['y'],
             z: row_data['z'],
+            text: row_data.text,
             mode: 'markers',
             type: 'scatter3d',
             marker: {
@@ -275,7 +285,7 @@ const scatter_3d = function (file_contents) {
                 color: row_data['z'],
                 size: 2
             },
-            hovertemplate: "Data Point: %{pointNumber} <br> Coordinates: x: %{x} y: %{y} z: %{z}",
+            hovertemplate: "%{text}<extra></extra>",
         },];
     }
     const layout = {
@@ -355,8 +365,11 @@ const scatter_3d = function (file_contents) {
     const s_plot = document.getElementById(three_d_dom);
     Plotly3D.newPlot(three_d_dom, data, layout, btns);
     s_plot.on("plotly_click", function (data) {
-        let tree_idx = data.points[0]['pointNumber'] - 1;
-        console.log(`Draw tree for ${tree_idx}`);
+        let tree_idx = data.points[0]['pointNumber'];
+        console.log(`Draw ${data.points[0].text}`);
+        if (data.points.length > 1) {
+            console.log(`There are ${data.points.length} trees within this one data point marker.`)
+        }
         dispatchEvent(
             event_buld_fn("TreeRequest",
                 { guid: "", tree_number: tree_idx }

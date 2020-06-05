@@ -129,7 +129,7 @@ const get_cd_indexes = function (arr) {
             return k
         }
     })
-    return d[Math.min(cd_idxs)];
+    return d[Math.min(...cd_idxs)];
 }
 
 const parse_communities = function (data, labels) {
