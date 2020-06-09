@@ -4,6 +4,7 @@ import { htmlToElement, cleanExistingPlot } from "./html_templates";
 let event_build_fn = undefined;
 let cd_grouping = undefined;
 let using_groups = false;
+let cd_type = undefined; //Trees || Cova
 
 const draw_graph = function (data) {
     const line_width = 2;
@@ -35,7 +36,7 @@ const draw_graph = function (data) {
     }
     let trace_data = [trace1, trace2, trace3];
     let layout = {
-        title: 'Community Information for Covariance Matrix',
+        title: 'Community Detection',
         xaxis: {
             title: "Lambda", zeroline: false,
         },
@@ -86,7 +87,7 @@ const show_cd_groups = function () {
         }
     ];
     Plotly.newPlot("plot-controls", data, {
-        title: "Tree Count by CD Group",
+        title: "Count by CD Group",
         xaxis: {
             tickangle: -45
         },
@@ -106,7 +107,7 @@ const build_dom = function () {
     document.getElementById("use-cd").addEventListener('input', (e) => {
         console.log(`Use CD ${e.target}`);
         if (e.target.checked) {
-            dispatchEvent(event_build_fn("UseCDGroupsTrue", { groups: cd_grouping }));
+            dispatchEvent(event_build_fn("UseCDGroupsTrue", { groups: cd_grouping, type: cd_type }));
             using_groups = true;
         } else {
             dispatchEvent(event_build_fn("UseCDGroupsFalse", {}));
@@ -187,6 +188,8 @@ const community_detection_init = function (init_obj) {
     addEventListener("FileContents", e => {
         if (e.detail.guid === my_guid) {
             let key = Object.keys(e.detail.contents).filter(k => RegExp(/[Cc]ommunity/).test(k));
+            //key = "Community Results:Trees"
+            cd_type = key[0].split(":")[1]; //hope this is a temp kludge around CLVTreescaper output issue
             let parsed_data = parse_results(e.detail.contents[key[0]]);
             build_dom();
             draw_graph(parsed_data);

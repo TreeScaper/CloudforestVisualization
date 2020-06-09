@@ -439,7 +439,9 @@ const nldr_plot_init = function (init_obj) {
 
     //User has requested that CD groups be used in plotting.
     addEventListener("UseCDGroupsTrue", e => {
-        cd_groups = e.detail.groups;
+        if (e.detail.type === "Trees") {
+            cd_groups = e.detail.groups;
+        }
     });
     //User has requested that CD groups _not_ be used in plotting.
     addEventListener("UseCDGroupsFalse", e => {

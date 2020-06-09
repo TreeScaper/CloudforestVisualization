@@ -6,6 +6,7 @@ import { mean, max } from "d3-array";
 
 import { roundedRect } from "./canvas_funcs";
 import { cleanExistingPlot, htmlToElement } from "./html_templates";
+import { css_colors } from "./colors";
 
 const getEvent = () => event; // This is necessary when using webpack >> https://github.com/d3/d3-zoom/issues/32
 const d3 = Object.assign(
@@ -26,10 +27,25 @@ let event_build_fn = undefined;
 let graph_data = undefined;
 let filtered_adjacency_list = undefined;
 let bipartition_file = undefined;
+let cd_groups = undefined;
 let max_covariance = 0;
 let num_trees = 0;
 
 const FILE_NAME = "Covariance Matrix";
+
+const parse_cd = function (groups) {
+    let d = {};
+    let hsl_colors = Object.keys(groups).map((v, i) => {
+        return css_colors[i];
+    });
+
+    Object.keys(groups).forEach((k, idx) => {
+        groups[k].forEach(bp => {
+            d[bp] = { group: k, color: hsl_colors[idx] };
+        });
+    });
+    cd_groups = d;
+}
 
 const parse_covariance = function (m) {
     m.forEach((c, i) => {
@@ -142,16 +158,38 @@ const draw_graph = function (graph_data) {
         graph_data.nodes.forEach(drawNode);
     }
 
-    let drawNode = function (d) {
+    const set_alpha = function (d) {
         let alpha_pct = (d.num_trees / num_trees);
         if (alpha_pct < 0.1) { alpha_pct = 0.1 };
+        if (cd_groups) {
+            return 1.0;
+        } else {
+            return alpha_pct;
+        }
+    }
+
+    const set_fillstyle = function (d) {
+        if (cd_groups) {
+            try {
+                let x = cd_groups[Number(d.id)].color;
+                return x;
+            } catch (error) {
+                return "white";
+            }
+        } else {
+            return "black";
+        }
+    }
+
+    let drawNode = function (d) {
         ctx.beginPath();
         ctx.moveTo(d.x, d.y);
         ctx.arc(d.x, d.y, r, 0, Math.PI * 2);
-        ctx.globalAlpha = alpha_pct;
-        ctx.fillStyle = "black";
+        ctx.globalAlpha = set_alpha(d);
+        ctx.fillStyle = set_fillstyle(d);
         ctx.fill();
     }
+
 
     let drawLink = function (l) {
         ctx.beginPath();
@@ -318,6 +356,18 @@ const covariance_plot_init = function (init_obj) {
         bipartition_file = e.detail.files[0];
     });
     dispatchEvent(event_build_fn("RequestBipartitionFile", {}));
+
+    //User has requested that CD groups be used in plotting.
+    addEventListener("UseCDGroupsTrue", e => {
+        if (e.detail.type === "Cova") {
+            console.log("Using CD for bipartition graphing.");
+            parse_cd(e.detail.groups);
+        }
+    });
+    //User has requested that CD groups _not_ be used in plotting.
+    addEventListener("UseCDGroupsFalse", e => {
+        cd_groups = undefined;
+    });
 
     addEventListener("FileContents", e => {
         if (e.detail.guid === my_guid) {
