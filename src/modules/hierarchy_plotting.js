@@ -11,6 +11,7 @@ const animate = function (data) {
     let parsed_branchset = parseNewick(data[tree_num][0]);
     cleanExistingPlot();
     dispatchEvent(event_build_fn("PlotForTree", {
+        tree_num: 1,
         tree: parsed_branchset,
         width: document.getElementById("plot").clientWidth,
         height: .75 * document.getElementById("plot").clientWidth,
@@ -31,6 +32,7 @@ const animate = function (data) {
         let pn = parseNewick(data[tn - 1][0]);
         dispatchEvent(event_build_fn("PlotForTree", {
             tree: pn,
+            tree_num: tn,
             width: document.getElementById("plot").clientWidth,
             height: .75 * document.getElementById("plot").clientWidth,
             plot_div: "plot"

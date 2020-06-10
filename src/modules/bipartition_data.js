@@ -18,7 +18,7 @@ const parse_bipartition = function (m) {
         if (!(bp_name in b)) {
             b[bp_name] = [];
         }
-        b[bp_name].push(r[1]);
+        b[bp_name].push(Number(r[1] + 1));
     });
     return b;
 }
@@ -137,10 +137,30 @@ const parse_taxa_partitions = function (m) {
     return part_taxa;
 }
 
+const bipartions_for_tree = function (tree_num) {
+    let target = Number(tree_num);
+    let bipartitions = []
+    let taxa = {};
+    Object.keys(trees_by_partition).forEach(key => {
+        if (trees_by_partition[key].indexOf(target) > -1) {
+            bipartitions.push(key);
+            taxa[key] = part_taxa[key];
+        }
+    });
+    dispatchEvent(event_build_fn("BipartitionsForTree", {
+        partitions: bipartitions,
+        taxa: taxa
+    }));
+}
+
 const bipartition_data_init = function (init_obj) {
     let { guid_fn, event_fn } = init_obj;
     event_build_fn = event_fn;
     const my_guid = guid_fn();
+
+    addEventListener("BipartitionsForTreeRequst", e => {
+        bipartions_for_tree(e.detail.tree_num);
+    });
 
     addEventListener("FileContents", e => {
         if (e.detail.guid === my_guid) {

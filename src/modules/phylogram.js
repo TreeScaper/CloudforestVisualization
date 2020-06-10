@@ -173,6 +173,10 @@ const tree_plot_init = function (init_obj) {
     const { event_fn } = init_obj;
     event_build_fn = event_fn;
 
+    addEventListener("BipartitionsForTree", e => {
+
+    });
+
     addEventListener("PlotForTree", e => {
         let tree_data = e.detail.tree;
         width = e.detail.width;
