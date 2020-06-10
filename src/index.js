@@ -1,6 +1,5 @@
 import "./bulma.min.css";
 
-//import { data_manager_init } from "./modules/dev_datamanager";
 import { galaxy_data_init as data_manager_init } from "./modules/galaxy_data";
 import { nldr_plot_init } from "./modules/nldr_plotting";
 import { affinity_plot_init } from "./modules/affinity_plotting";
@@ -9,6 +8,7 @@ import { covariance_plot_init } from "./modules/covariance_plotting";
 import { community_detection_init } from "./modules/community_detection_plotting";
 import { pyhlogram_data_init } from "./modules/phylogram_data";
 import { tree_plot_init } from "./modules/phylogram";
+import { bipartition_data_init } from "./modules/bipartition_data";
 
 import { page_mgr_init } from "./modules/page_manager";
 
@@ -56,6 +56,10 @@ const init_modules = function () {
         event_fn: build_event
     });
     pyhlogram_data_init({
+        guid_fn: get_guid,
+        event_fn: build_event
+    });
+    bipartition_data_init({
         guid_fn: get_guid,
         event_fn: build_event
     });

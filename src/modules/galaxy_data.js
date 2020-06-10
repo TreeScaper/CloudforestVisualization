@@ -110,7 +110,7 @@ const process_history_contents = function (data) {
     let f_data = filter_data(data);
     file_objects = f_data;
 
-    bipartition_files = file_objects.filter(obj => RegExp(/[Bb]ipartition [Mm]atrix/).test(obj.name));
+    bipartition_files = file_objects.filter(obj => RegExp(/[Bb]ipartition/).test(obj.name)); //Includes matrix and log
 
     dispatchEvent(event_build_fn("BipartitionFiles", { files: bipartition_files }));
     dispatchEvent(event_build_fn("DataPrimed", {}));
