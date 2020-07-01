@@ -54,6 +54,7 @@ const hierarchy_plot_init = function (init_obj) {
                     cleanExistingPlot();
 
                     dispatchEvent(event_build_fn("PlotForTree", {
+                        tree_num: undefined,
                         tree: parsed_branchset,
                         width: document.getElementById("plot").clientWidth,
                         height: .75 * document.getElementById("plot").clientWidth,

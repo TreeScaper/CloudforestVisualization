@@ -23,6 +23,7 @@ const pyhlogram_data_init = function (init_obj) {
             let parsed_data = newick_parse(f[tree_num][0]);
             dispatchEvent(event_build_fn("PlotForTree", {
                 tree: parsed_data,
+                tree_num: tree_num + 1,
                 width: document.getElementById("plot").clientWidth,
                 height: .5 * document.getElementById("plot").clientWidth,
                 plot_div: "plot-metadata"

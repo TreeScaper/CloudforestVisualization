@@ -3,10 +3,11 @@
  * 
  * Generates and returns an svg element based on event request.
  */
-import { hierarchy, cluster } from "d3-hierarchy";
+import { hierarchy, cluster, tree } from "d3-hierarchy";
 import { create, select } from "d3-selection";
 import { ascending } from "d3-array";
 import { scaleLinear, eas } from "d3-scale";
+import { htmlToElement } from "./html_templates";
 
 const d3 = Object.assign(
     {},
@@ -17,6 +18,7 @@ let event_build_fn = undefined;
 let width = undefined;
 let height = undefined;
 let plot_div = undefined;
+let tree_number = undefined;
 
 /**
  * Determines x distance from root for all descendants
@@ -128,6 +130,11 @@ const create_tree = function (data) {
     let canvas = document.createElement('canvas');
     canvas.setAttribute("width", width);
     canvas.setAttribute("height", height);
+
+    if (tree_number) {
+        document.getElementById(`${plot_div}`).append(htmlToElement(`<div><h3>Tree ${tree_number}</h3></div>`));
+    }
+
     document.getElementById(`${plot_div}`).append(canvas);
     let ctx = canvas.getContext('2d');
 
@@ -179,6 +186,7 @@ const tree_plot_init = function (init_obj) {
 
     addEventListener("PlotForTree", e => {
         let tree_data = e.detail.tree;
+        tree_number = e.detail.tree_num;
         width = e.detail.width;
         height = e.detail.height;
         plot_div = e.detail.plot_div
