@@ -2,11 +2,19 @@
 import * as Plotly2D from 'plotly.js-basic-dist';
 import * as Plotly3D from 'plotly.js-gl3d-dist';
 import * as PlotlyParallel from 'plotly.js-gl2d-dist';
-import { htmlToElement, cleanExistingPlot, removeChildNodes } from './html_templates';
+import {
+    htmlToElement,
+    cleanExistingPlot,
+    removeChildNodes
+} from './html_templates';
 
 let coordinate_data = undefined;
 let event_buld_fn = undefined;
-let cd_groups = undefined; //If defined, use CD groups in plotting. Each group is a trace.
+let cd_groups = new Map();
+const group_colors = [
+    "#0074D9", "#7FDBFF", "#39CCCC", "#3D9970", "#2ECC40",
+    "#01FF70", "#FFDC00", "#FF851B", "#FF4136", "#85144b", "#F012BE", "#B10DC9"
+]; //12 colors, beyond that use "#AAAAAA" gray
 
 // Data coming from treescaper is often poorly formatted. Need to 
 // do some cleaning here, mostly remove the artificats from having extra tabs in output.
@@ -18,7 +26,9 @@ const clean_data = function (data) {
         let step1 = data[k].map(row => {
             return row.filter(f => f.length > 0).map(i => Number(i));
         });
-        let step2 = step1.filter(row => { return row.length === Number(m[1]) });
+        let step2 = step1.filter(row => {
+            return row.length === Number(m[1])
+        });
         cleaned[k] = step2;
     });
     return cleaned;
@@ -67,86 +77,6 @@ const parallel_coordinates = function (file_contents) {
     });
 }
 
-const construct_grouped_data = function (init_obj) {
-    let r_val = [];
-    let { data, dim } = init_obj;
-    //default to 2d
-    let misc_group = {
-        x: [],
-        y: [],
-        name: `Single Member CD`,
-        click_mode: 'select',
-        mode: 'markers',
-        type: 'scatter',
-        marker: {
-            size: 5
-        },
-        text: [],
-        tree_num_offsets: [],
-        showlegend: false,
-        hovertemplate: "%{text}"
-    };
-    if (dim === 3) {
-        misc_group.type = 'scatter3d';
-        misc_group.z = [];
-        misc_group.marker = {
-            symbol: 'circle',
-            size: 2
-        };
-    }
-    Object.keys(cd_groups).forEach(grp_num => {
-        if (cd_groups[grp_num].length > 1) {
-            //Default to 2d
-            let grp_trace = {
-                x: [],
-                y: [],
-                name: `CD: ${grp_num}`,
-                click_mode: 'select',
-                mode: 'markers',
-                type: 'scatter',
-                marker: { size: 5 },
-                text: [],
-                tree_num_offsets: [],
-                showlegend: false,
-                hovertemplate: "%{text}"
-            };
-            if (dim === 3) {
-                grp_trace.type = 'scatter3d';
-                grp_trace.z = [];
-                grp_trace.marker = {
-                    symbol: 'circle',
-                    size: 2
-                };
-            }
-            cd_groups[grp_num].forEach(tree_num => {
-                let row = data[tree_num - 1];
-                grp_trace.x.push(Number(row[0]));
-                grp_trace.y.push(Number(row[1]));
-                if (dim === 3) {
-                    grp_trace.z.push(Number(row[2]));
-                }
-                grp_trace.text.push(`Tree ${tree_num}`);
-                grp_trace.tree_num_offsets.push(tree_num - 1);
-            });
-            r_val.push(grp_trace);
-        } else {
-            //These are 1 member groups. Aggregate into a 1 member group trace
-            cd_groups[grp_num].forEach(tree_num => {
-                let row = data[tree_num - 1];
-                misc_group.x.push(Number(row[0]));
-                misc_group.y.push(Number(row[1]));
-                if (dim === 3) {
-                    misc_group.z.push(Number(row[2]));
-                }
-                misc_group.text.push(`Tree ${tree_num}`);
-                misc_group.tree_num_offsets.push(tree_num - 1);
-            });
-        }
-    });
-    r_val.push(misc_group);
-    return r_val;
-}
-
 /**
  * file_contents is array of 3D coordinates. Array offset is tree number - 1.
  * 
@@ -177,51 +107,20 @@ const scatter_2d = function (file_contents) {
     });
 
     let data = [];
-    if (cd_groups) {
-        data = construct_grouped_data({
-            data: file_contents,
-            dim: 2,
-            misc_group: {
-                x: [],
-                y: [],
-                name: `No CD`,
-                click_mode: 'select',
-                mode: 'markers',
-                type: 'scatter',
-                marker: {
-                    size: 5
-                },
-                text: [],
-                tree_num_offsets: [],
-                showlegend: false
-            },
-            trace_group: {
-                x: [],
-                y: [],
-                name: undefined,
-                click_mode: 'select',
-                mode: 'markers',
-                type: 'scatter',
-                marker: {
-                    size: 5
-                },
-                text: [],
-                tree_num_offsets: [],
-                showlegend: false
-            }
-        });
-    } else {
-        data.push({
-            x: row_data['x'],
-            y: row_data['y'],
-            text: row_data['text'],
-            click_mode: 'select',
-            mode: 'markers',
-            type: 'scatter',
-            marker: { size: 5 },
-            hovertemplate: "%{text}<extra></extra>",
-        });
-    }
+
+    data.push({
+        x: row_data['x'],
+        y: row_data['y'],
+        text: row_data['text'],
+        click_mode: 'select',
+        mode: 'markers',
+        type: 'scatter',
+        marker: {
+            size: 5
+        },
+        hovertemplate: "%{text}<extra></extra>",
+    });
+
 
     const layout = {
         xaxis: {
@@ -234,7 +133,11 @@ const scatter_2d = function (file_contents) {
         },
     };
 
-    const config = { responsive: true, displaylogo: false, scrollZoom: true }
+    const config = {
+        responsive: true,
+        displaylogo: false,
+        scrollZoom: true
+    }
     const s_plot = document.getElementById("dim-scatter-plot");
     Plotly2D.newPlot("dim-scatter-plot", data, layout, config);
 
@@ -245,49 +148,50 @@ const scatter_2d = function (file_contents) {
         }
         console.log(`Draw ${data.points[0].text}`);
         dispatchEvent(
-            event_buld_fn("TreeRequest",
-                { guid: "", tree_number: tree_idx }
-            ));
+            event_buld_fn("TreeRequest", {
+                guid: "",
+                tree_number: tree_idx
+            }));
     });
 }
 
 const scatter_3d = function (file_contents) {
-
     const three_d_dom = "dim-scatter-plot";
     let row_data = {
         'x': [],
         'y': [],
         'z': [],
-        'text': []
+        'text': [],
+        'color': []
     };
     file_contents.forEach((r, idx) => {
         row_data['x'].push(Number(r[0]));
         row_data['y'].push(Number(r[1]));
         row_data['z'].push(Number(r[2]));
         row_data.text.push(`Tree: ${idx + 1}`);
+        if (cd_groups.get(idx + 1)) {
+            row_data.color.push(cd_groups.get(idx + 1).group_color);
+            console.log(`Grouped point coordinates x:${r[0]} y:${r[1]} z:${r[2]}`);
+        } else {
+            row_data.color.push("#DDDDDD");
+        }
+
     });
     let data = [];
-    if (cd_groups) {
-        data = construct_grouped_data({
-            data: file_contents,
-            dim: 3
-        });
-    } else {
-        data = [{
-            x: row_data['x'],
-            y: row_data['y'],
-            z: row_data['z'],
-            text: row_data.text,
-            mode: 'markers',
-            type: 'scatter3d',
-            marker: {
-                symbol: 'circle',
-                color: row_data['z'],
-                size: 2
-            },
-            hovertemplate: "%{text}<extra></extra>",
-        },];
-    }
+    data = [{
+        x: row_data['x'],
+        y: row_data['y'],
+        z: row_data['z'],
+        text: row_data.text,
+        mode: 'markers',
+        type: 'scatter3d',
+        marker: {
+            symbol: 'circle',
+            color: row_data.color,
+            size: 2
+        },
+        hovertemplate: "%{text}<extra></extra>",
+    }, ];
     const layout = {
         autosize: true,
         height: 800,
@@ -312,53 +216,53 @@ const scatter_3d = function (file_contents) {
         displaylogo: false,
         modeBarButtonsToAdd: [
             [{
-                name: 'All points black',
-                icon: Plotly3D.Icons.pencil,
-                click: function () {
-                    Plotly3D.restyle(three_d_dom, 'marker.color', ['black']);
-                }
-            },
-            {
-                name: 'Point color Z-axis',
-                icon: Plotly3D.Icons.pencil,
-                click: function () {
-                    Plotly3D.restyle(three_d_dom, 'marker.color', [row_data['z']]);
-                }
-            },
-            {
-                name: 'Point color Y-axis',
-                icon: Plotly3D.Icons.pencil,
-                click: function () {
-                    Plotly3D.restyle(three_d_dom, 'marker.color', [row_data['y']]);
-                }
-            },
-            {
-                name: 'Point color X-axis',
-                icon: Plotly3D.Icons.pencil,
-                click: function () {
-                    Plotly3D.restyle(three_d_dom, 'marker.color', [row_data['x']]);
-                }
-            },
-            {
-                name: 'Enlarge Points',
-                icon: Plotly3D.Icons.pencil,
-                click: function (data) {
-                    let curr_size = data.data[0].marker.size
-                    Plotly3D.restyle(three_d_dom, 'marker.size', curr_size += 2);
-                }
-            },
-            {
-                name: 'Shrink Points',
-                icon: Plotly3D.Icons.pencil,
-                click: function (data) {
-                    let curr_size = data.data[0].marker.size;
-                    if (curr_size === 2) {
-                        console.log('Nope, too small');
-                    } else {
-                        Plotly3D.restyle(three_d_dom, 'marker.size', curr_size -= 2);
+                    name: 'All points black',
+                    icon: Plotly3D.Icons.pencil,
+                    click: function () {
+                        Plotly3D.restyle(three_d_dom, 'marker.color', ['black']);
+                    }
+                },
+                {
+                    name: 'Point color Z-axis',
+                    icon: Plotly3D.Icons.pencil,
+                    click: function () {
+                        Plotly3D.restyle(three_d_dom, 'marker.color', [row_data['z']]);
+                    }
+                },
+                {
+                    name: 'Point color Y-axis',
+                    icon: Plotly3D.Icons.pencil,
+                    click: function () {
+                        Plotly3D.restyle(three_d_dom, 'marker.color', [row_data['y']]);
+                    }
+                },
+                {
+                    name: 'Point color X-axis',
+                    icon: Plotly3D.Icons.pencil,
+                    click: function () {
+                        Plotly3D.restyle(three_d_dom, 'marker.color', [row_data['x']]);
+                    }
+                },
+                {
+                    name: 'Enlarge Points',
+                    icon: Plotly3D.Icons.pencil,
+                    click: function (data) {
+                        let curr_size = data.data[0].marker.size
+                        Plotly3D.restyle(three_d_dom, 'marker.size', curr_size += 2);
+                    }
+                },
+                {
+                    name: 'Shrink Points',
+                    icon: Plotly3D.Icons.pencil,
+                    click: function (data) {
+                        let curr_size = data.data[0].marker.size;
+                        if (curr_size === 2) {
+                            console.log('Nope, too small');
+                        } else {
+                            Plotly3D.restyle(three_d_dom, 'marker.size', curr_size -= 2);
+                        }
                     }
                 }
-            }
             ],
         ]
     }
@@ -371,9 +275,10 @@ const scatter_3d = function (file_contents) {
             console.log(`There are ${data.points.length} trees within this one data point marker.`)
         }
         dispatchEvent(
-            event_buld_fn("TreeRequest",
-                { guid: "", tree_number: tree_idx }
-            ));
+            event_buld_fn("TreeRequest", {
+                guid: "",
+                tree_number: tree_idx
+            }));
     });
 }
 
@@ -393,7 +298,9 @@ const build_2d_3d = function (contents) {
     document.getElementById("plot").append(htmlToElement(`<div id="dim-scatter-plot"/>`));
     document.getElementById("scatter_dimensions").querySelectorAll('a').forEach(n => {
         n.addEventListener('click', e => {
-            document.getElementById("scatter_dimensions").querySelectorAll('li').forEach(n => { n.classList = '' });
+            document.getElementById("scatter_dimensions").querySelectorAll('li').forEach(n => {
+                n.classList = ''
+            });
             document.getElementById(e.target.getAttribute('value')).parentElement.classList = 'is-active';
 
             document.getElementById('dim-scatter-plot').remove();
@@ -432,15 +339,41 @@ const plot_dimensions = function (dims, contents) {
     }
 }
 
+const generate_tree_by_group = function (groups) {
+    let r_val = new Map();
+    groups.forEach((g, idx) => {
+        let grp_num = Number(g[0]);
+        g[1].forEach(t_num => {
+            let o = {};
+            if (idx <= group_colors.length) {
+                o = {
+                    group_number: grp_num,
+                    group_color: group_colors[idx]
+                }
+            } else {
+                o = {
+                    group_number: grp_num,
+                    group_color: "#AAAAAA"
+                }
+            }
+            r_val.set(t_num, o);
+        })
+    });
+    return r_val;
+}
+
 const nldr_plot_init = function (init_obj) {
-    let { guid_fn, event_fn } = init_obj;
+    let {
+        guid_fn,
+        event_fn
+    } = init_obj;
     event_buld_fn = event_fn;
     const my_guid = guid_fn();
 
     //User has requested that CD groups be used in plotting.
     addEventListener("UseCDGroupsTrue", e => {
         if (e.detail.type === "Trees") {
-            cd_groups = e.detail.groups;
+            cd_groups = generate_tree_by_group(e.detail.groups);
         }
     });
     //User has requested that CD groups _not_ be used in plotting.
@@ -457,8 +390,13 @@ const nldr_plot_init = function (init_obj) {
     });
 
     addEventListener("NLDRPlotRequest", e => {
-        dispatchEvent(event_buld_fn("FileContentsRequest", { guid: my_guid, files: [e.detail.file_id] }));
+        dispatchEvent(event_buld_fn("FileContentsRequest", {
+            guid: my_guid,
+            files: [e.detail.file_id]
+        }));
     });
 }
 
-export { nldr_plot_init };
+export {
+    nldr_plot_init
+};

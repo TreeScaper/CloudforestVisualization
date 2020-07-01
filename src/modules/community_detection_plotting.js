@@ -67,16 +67,18 @@ const draw_graph = function (data) {
 }
 
 // Generate bar graph showing distribution of trees among groups
-const show_cd_groups = function () {
+const show_cd_groups = function (groups) {
     let sortable = [];
-    Object.keys(cd_grouping).forEach(k => {
-        sortable.push([k, cd_grouping[k]]);
+    Object.keys(groups).forEach(k => {
+        sortable.push([k, groups[k]]);
     })
     sortable.sort((a, b) => { return b[1].length - a[1].length })
 
     document.getElementById("group-count").setAttribute("min", sortable[sortable.length -1 ][1].length);
     document.getElementById("group-count").setAttribute("max", sortable[0][1].length);
     document.getElementById("group-count").setAttribute("value", sortable[0][1].length);
+
+    cd_grouping = sortable;
 
     let x_data = [];
     let y_data = [];
@@ -118,6 +120,13 @@ const show_cd_groups = function () {
     });
 }
 
+const dispatch_use_groups = function() {
+    let filter_count = Number(document.getElementById("group-count").value);
+    let filtered_data = cd_grouping.filter(obj => obj[1].length >= filter_count);
+    dispatchEvent(event_build_fn("UseCDGroupsTrue", { groups: filtered_data, type: cd_type }));
+    using_groups = true;
+}
+
 const build_dom = function () {
     cleanExistingPlot();
     let e = document.getElementById("plot-metadata");
@@ -130,8 +139,7 @@ const build_dom = function () {
     document.getElementById("use-cd").addEventListener('input', (e) => {
         console.log(`Use CD ${e.target}`);
         if (e.target.checked) {
-            dispatchEvent(event_build_fn("UseCDGroupsTrue", { groups: cd_grouping, type: cd_type }));
-            using_groups = true;
+            dispatch_use_groups();
         } else {
             dispatchEvent(event_build_fn("UseCDGroupsFalse", {}));
             using_groups = false;
@@ -217,8 +225,8 @@ const community_detection_init = function (init_obj) {
             build_dom();
             draw_graph(parsed_data);
             let raw_cds = parse_communities(e.detail.contents[key[0]], parsed_data["label_community"]);
-            cd_grouping = group_groups(raw_cds);
-            show_cd_groups();
+            let grouped_groups = group_groups(raw_cds);
+            show_cd_groups(grouped_groups);
         }
     });
 
