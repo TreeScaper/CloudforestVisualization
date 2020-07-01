@@ -73,24 +73,48 @@ const show_cd_groups = function () {
         sortable.push([k, cd_grouping[k]]);
     })
     sortable.sort((a, b) => { return b[1].length - a[1].length })
+
+    document.getElementById("group-count").setAttribute("min", sortable[sortable.length -1 ][1].length);
+    document.getElementById("group-count").setAttribute("max", sortable[0][1].length);
+    document.getElementById("group-count").setAttribute("value", sortable[0][1].length);
+
     let x_data = [];
     let y_data = [];
+    let colors = [];
     sortable.forEach(vals => {
         x_data.push(`Group ${vals[0]}`);
         y_data.push(vals[1].length);
+        colors.push("blue");
     });
     let data = [
         {
             x: x_data,
             y: y_data,
-            type: 'bar'
+            type: 'bar',
+            marker: {color: colors}
         }
     ];
+    let grp_plot = document.getElementById("plot-controls");
     Plotly.newPlot("plot-controls", data, {
         title: "Count by CD Group",
         xaxis: {
             tickangle: -45
         },
+    });
+
+    grp_plot.on("plotly_click", function(data){
+        let pn='',
+            tn='',
+            colors=[];
+        for(var i=0; i < data.points.length; i++){
+            pn = data.points[i].pointNumber;
+            tn = data.points[i].curveNumber;
+            colors = data.points[i].data.marker.color;
+        };
+        colors[pn] = '#C54C82';
+
+        let update = {'marker':{color: colors}};
+        Plotly.restyle('plot-controls', update, [tn]);
     });
 }
 
@@ -98,12 +122,11 @@ const build_dom = function () {
     cleanExistingPlot();
     let e = document.getElementById("plot-metadata");
     e.append(htmlToElement(`<input type="checkbox" id="use-cd" name="use-cd">`));
-    e.append(htmlToElement(`<label for="use-cd">Use CD grouping in all plots.</label>`));
-
+    e.append(htmlToElement(`<label for="use-cd">Use CD grouping where count &ge;</label>`));
+    e.append(htmlToElement(`<input type="number" id="group-count" name="group-count" style="width: 5em;" min="1">`));
     if (using_groups) {
         document.getElementById("use-cd").checked = true;
     }
-
     document.getElementById("use-cd").addEventListener('input', (e) => {
         console.log(`Use CD ${e.target}`);
         if (e.target.checked) {
