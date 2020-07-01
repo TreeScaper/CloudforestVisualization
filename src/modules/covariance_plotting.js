@@ -107,7 +107,7 @@ const profile_node = function (node) {
     let pos_values = [];
     let neg_values = [];
     graph_data.links.forEach(l => {
-        if (l.source.id === node.id || l.target.id === node.id) {
+        if (l.source === node.id || l.target === node.id) {
             if (l.value < 0) {
                 neg_values.push(l.value);
             }
@@ -316,7 +316,7 @@ const build_link_edit_ui = function () {
     pcc.append(htmlToElement(`<div class="field has-addons">
         <h4>Remove Links Below X% of Maximum Magnitude</h4>
         <div class="control">
-            <input type="number" id="link-strength" min="1" max="99" value="95" size="4"></input>
+            <input type="number" id="link-strength" min="1" max="100" value="50" size="4"></input>
         </div >
         <div class="control">
             <a id="btn-links-reset" class="button is-info">Reset</a>
@@ -339,7 +339,11 @@ const build_link_edit_ui = function () {
     });
 
     document.getElementById("btn-links-reset").addEventListener("click", event => {
-        draw_graph(graph_data);
+        update_graph({
+            link_threshold: 50
+        });
+        //draw_graph(graph_data);
+        document.getElementById("link-strength").setAttribute("value", 50);
         document.getElementById("publish-graph").disabled = true;
     });
 
@@ -385,7 +389,10 @@ const covariance_plot_init = function (init_obj) {
             parse_bipartition(e.detail.contents["Bipartition Matrix"]);
             parse_covariance(e.detail.contents[FILE_NAME]);
             build_dom();
-            draw_graph(graph_data);
+            //draw_graph(graph_data);
+            update_graph({
+                link_threshold: 50
+            });
         }
     });
 
