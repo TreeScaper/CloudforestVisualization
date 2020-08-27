@@ -4,10 +4,10 @@
   "description": "CloudForest Experimentation",
   "main": "index.js",
   "scripts": {
-    "build": "webpack",
+    "build": "webpack --mode development",
     "watch": "webpack --watch",
     "start": "webpack-dev-server --open",
-    "package": "npm run clean && npm run build && bash build_app.sh",
+    "package": "npm run build && bash build_app.sh",
     "clean": "rm -rf cloudforest/ && rm cloudforest.tar.gz"
   },
   "author": {

@@ -1,6 +1,26 @@
 
 /**
- * Module for all Galaxy interaction
+ * Module for all Galaxy data interaction. 
+ * Retrieves data from Galaxy via the published API.
+ * Sends data to Galaxy where the stream is saved as a file within the current history.
+ * 
+ * GET:
+ *  Data is cleaned and parsed into a js object, then published in an event.
+ *  An example:
+ *      {
+ *          fileName: "Distance_Test.out",
+ *          header: {
+ *                      created: "7_26_8_49",
+                        distance_type: "Robinson-Foulds",
+                        node_feature: "weighted, unrooted",
+                        node_type: "Tree",
+                        output_type: "Distance matrix",
+                        size: 1188,
+                        source: "working_dir/cats_subsampled.boottrees"
+ *                  }
+            data: "........STRING........"
+ *      }
+ * 
  */
 let event_build_fn = undefined;
 let file_objects = undefined; //Holds array of file objects from history
@@ -11,13 +31,44 @@ let bipartition_files = undefined
 const admin_key = "?key=admin";
 const USE_KEY = false;
 
-const string_parser = function (s) {
+/**
+ * Parses the header on CLVTreescaper data files.
+ *  created:7_26_8_49
+    format:taxon id, taxon name
+    output_type:Taxon ID
+    size:27
+    source:working_dir/cats_subsampled.boottrees
+
+    Returns an object of key value pairs.
+ */
+const parse_header = function(s) {
     const split_data = s.split(/\r?\n|\r/g).filter(v => v.length > 0);
-    let parsed_data = [];
+    let rVal = {};
     split_data.forEach(d => {
-        parsed_data.push(d.split(/\t/));
+        let k_v = d.split(/:/);
+        rVal[k_v[0]] = k_v[1];
     });
-    return parsed_data;
+    return rVal;
+}
+
+const string_parser = function (s) {
+    let rVal = {
+        fileName: undefined,
+        header: undefined,
+        data: undefined
+    };
+
+    const regex = /<([\S|\s]*)>([\S|\s]*)/gm;
+    let match = regex.exec(s);
+    
+    if (match) {
+        rVal.header = parse_header(match[1]);
+        rVal.data = match[2];
+    } else {
+        rVal.data = s;
+    }
+
+    return rVal;
 };
 
 const fetch_decode = (f_obj) => {
@@ -29,20 +80,20 @@ const fetch_decode = (f_obj) => {
         let response = await fetch(api_url);
         let contents = await response.text();
         let formatted_contents = string_parser(contents);
-        let r_obj = {};
-        r_obj[f_obj.name] = formatted_contents;
-        return r_obj;
+        formatted_contents.fileName = f_obj.name;
+        return formatted_contents;
     }
 }
 
-const array_to_dict = function (arr) {
-    let r_dict = {};
-    arr.forEach(e => {
-        let k = Object.keys(e)[0];
-        r_dict[k] = e[k];
-    })
-    return r_dict;
-}
+//DEPRECATE
+// const array_to_dict = function (arr) {
+//     let r_dict = {};
+//     arr.forEach(e => {
+//         let k = Object.keys(e)[0];
+//         r_dict[k] = e[k];
+//     })
+//     return r_dict;
+// }
 
 const send_file_contents = async (obj, event = "FileContents") => {
     let funcs = [];
@@ -56,7 +107,7 @@ const send_file_contents = async (obj, event = "FileContents") => {
     }
     dispatchEvent(event_build_fn(event, {
         guid: obj.guid,
-        contents: array_to_dict(file_contents)
+        contents: file_contents
     }));
 }
 
@@ -237,10 +288,9 @@ const set_event_listeners = function () {
 }
 
 const galaxy_data_init = function (init_obj) {
-    let { guid_fn, event_fn, conf_elem_id } = init_obj;
+    let { event_fn, conf_elem_id } = init_obj;
     event_build_fn = event_fn;
-    const my_guid = guid_fn();
-
+    
     set_event_listeners();
 
     const config_elem = document.getElementById(conf_elem_id);

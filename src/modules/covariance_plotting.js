@@ -4,7 +4,7 @@ import { select, event } from "d3-selection";
 import { drag } from "d3-drag";
 import { mean, max } from "d3-array";
 
-import { roundedRect } from "./canvas_funcs";
+import { roundedRect } from "./support_funcs";
 import { cleanExistingPlot, htmlToElement } from "./html_templates";
 import { css_colors } from "./colors";
 

@@ -174,9 +174,8 @@ const scatter_3d = function (file_contents) {
             console.log(`Grouped point coordinates x:${r[0]} y:${r[1]} z:${r[2]}`);
         } else {
             row_data.color.push("#DDDDDD");
-        }
-
-    });
+        }    
+        });
     let data = [];
     data = [{
         x: row_data['x'],

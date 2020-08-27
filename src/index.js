@@ -70,7 +70,6 @@ const run_app = function () {
 
     addEventListener("DataPrimed", () => { init_modules(); });
     data_manager_init({
-        guid_fn: get_guid,
         event_fn: build_event,
         conf_elem_id: "galaxy-config"
     });
