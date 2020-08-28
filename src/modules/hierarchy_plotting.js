@@ -8,7 +8,7 @@ const FILE_NAMES = [RegExp(/[Cc]onsensus Tree/), RegExp(/.*boot.*tree.*/)];
 const animate = function (data) {
 
     let tree_num = 0;
-    let parsed_branchset = parseNewick(data[tree_num][0]);
+    let parsed_branchset = parseNewick(data[tree_num]);
     cleanExistingPlot();
     dispatchEvent(event_build_fn("PlotForTree", {
         tree_num: 1,
@@ -29,7 +29,7 @@ const animate = function (data) {
         let tn = Number(document.getElementById("boottree-slider").value);
         document.getElementById("boottree-number").textContent = tn;
         removeChildNodes("plot");
-        let pn = parseNewick(data[tn - 1][0]);
+        let pn = parseNewick(data[tn - 1]);
         dispatchEvent(event_build_fn("PlotForTree", {
             tree: pn,
             tree_num: tn,
@@ -47,10 +47,9 @@ const hierarchy_plot_init = function (init_obj) {
 
     addEventListener("TreeFileContents", e => {
         if (e.detail.guid === my_guid) {
-            //contents is a dict key is file name value is array of data.
-            Object.keys(e.detail.contents).forEach(k => {
-                if ("Consensus Tree" === k) {
-                    let parsed_branchset = parseNewick(e.detail.contents[k][0][0]);
+            e.detail.contents.forEach(item => {
+                if (/consensus tree/i.test(item.fileName)) {
+                    let parsed_branchset = parseNewick(item.data);
                     cleanExistingPlot();
 
                     dispatchEvent(event_build_fn("PlotForTree", {
@@ -61,8 +60,8 @@ const hierarchy_plot_init = function (init_obj) {
                         plot_div: "plot"
                     }));
                 }
-                if (RegExp(/.*boottree.*/).test(k)) { //TODO: this needs fixing.
-                    animate(e.detail.contents[k]);
+                if (RegExp(/.*boottree.*/).test(item.fileName)) {
+                    animate(item.data.split(';')); //data string of trees into an array.    
                 }
             })
 

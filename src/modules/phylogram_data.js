@@ -19,8 +19,8 @@ const pyhlogram_data_init = function (init_obj) {
             //TODO: Ask the user
         } else {
             removeChildNodes("plot-metadata");
-            let f = data_files[Object.keys(data_files)[0]];
-            let parsed_data = newick_parse(f[tree_num][0]);
+            let f = data_files[0];
+            let parsed_data = newick_parse(f.data.split(/\n/)[tree_num]);
             dispatchEvent(event_build_fn("PlotForTree", {
                 tree: parsed_data,
                 tree_num: tree_num + 1,

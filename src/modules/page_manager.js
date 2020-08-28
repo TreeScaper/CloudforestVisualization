@@ -4,22 +4,25 @@ import { htmlToElement } from "./html_templates";
 let event_build_fn = undefined
 let select_objs = {
     "nldr-select": {
-        regex: [RegExp(/NLDR.*Coordinates.*/)],
+        regex: [RegExp(/^NLDR Coordinates/)],
         files: [],
         event: "NLDRPlotRequest"
     },
     "tree-select": {
-        regex: [RegExp(/[Bb]oottrees/), RegExp(/Affinity Matrix/), RegExp(/Covariance Matrix/), RegExp(/[Cc]onsensus [Tt]ree/)],
+        regex: [RegExp(/boottrees/i), RegExp(/^Consensus Tree/), RegExp(/^Covariance Matrix/)],
         files: [],
         event: "TreePlotRequest"
     },
     "cd-select": {
-        regex: [RegExp(/Community Results/)],// RegExp(/Community Plateaus/)],
+        regex: [RegExp(/Plateaus of CD result/i), RegExp(/CD with NLDR coordinates/i), RegExp(/CD Results/i)],
         files: [],
         event: "CDPlotRequest"
     }
 };
 
+/**
+ * Wires the page allowing the user to select specific files for visualization.
+ */
 const wire_page = function () {
     Object.keys(select_objs).forEach(k => {
         document.getElementById(k)

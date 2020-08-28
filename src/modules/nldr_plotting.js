@@ -20,17 +20,19 @@ const group_colors = [
 // do some cleaning here, mostly remove the artificats from having extra tabs in output.
 const clean_data = function (data) {
     let cleaned = {};
-    const rx = RegExp(/Dim_(\d)_/);
-    Object.keys(data).forEach(k => {
-        let m = rx.exec(k);
-        let step1 = data[k].map(row => {
-            return row.filter(f => f.length > 0).map(i => Number(i));
-        });
-        let step2 = step1.filter(row => {
-            return row.length === Number(m[1])
-        });
-        cleaned[k] = step2;
+    let obj = data[0];
+    let key_name = obj.fileName + " : " + obj.header.dimension;
+    let t_arr = obj.data.split('\n'); //string to array or rows. Rows are still strings.
+    let arr = [];
+    t_arr.forEach(d => {
+        arr.push(d.split('\t')) //each array element to array of values.
     });
+    let step1 = arr.map(row => {
+        return row.filter(f => f.length > 0).map(i => Number(i)); //string to number
+    });
+    let step2 = step1.filter(r => r.length === Number(obj.header.dimension));
+    cleaned[key_name] = step2;
+    
     return cleaned;
 }
 
