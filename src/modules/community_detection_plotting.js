@@ -192,6 +192,17 @@ const parse_results = function (data) {
     return plot_data;
 }
 
+const clean_data = function(data) {
+    let t_arr = data.split('\n');
+    let arr = []
+    t_arr.forEach(d => {
+        if (d.length > 0) {
+            arr.push(d.split('\t')); 
+        }
+    });
+    return arr;
+}
+
 /**
  * Clean the raw grouping to k<group number> : v< [tree_num, tree_num, ...] >
  * @param {{}} cd_obj 
@@ -218,10 +229,11 @@ const community_detection_init = function (init_obj) {
 
     addEventListener("FileContents", e => {
         if (e.detail.guid === my_guid) {
-            let key = Object.keys(e.detail.contents).filter(k => RegExp(/[Cc]ommunity/).test(k));
+            //let key = Object.keys(e.detail.contents).filter(k => RegExp(/[Cc]ommunity/).test(k));
             //key = "Community Results:Trees"
-            cd_type = key[0].split(":")[1]; //hope this is a temp kludge around CLVTreescaper output issue
-            let parsed_data = parse_results(e.detail.contents[key[0]]);
+            //cd_type = key[0].split(":")[1]; //hope this is a temp kludge around CLVTreescaper output issue
+            //let parsed_data = parse_results(e.detail.contents[key[0]]);
+            let parsed_data = parse_results(clean_data(e.detail.contents[0].data));
             build_dom();
             draw_graph(parsed_data);
             let raw_cds = parse_communities(e.detail.contents[key[0]], parsed_data["label_community"]);

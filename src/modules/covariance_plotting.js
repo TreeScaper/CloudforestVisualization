@@ -31,7 +31,7 @@ let cd_groups = undefined;
 let max_covariance = 0;
 let num_trees = 0;
 
-const FILE_NAME = "Covariance Matrix";
+const FILE_NAME_REGEX = /^Covariance Matrix/;
 
 const parse_cd = function (groups) {
     let d = {};
@@ -397,7 +397,7 @@ const covariance_plot_init = function (init_obj) {
     });
 
     addEventListener("TreePlotRequest", e => {
-        if (e.detail.file_name === FILE_NAME) {
+        if (FILE_NAME_REGEX.test(e.detail.file_name)) {
             dispatchEvent(event_build_fn("FileContentsRequest", {
                 guid: my_guid,
                 files: [e.detail.file_id, bipartition_file.id]
