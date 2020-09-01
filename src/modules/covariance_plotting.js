@@ -341,8 +341,7 @@ const build_link_edit_ui = function () {
         update_graph({
             link_threshold: 50
         });
-        //draw_graph(graph_data);
-        document.getElementById("link-strength").setAttribute("value", 50);
+        document.getElementById("link-strength").value = 50;
         document.getElementById("publish-graph").disabled = true;
     });
 
