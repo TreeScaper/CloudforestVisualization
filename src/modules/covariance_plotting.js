@@ -48,22 +48,21 @@ const parse_cd = function (groups) {
 }
 
 const parse_covariance = function (m) {
-    m.forEach((c, i) => {
-        if (i > 0) {
-            c.forEach((v, idx) => {
-                if (idx > 0 && idx != Number(c[0]) && v.trim().length > 0) {
-                    let o = {
-                        "source": c[0].trim(),
-                        "target": String(idx),
-                        "value": Number(v.trim())
-                    }
-                    graph_data.links.push(o);
-                    if (Math.abs((Number(v.trim()))) > max_covariance) {
-                        max_covariance = Math.abs(Number(v.trim()));
-                    }
+    m.forEach((arr, idx) => {
+        //Removing superflous empty value at end of each array
+        arr.filter(v => v.length > 1).forEach((val, i) => {
+            if (i != idx) {
+                let o = {
+                    "source": String(idx),
+                    "target": String(i),
+                    "value": Number(val.trim())
                 }
-            });
-        }
+                graph_data.links.push(o);
+                if (Math.abs((Number(val.trim()))) > max_covariance) {
+                    max_covariance = Math.abs(Number(val.trim()));
+                }
+            }
+        });
     });
 }
 
@@ -355,6 +354,18 @@ const build_link_edit_ui = function () {
     });
 }
 
+//REFACTOR THIS TO ONE MODULE
+const clean_data = function(data) {
+    let t_arr = data.split('\n');
+    let arr = []
+    t_arr.forEach(d => {
+        if (d.length > 0) {
+            arr.push(d.split('\t')); 
+        }
+    });
+    return arr;
+}
+
 const covariance_plot_init = function (init_obj) {
     let { guid_fn, event_fn } = init_obj;
     event_build_fn = event_fn;
@@ -366,7 +377,7 @@ const covariance_plot_init = function (init_obj) {
         let files = e.detail.files.filter(obj => RegExp(/[Bb]ipartition [Mm]atrix/).test(obj.name));
         bipartition_file = files[0];
     });
-    dispatchEvent(event_build_fn("RequestBipartitionFile", {}));
+    dispatchEvent(event_build_fn("RequestBipartitionFile", {guid: my_guid}));
 
     //User has requested that CD groups be used in plotting.
     addEventListener("UseCDGroupsTrue", e => {
@@ -386,10 +397,17 @@ const covariance_plot_init = function (init_obj) {
                 "nodes": [],
                 "links": []
             };
-            parse_bipartition(e.detail.contents["Bipartition Matrix"]);
-            parse_covariance(e.detail.contents[FILE_NAME]);
+
+            e.detail.contents.forEach(file => {
+                if (/^Covariance Matrix/.test(file.fileName)) {
+                    let arr = file.data.split('\n');
+                    parse_covariance(clean_data(file.data));
+                }
+                if (/^Bipartition Matrix/.test(file.fileName)) {
+                    parse_bipartition(clean_data(file.data));
+                }
+            });
             build_dom();
-            //draw_graph(graph_data);
             update_graph({
                 link_threshold: 50
             });

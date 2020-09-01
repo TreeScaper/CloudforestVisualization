@@ -64,6 +64,7 @@ const bipartions_for_tree = function (tree_num) {
     }));
 }
 
+//REFACTOR THIS TO ONE MODULE
 const clean_data = function(data) {
     let t_arr = data.split('\n');
     let arr = []
