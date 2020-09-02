@@ -44,7 +44,7 @@
                         </div>
                     </div>
                     <div class="tile is-child box">
-                        <h5>Trees</h5>
+                        <h5>Trees and Matrices</h5>
                         <div class="tile is-vertical is-parent">
                             <div class="control">
                                 <div class="select">

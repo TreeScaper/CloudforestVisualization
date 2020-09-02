@@ -9,7 +9,7 @@ let score_array = undefined;
 let event_buld_fn = undefined;
 let parsed_data = undefined;
 let score_set = new Set();
-const FILE_NAME = "Affinity Matrix";
+const FILE_NAME_REGEXP = /^Affinity Matrix/;
 
 const getEvent = () => event; // This is necessary when using webpack >> https://github.com/d3/d3-zoom/issues/32
 const d3 = Object.assign(
@@ -24,18 +24,23 @@ const d3 = Object.assign(
     }
 )
 
-const build_slider = function (e) {
-    let a_slider = `
-                <p>Group by Affinitity Score:</p >
-                    <input type="range" id="affinity-slider" name="affinity"
-                        min="0" max="${score_array.length - 1}" step="1" value="${score_array[score_array.length - 1]}">
-                        <span id="affinity-value">${score_array[score_array.length - 1]}</span>`;
-    e.innerHTML = a_slider;
+const build_option = function (e) {
+    let max_score = score_array[score_array.length - 1];
+    let html_string = '<label>Affinity Score:<select id="affinity-select">';
+    score_array.forEach((v, i) => {
+        if (i === (score_array.length -1)) {
+            html_string += `<option value="${v}" selected>${v}</option>`;
+        } else {
+            html_string += `<option value="${v}">${v}</option>`;
+        }
+    });
+    html_string += "</select></label>";
 
-    let s = document.getElementById("affinity-slider");
+    e.innerHTML = html_string;
+
+    let s = document.getElementById("affinity-select");
     s.addEventListener("input", () => {
-        document.getElementById("affinity-value").textContent = score_array[s.value];
-        filter_links(parsed_data, score_array[s.value]);
+        filter_links(parsed_data, Number(s.value));
     });
     e.classList.add("box");
 }
@@ -47,7 +52,7 @@ const build_dom = function () {
     let div_width = Math.floor((doc_width - (doc_width * .15)) / 100) * 100;
     let div_height = div_width / 2;
     plot_div.append(htmlToElement(`<canvas id="ballons" width=${div_width} height=${div_height}></canvas>`));
-    build_slider(document.getElementById("plot-controls"));
+    build_option(document.getElementById("plot-controls"));
 }
 
 const draw_ballon_graph = function (b_nodes) {
@@ -205,7 +210,8 @@ const filter_links = function (data, threshold) {
 }
 
 const parse_affinity_matrix = function (data) {
-    let m = data[FILE_NAME];
+    let m = data.map(a => a.filter(d => d.length > 0)); //Clean extraneous line feeds.
+
     let link_groups = [new Set()]; //Use to group nodes into aggregated sets based on links.
     let json_data = {
         "nodes": [],
@@ -214,33 +220,27 @@ const parse_affinity_matrix = function (data) {
 
     let ids = [];
     m.forEach((element, idx) => {
-        if (idx > 0) {
             json_data["nodes"].push({
-                "id": String(element[0]).trim(),
+                "id": String(idx + 1),
                 "group": "No Group"
             });
-            ids.push(String(element[0]));
-        }
-
+            ids.push(String(idx + 1));   
     });
     m.forEach((element, idx) => {
-        if (idx > 0) {
-            let source = element[0].trim();
-            element.splice(1).forEach((e, i) => {
-                if (e.trim().length > 0) {
-                    let target = ids[i].trim();
-                    let value = Number(e);
-                    if (source != target) {
-                        score_set.add(value);
-                        json_data["links"].push({
-                            "source": source,
-                            "target": target,
-                            "value": value
+        let source = String(idx + 1);
+        element.forEach((e, i) => {
+                let target = ids[i];
+                let value = Number(e);
+                if (source != target) {
+                    score_set.add(value);
+                    json_data["links"].push({
+                        "source": source,
+                        "target": target,
+                        "value": value
                         });
                     }
-                }
+                
             });
-        }
     });
 
     //set group id for nodes based on aggregation
@@ -257,6 +257,18 @@ const parse_affinity_matrix = function (data) {
     return json_data;
 }
 
+//REFACTOR THIS TO ONE MODULE
+const clean_data = function(data) {
+    let t_arr = data.split('\n');
+    let arr = []
+    t_arr.forEach(d => {
+        if (d.length > 0) {
+            arr.push(d.split('\t')); 
+        }
+    });
+    return arr;
+}
+
 const affinity_plot_init = function (init_obj) {
     let { guid_fn, event_fn } = init_obj;
     event_buld_fn = event_fn;
@@ -264,7 +276,8 @@ const affinity_plot_init = function (init_obj) {
 
     addEventListener("FileContents", e => {
         if (e.detail.guid === my_guid) {
-            parsed_data = parse_affinity_matrix(e.detail.contents);
+
+            parsed_data = parse_affinity_matrix(clean_data(e.detail.contents[0].data));
             score_array = [...score_set].sort((a, b) => a - b); //low to high unique affinity scores
             build_dom();
             filter_links(parsed_data, score_array[score_array.length - 1]);
@@ -272,7 +285,7 @@ const affinity_plot_init = function (init_obj) {
     });
 
     addEventListener("TreePlotRequest", e => {
-        if (e.detail.file_name === FILE_NAME) {
+        if (FILE_NAME_REGEXP.test(e.detail.file_name)) {
             dispatchEvent(event_buld_fn("FileContentsRequest", { guid: my_guid, files: [e.detail.file_id] }));
         }
     });
