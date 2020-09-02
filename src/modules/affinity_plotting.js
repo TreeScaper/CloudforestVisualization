@@ -25,7 +25,6 @@ const d3 = Object.assign(
 )
 
 const build_option = function (e) {
-    let max_score = score_array[score_array.length - 1];
     let html_string = '<label>Affinity Score:<select id="affinity-select">';
     score_array.forEach((v, i) => {
         if (i === (score_array.length -1)) {
@@ -55,6 +54,16 @@ const build_dom = function () {
     build_option(document.getElementById("plot-controls"));
 }
 
+//Set background so saved PNG has a background color.
+const set_canvas_background = function() {
+    let canvas = document.getElementById("ballons"),
+        ctx = canvas.getContext('2d');
+        
+    ctx.globalCompositeOperation = 'destination-over'
+    ctx.fillStyle = "white";
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+}
+
 const draw_ballon_graph = function (b_nodes) {
     let canvas = document.getElementById("ballons"),
         ctx = canvas.getContext('2d'),
@@ -73,6 +82,7 @@ const draw_ballon_graph = function (b_nodes) {
     let b_update = function () {
         ctx.clearRect(0, 0, width, height);
         b_nodes.forEach(draw_b_node);
+        set_canvas_background();
     }
 
     let draw_b_node = function (d) {

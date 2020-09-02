@@ -141,6 +141,17 @@ const draw_profile_legend = function (p) {
     elm.innerHTML = e_string;
 }
 
+//Set background so saved PNG has a background color.
+const set_c_background = function() {
+    let canvas = document.getElementById("topo-network"),
+        ctx = canvas.getContext('2d');
+        
+    ctx.globalCompositeOperation = 'destination-over'
+    ctx.fillStyle = "white";
+    ctx.globalAlpha = 1.0;
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+}
+
 const draw_graph = function (graph_data) {
 
     const link_scale = d3.scaleQuantize()
@@ -219,7 +230,10 @@ const draw_graph = function (graph_data) {
         .force("link", d3.forceLink()
             .id(function (d) { return d.id; }).distance(width / 3));
 
-    simulation.on("tick", tick);
+    simulation.on("tick", () => {
+        tick();
+        set_c_background();
+    });
     simulation.force("link")
         .links(graph_data.links);
 
