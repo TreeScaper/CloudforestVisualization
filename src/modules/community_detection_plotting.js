@@ -4,7 +4,6 @@ import { htmlToElement, cleanExistingPlot } from "./html_templates";
 let event_build_fn = undefined;
 let cd_grouping = undefined;
 let using_groups = false;
-let cd_type = undefined; //Trees || Cova
 
 const draw_graph = function (data) {
     const line_width = 2;
@@ -123,7 +122,7 @@ const show_cd_groups = function (groups) {
 const dispatch_use_groups = function() {
     let filter_count = Number(document.getElementById("group-count").value);
     let filtered_data = cd_grouping.filter(obj => obj[1].length >= filter_count);
-    dispatchEvent(event_build_fn("UseCDGroupsTrue", { groups: filtered_data, type: cd_type }));
+    dispatchEvent(event_build_fn("UseCDGroupsTrue", { groups: filtered_data }));
     using_groups = true;
 }
 
@@ -192,6 +191,7 @@ const parse_results = function (data) {
     return plot_data;
 }
 
+//REFACTOR THIS TO MODULE
 const clean_data = function(data) {
     let t_arr = data.split('\n');
     let arr = []
@@ -229,14 +229,10 @@ const community_detection_init = function (init_obj) {
 
     addEventListener("FileContents", e => {
         if (e.detail.guid === my_guid) {
-            //let key = Object.keys(e.detail.contents).filter(k => RegExp(/[Cc]ommunity/).test(k));
-            //key = "Community Results:Trees"
-            //cd_type = key[0].split(":")[1]; //hope this is a temp kludge around CLVTreescaper output issue
-            //let parsed_data = parse_results(e.detail.contents[key[0]]);
             let parsed_data = parse_results(clean_data(e.detail.contents[0].data));
             build_dom();
             draw_graph(parsed_data);
-            let raw_cds = parse_communities(e.detail.contents[key[0]], parsed_data["label_community"]);
+            let raw_cds = parse_communities(clean_data(e.detail.contents[0].data), parsed_data["label_community"]);
             let grouped_groups = group_groups(raw_cds);
             show_cd_groups(grouped_groups);
         }

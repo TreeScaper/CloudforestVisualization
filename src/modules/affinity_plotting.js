@@ -4,6 +4,7 @@ import { forceSimulation, forceCollide, forceManyBody, forceX, forceY } from "d3
 import { select, event } from "d3-selection";
 import { drag } from "d3-drag";
 import { htmlToElement, cleanExistingPlot } from './html_templates';
+import { isNull } from "plotly.js-gl2d-dist";
 
 let score_array = undefined;
 let event_buld_fn = undefined;
@@ -56,12 +57,16 @@ const build_dom = function () {
 
 //Set background so saved PNG has a background color.
 const set_canvas_background = function() {
-    let canvas = document.getElementById("ballons"),
-        ctx = canvas.getContext('2d');
-        
-    ctx.globalCompositeOperation = 'destination-over'
-    ctx.fillStyle = "white";
-    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    let ctx = undefined;
+    let canvas = document.getElementById("ballons");
+    if (canvas === null) {
+        console.log("done");
+    } else {
+        ctx = canvas.getContext('2d');  
+        ctx.globalCompositeOperation = 'destination-over'
+        ctx.fillStyle = "white";
+        ctx.fillRect(0, 0, canvas.width, canvas.height);    
+    }
 }
 
 const draw_ballon_graph = function (b_nodes) {

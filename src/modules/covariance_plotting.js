@@ -143,13 +143,15 @@ const draw_profile_legend = function (p) {
 
 //Set background so saved PNG has a background color.
 const set_c_background = function() {
-    let canvas = document.getElementById("topo-network"),
-        ctx = canvas.getContext('2d');
-        
-    ctx.globalCompositeOperation = 'destination-over'
-    ctx.fillStyle = "white";
-    ctx.globalAlpha = 1.0;
-    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    let canvas = document.getElementById("topo-network");
+    let ctx = undefined;
+    if (canvas != null) {
+        ctx = canvas.getContext('2d');        
+        ctx.globalCompositeOperation = 'destination-over'
+        ctx.fillStyle = "white";
+        ctx.globalAlpha = 1.0;
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+    }
 }
 
 const draw_graph = function (graph_data) {

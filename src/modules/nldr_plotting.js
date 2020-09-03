@@ -100,12 +100,18 @@ const scatter_2d = function (file_contents) {
     let row_data = {
         x: [],
         y: [],
-        text: []
+        text: [],
+        color: []
     };
     file_contents.forEach((r, idx) => {
         row_data['x'].push(Number(r[0]));
         row_data['y'].push(Number(r[1]));
         row_data['text'].push(`Tree: ${idx + 1}`);
+        if (cd_groups.get(idx + 1)) {
+            row_data.color.push(cd_groups.get(idx + 1).group_color);
+        } else {
+            row_data.color.push("#DDDDDD");
+        }    
     });
 
     let data = [];
@@ -118,7 +124,8 @@ const scatter_2d = function (file_contents) {
         mode: 'markers',
         type: 'scatter',
         marker: {
-            size: 5
+            size: 5,
+            color: row_data.color
         },
         hovertemplate: "%{text}<extra></extra>",
     });
@@ -145,9 +152,6 @@ const scatter_2d = function (file_contents) {
 
     s_plot.on("plotly_click", function (data) {
         let tree_idx = data.points[0]['pointNumber'];
-        if (data.points.length > 1) {
-            console.log(`There are ${data.points.length} trees within this one data point marker.`)
-        }
         console.log(`Draw ${data.points[0].text}`);
         dispatchEvent(
             event_buld_fn("TreeRequest", {
@@ -373,13 +377,11 @@ const nldr_plot_init = function (init_obj) {
 
     //User has requested that CD groups be used in plotting.
     addEventListener("UseCDGroupsTrue", e => {
-        if (e.detail.type === "Trees") {
-            cd_groups = generate_tree_by_group(e.detail.groups);
-        }
+        cd_groups = generate_tree_by_group(e.detail.groups);
     });
     //User has requested that CD groups _not_ be used in plotting.
     addEventListener("UseCDGroupsFalse", e => {
-        cd_groups = undefined;
+        cd_groups = new Map();
     });
 
     addEventListener("FileContents", e => {
