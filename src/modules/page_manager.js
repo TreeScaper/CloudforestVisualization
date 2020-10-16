@@ -25,16 +25,21 @@ let select_objs = {
  */
 const wire_page = function () {
     Object.keys(select_objs).forEach(k => {
-        document.getElementById(k)
-            .querySelectorAll('option')
-            .forEach(n => {
-                n.addEventListener("click", e => {
-                    dispatchEvent(event_build_fn(select_objs[k].event, {
-                        file_name: e.target.getAttribute("data_name"),
-                        file_id: e.target.getAttribute("data_id")
-                    }));
-                })
-            })
+        let te = document.getElementById(k);
+        te.addEventListener("change", e => {
+            if (e.target.selectedIndex > 0) {
+                dispatchEvent(event_build_fn(select_objs[k].event, {
+                    file_name: e.target.children[e.target.selectedIndex].getAttribute('data_name'),
+                    file_id: e.target.children[e.target.selectedIndex].getAttribute('data_id')
+                }));
+                //Resetting other selects to index 0
+                document.querySelectorAll('select').forEach(s => {
+                    if (s.getAttribute('id') != te.getAttribute('id')) {
+                        s.selectedIndex = 0;
+                    }
+                });
+            }
+        });
     });
 }
 

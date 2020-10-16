@@ -38,6 +38,7 @@
                             <div class="control">
                                 <div class="select">
                                     <select id="nldr-select" class="is-small" disabled>
+                                     <option value="">--Please choose a file--</option>
                                     </select>
                                 </div>
                             </div>
@@ -48,7 +49,8 @@
                         <div class="tile is-vertical is-parent">
                             <div class="control">
                                 <div class="select">
-                                    <select id="tree-select" class="is-small" disabled></select>
+                                    <select id="tree-select" class="is-small" disabled>
+                                     <option value="">--Please choose a file--</option></select>
                                 </div>
                             </div>
                         </div>
@@ -57,8 +59,9 @@
                         <h5>Community Detection</h5>
                         <div class="tile is-vertical is-parent">
                             <div class="control">
-                                <div class="select is-small">
-                                    <select id="cd-select" disabled>
+                                <div class="select">
+                                    <select id="cd-select" class="is-small" disabled>
+                                     <option value="">--Please choose a file--</option>
                                     </select>
                                 </div>
                             </div>
