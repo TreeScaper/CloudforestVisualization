@@ -3,8 +3,6 @@ import { newick_parse as parseNewick } from "./tree_data_parsing"
 
 let event_build_fn = undefined;
 
-//const FILE_NAMES = [RegExp(/[Cc]onsensus Tree/), RegExp(/.*boot.*tree.*/)];
-
 const animate = function (data) {
 
     let tree_num = 0;
@@ -59,8 +57,8 @@ const hierarchy_plot_init = function (init_obj) {
                         height: .75 * document.getElementById("plot").clientWidth,
                         plot_div: "plot"
                     }));
-                }
-                if (RegExp(/.*boottree.*/).test(item.fileName)) {
+                } else 
+                {
                     animate(item.data.split(';')); //data string of trees into an array.    
                 }
             })
@@ -70,11 +68,6 @@ const hierarchy_plot_init = function (init_obj) {
 
     addEventListener("TreePlotRequest", e => {
         dispatchEvent(event_build_fn("TreeFileContentsRequest", { guid: my_guid, files: [e.detail.file_id] }));
-        // FILE_NAMES.forEach(rx => {
-        //     if (rx.test(e.detail.file_name)) {
-        //         dispatchEvent(event_build_fn("TreeFileContentsRequest", { guid: my_guid, files: [e.detail.file_id] }));
-        //     }
-        // });
     });
 
 }
