@@ -140,14 +140,14 @@ const filter_data = function (raw_data) {
     };
     const filetype_check = function (ext) {
         let r_val = false;
-        switch (ext) {
-            case 'cloudforest':
-            case 'nhx':
-            case 'nexus':
-            case 'nex':
-            case 'newick':
-                r_val = true;
-                break;
+        if (RegExp(/cloudforest/).test(ext)) {
+            r_val = true;
+        }
+        if (RegExp(/nex/).test(ext)) {
+            r_val = true;
+        }
+        if (RegExp(/newick|nhx/).test(ext)) {
+            r_val = true;
         }
         return r_val;
     };
@@ -188,7 +188,7 @@ const parse_galaxy_history = function (href, history_id) {
 const file_identifiers = function () {
     let r_val = [];
     file_objects.forEach(f_obj => {
-        r_val.push({ name: f_obj.name, id: f_obj.dataset_id });
+        r_val.push({ name: f_obj.name, id: f_obj.dataset_id, extension: f_obj.extension });
     });
     return r_val;
 };

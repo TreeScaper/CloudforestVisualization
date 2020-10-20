@@ -9,7 +9,7 @@ let select_objs = {
         event: "NLDRPlotRequest"
     },
     "tree-select": {
-        regex: [RegExp(/boottrees/i), RegExp(/^Consensus Tree/), RegExp(/^Covariance Matrix/), RegExp(/^Affinity Matrix/)],
+        regex: [RegExp(/cloudforest\.trees/), RegExp(/boottrees/i), RegExp(/^Consensus Tree/), RegExp(/^Covariance Matrix/)],
         files: [],
         event: "TreePlotRequest"
     },
@@ -63,6 +63,9 @@ const process_available_files = function (files) {
         select_objs[k].regex.forEach(rx => {
             files.forEach(f => {
                 if (rx.test(f.name)) {
+                    select_objs[k].files.push(f);
+                }
+                if (rx.test(f.extension)) {
                     select_objs[k].files.push(f);
                 }
             });

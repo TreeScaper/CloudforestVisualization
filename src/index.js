@@ -32,10 +32,10 @@ const init_modules = function () {
         event_fn: build_event
     });
 
-    affinity_plot_init({
-        guid_fn: get_guid,
-        event_fn: build_event
-    });
+    // affinity_plot_init({
+    //     guid_fn: get_guid,
+    //     event_fn: build_event
+    // });
     nldr_plot_init({
         guid_fn: get_guid,
         event_fn: build_event

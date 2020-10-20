@@ -3,7 +3,7 @@ import { newick_parse as parseNewick } from "./tree_data_parsing"
 
 let event_build_fn = undefined;
 
-const FILE_NAMES = [RegExp(/[Cc]onsensus Tree/), RegExp(/.*boot.*tree.*/)];
+//const FILE_NAMES = [RegExp(/[Cc]onsensus Tree/), RegExp(/.*boot.*tree.*/)];
 
 const animate = function (data) {
 
@@ -69,11 +69,12 @@ const hierarchy_plot_init = function (init_obj) {
     });
 
     addEventListener("TreePlotRequest", e => {
-        FILE_NAMES.forEach(rx => {
-            if (rx.test(e.detail.file_name)) {
-                dispatchEvent(event_build_fn("TreeFileContentsRequest", { guid: my_guid, files: [e.detail.file_id] }));
-            }
-        });
+        dispatchEvent(event_build_fn("TreeFileContentsRequest", { guid: my_guid, files: [e.detail.file_id] }));
+        // FILE_NAMES.forEach(rx => {
+        //     if (rx.test(e.detail.file_name)) {
+        //         dispatchEvent(event_build_fn("TreeFileContentsRequest", { guid: my_guid, files: [e.detail.file_id] }));
+        //     }
+        // });
     });
 
 }
