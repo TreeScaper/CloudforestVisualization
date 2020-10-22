@@ -162,7 +162,7 @@ const scatter_2d = function (file_contents) {
     });
 }
 
-const scatter_3d = function (file_contents) {
+const scatter_3d = function (file_contents, in_color) {
     const three_d_dom = "dim-scatter-plot";
     let row_data = {
         'x': [],
@@ -176,13 +176,12 @@ const scatter_3d = function (file_contents) {
         row_data['y'].push(Number(r[1]));
         row_data['z'].push(Number(r[2]));
         row_data.text.push(`Tree: ${idx + 1}`);
-        if (cd_groups.get(idx + 1)) {
-            row_data.color.push(cd_groups.get(idx + 1).group_color);
-            console.log(`Grouped point coordinates x:${r[0]} y:${r[1]} z:${r[2]}`);
+        if (in_color.length > 1){
+            row_data.color.push(in_color[idx]);
         } else {
-            row_data.color.push("#DDDDDD");
-        }    
-        });
+            row_data.color.push(in_color[0]);
+        }
+    });
     let data = [];
     data = [{
         x: row_data['x'],
@@ -288,6 +287,43 @@ const scatter_3d = function (file_contents) {
     });
 }
 
+
+const plot_every_nth = function(cut_off) {
+
+    function colorMe () {
+        let defaultColor = "lightslategray";
+        let colors = [
+            "blue", "crimson", "chartreuse", "darkcyan", "darkorange",
+            "forestgreen", "orange", "teal", "yellow", "plum"
+        ];
+        let count = 0;
+        
+        return function() {
+          if (count < colors.length) {
+            let rval = colors[count];
+            count++;
+            return rval
+          } else {
+            return defaultColor;
+          }
+        } 
+    }
+
+    let c = colorMe();
+    let d =coordinate_data[Object.keys(coordinate_data)[0]];
+    let new_colors = [];
+    let current_color = c();
+    d.forEach((v, idx) => {
+        if ((idx + 1) % cut_off === 0) {
+            current_color = c();
+        } else {
+            new_colors.push(current_color);
+        }
+    });
+    cleanExistingPlot();
+    build_2d_3d(d, new_colors);
+}
+
 /**
  * User wishes to subset the NLDR trees every nth number of trees.
  * 
@@ -299,11 +335,17 @@ const subtree_every_nth = function() {
         <div class="tile is-child box>
             <label for="nth-value">Subset Trees every Nth Tree</label>
             <input id="nth-value" class="input" type="text" placeholder="10">
-            <button class="button is-small">Execute</button>
+            <button id="execute-nth-value" class="button is-small">Execute</button>
         </div>
     </div>`;
-
     document.getElementById('subset-plots-div').append(htmlToElement(s));
+
+    document.getElementById('execute-nth-value').addEventListener('click', e => {
+        let el = document.getElementById("nth-value");
+        if (el.value.length > 0) {
+            plot_every_nth(Number(el.value));
+        }
+    });
 }
 
 /**
@@ -374,7 +416,7 @@ const build_subtree_menu = function() {
     });
 }
 
-const build_2d_3d = function (contents) {
+const build_2d_3d = function (contents, in_colors=["blue"]) {
     
     build_subtree_menu();
 
@@ -402,14 +444,14 @@ const build_2d_3d = function (contents) {
             document.getElementById("plot").append(htmlToElement(`<div id="dim-scatter-plot"/>`))
 
             if (e.target.getAttribute('value') === '3d') {
-                scatter_3d(contents);
+                scatter_3d(contents, in_colors);
             } else {
                 scatter_2d(contents);
             }
         });
     });
 
-    scatter_3d(contents);
+    scatter_3d(contents, in_colors);
 }
 
 const build_2d = function (contents) {
@@ -427,7 +469,7 @@ const plot_dimensions = function (dims, contents) {
         build_2d(contents);
     }
     if (dims === 3) {
-        build_2d_3d(contents);
+        build_2d_3d(contents, );
     }
     if (dims > 3) {
         build_multidimension(contents);
