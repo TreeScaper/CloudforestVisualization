@@ -2,7 +2,6 @@ import "./bulma.min.css";
 
 import { galaxy_data_init as data_manager_init } from "./modules/galaxy_data";
 import { nldr_plot_init } from "./modules/nldr_plotting";
-import { affinity_plot_init } from "./modules/affinity_plotting";
 import { hierarchy_plot_init } from "./modules/hierarchy_plotting";
 import { covariance_plot_init } from "./modules/covariance_plotting";
 import { community_detection_init } from "./modules/community_detection_plotting";
@@ -32,10 +31,6 @@ const init_modules = function () {
         event_fn: build_event
     });
 
-    // affinity_plot_init({
-    //     guid_fn: get_guid,
-    //     event_fn: build_event
-    // });
     nldr_plot_init({
         guid_fn: get_guid,
         event_fn: build_event

@@ -26,7 +26,8 @@ let event_build_fn = undefined;
 let file_objects = undefined; //Holds array of file objects from history
 let href = undefined;
 let history_id = undefined;
-let bipartition_files = undefined
+let bipartition_files = undefined;
+let nldr_coordinate_files = undefined;
 
 const admin_key = "?key=admin";
 const USE_KEY = false;
@@ -85,15 +86,6 @@ const fetch_decode = (f_obj) => {
     }
 }
 
-//DEPRECATE
-// const array_to_dict = function (arr) {
-//     let r_dict = {};
-//     arr.forEach(e => {
-//         let k = Object.keys(e)[0];
-//         r_dict[k] = e[k];
-//     })
-//     return r_dict;
-// }
 
 const send_file_contents = async (obj, event = "FileContents") => {
     let funcs = [];
@@ -162,6 +154,7 @@ const process_history_contents = function (data) {
     file_objects = f_data;
 
     bipartition_files = file_objects.filter(obj => RegExp(/[Bb]ipartition|Taxa IDs/).test(obj.name)); //Includes matrix and log
+    nldr_coordinate_files = file_objects.filter(obj => RegExp(/cloudforest\.coordinates/).test(obj.extension));
 
     dispatchEvent(event_build_fn("BipartitionFiles", { files: bipartition_files }));
     dispatchEvent(event_build_fn("DataPrimed", {}));
@@ -271,7 +264,7 @@ const set_event_listeners = function () {
     addEventListener("BootstrappedTrees", e => {
         let tree_files = [];
         file_objects.forEach(fo => {
-            if (RegExp(/.*boottrees*/).test(fo.name)) {
+            if (RegExp(/cloudforest\.trees/).test(fo.extension)) {
                 tree_files.push(fo.dataset_id);
                 send_file_contents({
                     guid: e.detail.guid,
@@ -283,6 +276,10 @@ const set_event_listeners = function () {
 
     addEventListener("RequestBipartitionFile", () => {
         dispatchEvent(event_build_fn("BipartitionFiles", { files: bipartition_files }));
+    });
+
+    addEventListener("NDLRCoordinateFilesRequest", e => {
+        dispatchEvent(event_build_fn("NLDRCoordinateFiles", { files: nldr_coordinate_files }));
     });
 
 }

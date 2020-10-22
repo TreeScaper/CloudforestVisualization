@@ -22,6 +22,7 @@ function cleanExistingPlot() {
     removeChildNodes("plot");
     removeChildNodes("plot-controls");
     removeChildNodes("plot-metadata");
+    removeChildNodes("subset-plots-div");
     document.getElementById("plot-controls").classList.remove("box");
     document.getElementById("plot-metadata").classList.remove("box");
 

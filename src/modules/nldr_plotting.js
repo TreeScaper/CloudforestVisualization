@@ -11,6 +11,7 @@ import {
 let coordinate_data = undefined;
 let event_buld_fn = undefined;
 let cd_groups = new Map();
+
 const group_colors = [
     "#0074D9", "#7FDBFF", "#39CCCC", "#3D9970", "#2ECC40",
     "#01FF70", "#FFDC00", "#FF851B", "#FF4136", "#85144b", "#F012BE", "#B10DC9"
@@ -287,7 +288,96 @@ const scatter_3d = function (file_contents) {
     });
 }
 
+/**
+ * User wishes to subset the NLDR trees every nth number of trees.
+ * 
+ * Draw gui, let user enter nth value, execute
+ */
+const subtree_every_nth = function() {
+    let s = `
+    <div id="user-plot-ctrls" class="tile is-parent">
+        <div class="tile is-child box>
+            <label for="nth-value">Subset Trees every Nth Tree</label>
+            <input id="nth-value" class="input" type="text" placeholder="10">
+            <button class="button is-small">Execute</button>
+        </div>
+    </div>`;
+
+    document.getElementById('subset-plots-div').append(htmlToElement(s));
+}
+
+/**
+ * User wishes to subset the NLDR trees by sepcific indexes.
+ * 
+ * Draw gui, let user enter indexes, execute
+ */
+const subtree_by_index = function() {
+    let s = `
+    <div id="user-plot-ctrls" class="tile is-parent">
+        <div class="tile is-child box>
+            <label for="nth-value">Subset Trees by Index</label>
+            <input id="nth-value" class="input" type="text" placeholder="1-10: Blue">
+            <button class="button is-small">Execute</button>
+        </div>
+    </div>`;
+
+    document.getElementById('subset-plots-div').append(htmlToElement(s));
+
+}
+
+const clean_it = function() {
+    try{
+        document.getElementById('user-plot-ctrls').remove();
+    } catch (error) {
+    }
+}
+
+/**
+ * Create user controls for sub-tree loading and marking.
+ *  - User can load a file with tree indexes marking subtrees
+ *  - User can type the contents of the above file
+ *  - User can request a consistent offset: every n trees generates a new group
+ *  - Users can determine color overriding defaults. 
+ */
+const build_subtree_menu = function() {
+    let div_slug = `
+    <div class="tile is-parent">
+        <div class="tile is-child box">
+            <div class="select">
+                <select id="subtree-select">
+                    <option value="clear-controls">Subset Plot</option>
+                    <option value="every-nth">Every Nth Trees</option>
+                    <option value="enter-indexes">Enter Tree Indexes</option>
+                    <option value="load-index-file">Load Index File</option>
+                </select>      
+            <div>
+        </div>
+    </div>
+    `;
+
+    document.getElementById("subset-plots-div").append(htmlToElement(div_slug));
+    document.getElementById("subtree-select").addEventListener('change', e=>{
+        if (e.target.value === "clear-controls") {
+            clean_it();
+        }
+        if (e.target.value === "every-nth") {
+            clean_it();
+            subtree_every_nth();
+        }
+        if (e.target.value === "enter-indexes") {
+            clean_it();
+            subtree_by_index();
+        }
+        if (e.target.value === "load-index-file") {
+            clean_it();
+        }
+    });
+}
+
 const build_2d_3d = function (contents) {
+    
+    build_subtree_menu();
+
     document.getElementById("plot").append(htmlToElement(`
     <div id="scatter_dimensions" class="tabs is-centered is-small is-toggle">
     <ul>
@@ -398,6 +488,7 @@ const nldr_plot_init = function (init_obj) {
             files: [e.detail.file_id]
         }));
     });
+
 }
 
 export {

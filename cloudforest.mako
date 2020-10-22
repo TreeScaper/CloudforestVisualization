@@ -69,17 +69,22 @@
                     </div>
                 </div>
             </div><!-- END menu ancestor tile -->
+            
             <div class="tile is-ancestor">
                 <div class="tile is-vertical is-parent">
                     <div id="plot-metadata" class="tile"></div>
                     <div id="plot-controls" class="tile"></div>
                 </div>
             </div>
+           
             <div class="tile is-ancestor">
                 <div class="tile box has-text-centered" style="overflow-x: auto;">
                     <div id="plot" style="width: 100%; margin: 0 auto;"></div>
                 </div>
-            </div> <!-- end top ancestor -->
+            </div>
+            <div class="tile is-ancestor">
+                <div id="subset-plots-div"/>
+            </div>
         </div> <!-- Container-->
     </div>
     
