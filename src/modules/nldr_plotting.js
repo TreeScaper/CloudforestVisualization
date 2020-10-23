@@ -13,9 +13,9 @@ let event_buld_fn = undefined;
 let cd_groups = new Map();
 
 let color_list = [
-    "aliceblue", "aquamarine", "bisque", "blue", "burlywood",
-    "chocolate", "cornsilk", "darkblue", "darkgray", "darkorange", "darkseagreen",
-    "darkslategrey", "deeppink", "lime"
+    "lime", "chocolate", "bisque", "blue", "burlywood",
+    "aquamarine", "cornsilk", "darkblue", "darkgray", "darkorange", "darkseagreen",
+    "darkslategrey", "deeppink", "aliceblue"
 ];
 let fall_back_color = "black";
 /**
@@ -153,7 +153,7 @@ const scatter_2d = function (file_contents, in_color) {
         mode: 'markers',
         type: 'scatter',
         marker: {
-            size: 5,
+            size: 8,
             color: row_data.color
         },
         hovertemplate: "%{text}<extra></extra>",
@@ -326,9 +326,8 @@ const plot_every_nth = function(cut_off) {
     d.forEach((v, idx) => {
         if ((idx + 1) % cut_off === 0) {
             current_color = c.assign_color();
-        } else {
-            new_colors.push(current_color);
         }
+        new_colors.push(current_color);
     });
     cleanExistingPlot();
     build_2d_3d(d, new_colors);
@@ -359,6 +358,49 @@ const subtree_every_nth = function() {
 }
 
 /**
+ * Parse the user's subset string
+ *  
+ *  (1-50: blue); (60-200: green); (300,301,302: yellow)
+ * 
+ * into an array of colors by offset
+ * 
+ *  ["blue","blue"...,"green","green"...,"yellow"...]
+ * 
+ * @param {int} ar_length the lenght of the data set to plot
+ * @param {string} s the user's subset string 
+ */
+const parse_subset_string = function(s, ar_length) {
+    let rval = [];
+    rval.length = ar_length
+    rval.fill("black"); //default color for data point
+
+    let t = s.split(';');
+    t.forEach(entry => {
+        let cln = entry.replace(/[\(|\)]/g, "");
+        let t2 = cln.split(':'); //Array [ "1-50", " blue" ]
+        if (t2[0].includes('-')) {
+            //Ranges
+            let offsets = t2[0].split('-');
+            let start = Number(offsets[0]) - 1;
+            let end = Number(offsets[1]) -1 ;
+            rval.fill(t2[1].trim(), start, end);
+        } if (t2[0].includes(',')) {
+            //Specific indexes
+            let sp = t2[0].split(',');
+            let sp_idx = sp.map(v => Number(v));
+            sp_idx.forEach(v => {
+                rval[v - 1] = t2[1].trim();
+            });
+        } else {
+            console.error(`Incorrect formatting of ${t2[0]}`);
+        }
+
+    });
+    return rval;
+}
+
+
+/**
  * User wishes to subset the NLDR trees by sepcific indexes.
  * 
  * Draw gui, let user enter indexes, execute
@@ -369,12 +411,20 @@ const subtree_by_index = function() {
         <div class="tile is-child box>
             <label for="nth-value">Subset Trees by Index</label>
             <input id="nth-value" class="input" type="text" placeholder="(1-50: blue); (60-200: green); (300,301,302: yellow)">
-            <button class="button is-small">Execute</button>
+            <button id="execute-index-string" class="button is-small">Execute</button>
         </div>
     </div>`;
 
     document.getElementById('subset-plots-div').append(htmlToElement(s));
-
+    document.getElementById('execute-index-string').addEventListener('click', e => {
+        let el = document.getElementById("nth-value");
+        if (el.value.length > 0) {
+            let d = coordinate_data[Object.keys(coordinate_data)[0]];    
+            let colors = parse_subset_string(el.value, d.length)
+            cleanExistingPlot();
+            build_2d_3d(d, colors)
+        }
+    });
 }
 
 const clean_it = function() {
