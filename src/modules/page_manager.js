@@ -9,7 +9,7 @@ let select_objs = {
         event: "NLDRPlotRequest"
     },
     "tree-select": {
-        regex: [RegExp(/cloudforest\.trees/), RegExp(/boottrees/i), RegExp(/^Consensus Tree/), RegExp(/^Covariance Matrix/)],
+        regex: [RegExp(/cloudforest\.trees/), RegExp(/^Consensus Tree/), RegExp(/^Covariance Matrix/)],
         files: [],
         event: "TreePlotRequest"
     },
