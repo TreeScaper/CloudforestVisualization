@@ -12,6 +12,34 @@ let coordinate_data = undefined;
 let event_buld_fn = undefined;
 let cd_groups = new Map();
 
+let color_list = [
+    "aliceblue", "aquamarine", "bisque", "blue", "burlywood",
+    "chocolate", "cornsilk", "darkblue", "darkgray", "darkorange", "darkseagreen",
+    "darkslategrey", "deeppink", "lime"
+];
+let fall_back_color = "black";
+/**
+ * Object for generating colors for plotting
+ */
+const assign_colors = function(spec) {
+    let {colors, default_color} = spec;
+    let count = 0;
+    let assign_color = function() {
+        if (count < colors.length) {
+            let rval = colors[count];
+            count++;
+            return rval;
+        } else {
+            return default_color;
+        }
+    }
+    return Object.freeze({
+        assign_color
+    });
+
+}
+
+
 const group_colors = [
     "#0074D9", "#7FDBFF", "#39CCCC", "#3D9970", "#2ECC40",
     "#01FF70", "#FFDC00", "#FF851B", "#FF4136", "#85144b", "#F012BE", "#B10DC9"
@@ -85,7 +113,7 @@ const parallel_coordinates = function (file_contents) {
  * 
  * @param {number[][]} file_contents 
  */
-const scatter_2d = function (file_contents) {
+const scatter_2d = function (file_contents, in_color) {
 
     let axis_max_min = function (axis_data) {
         const max_mag = Math.ceil(Math.max(...axis_data.map(Math.abs)));
@@ -108,10 +136,10 @@ const scatter_2d = function (file_contents) {
         row_data['x'].push(Number(r[0]));
         row_data['y'].push(Number(r[1]));
         row_data['text'].push(`Tree: ${idx + 1}`);
-        if (cd_groups.get(idx + 1)) {
-            row_data.color.push(cd_groups.get(idx + 1).group_color);
+        if (in_color.length > 1) {
+            row_data.color.push(in_color[idx]);
         } else {
-            row_data.color.push("#DDDDDD");
+            row_data.color.push(in_color[0]);
         }    
     });
 
@@ -133,6 +161,7 @@ const scatter_2d = function (file_contents) {
 
 
     const layout = {
+        height: 800,
         xaxis: {
             range: axis_max_min(row_data['x']),
             zeroline: false,
@@ -290,32 +319,13 @@ const scatter_3d = function (file_contents, in_color) {
 
 const plot_every_nth = function(cut_off) {
 
-    function colorMe () {
-        let defaultColor = "lightslategray";
-        let colors = [
-            "blue", "crimson", "chartreuse", "darkcyan", "darkorange",
-            "forestgreen", "orange", "teal", "yellow", "plum"
-        ];
-        let count = 0;
-        
-        return function() {
-          if (count < colors.length) {
-            let rval = colors[count];
-            count++;
-            return rval
-          } else {
-            return defaultColor;
-          }
-        } 
-    }
-
-    let c = colorMe();
-    let d =coordinate_data[Object.keys(coordinate_data)[0]];
+    let c = assign_colors({"colors": color_list, "default_color": fall_back_color})
+    let d = coordinate_data[Object.keys(coordinate_data)[0]];
     let new_colors = [];
-    let current_color = c();
+    let current_color = c.assign_color();
     d.forEach((v, idx) => {
         if ((idx + 1) % cut_off === 0) {
-            current_color = c();
+            current_color = c.assign_color();
         } else {
             new_colors.push(current_color);
         }
@@ -358,7 +368,7 @@ const subtree_by_index = function() {
     <div id="user-plot-ctrls" class="tile is-parent">
         <div class="tile is-child box>
             <label for="nth-value">Subset Trees by Index</label>
-            <input id="nth-value" class="input" type="text" placeholder="1-10: Blue">
+            <input id="nth-value" class="input" type="text" placeholder="(1-50: blue); (60-200: green); (300,301,302: yellow)">
             <button class="button is-small">Execute</button>
         </div>
     </div>`;
@@ -446,7 +456,7 @@ const build_2d_3d = function (contents, in_colors=["blue"]) {
             if (e.target.getAttribute('value') === '3d') {
                 scatter_3d(contents, in_colors);
             } else {
-                scatter_2d(contents);
+                scatter_2d(contents, in_colors);
             }
         });
     });
@@ -469,7 +479,7 @@ const plot_dimensions = function (dims, contents) {
         build_2d(contents);
     }
     if (dims === 3) {
-        build_2d_3d(contents, );
+        build_2d_3d(contents);
     }
     if (dims > 3) {
         build_multidimension(contents);
