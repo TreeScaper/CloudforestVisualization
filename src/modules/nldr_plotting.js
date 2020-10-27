@@ -12,11 +12,12 @@ let coordinate_data = undefined;
 let event_buld_fn = undefined;
 let cd_groups = new Map();
 
-let color_list = [
-    "lime", "chocolate", "bisque", "blue", "burlywood",
-    "aquamarine", "cornsilk", "darkblue", "darkgray", "darkorange", "darkseagreen",
-    "darkslategrey", "deeppink", "aliceblue"
-];
+//From plotly python alphabet color sequence
+let color_list = ["#AA0DFE", "#3283FE", "#85660D", "#782AB6", "#565656", "#1C8356", "#16FF32",
+                    "#F7E1A0", "#E2E2E2", "#1CBE4F", "#C4451C", "#DEA0FD", "#FE00FA", "#325A9B",
+                    "#FEAF16", "#F8A19F", "#90AD1C", "#F6222E", "#1CFFCE", "#2ED9FF", "#B10DA1",
+                    "#C075A6", "#FC1CBF", "#B00068", "#FBE426", "#FA0087"];
+
 let fall_back_color = "black";
 /**
  * Object for generating colors for plotting
@@ -368,9 +369,9 @@ const parse_subset_string = function(s, ar_length) {
     rval.length = ar_length
     rval.fill("black"); //default color for data point
 
-    let t = s.split(';');
+    let t = s.split(';').filter(v => v.length > 0).map(d => d.trim())
     t.forEach(entry => {
-        let cln = entry.replace(/[\(|\)]/g, "");
+        let cln = entry.replace(/[\[|\]]/g, "");
         let t2 = cln.split(':'); //Array [ "1-50", " blue" ]
         if (t2[0].includes('-')) {
             //Ranges
@@ -403,8 +404,8 @@ const subtree_by_index = function() {
     let s = `
     <div id="user-plot-ctrls" class="tile is-parent">
         <div class="tile is-child box>
-            <label for="nth-value">Subset Trees by Index</label>
-            <input id="nth-value" class="input" type="text" placeholder="(1-50: blue); (60-200: green); (300,301,302: yellow)">
+            <label for="nth-value">Subset Trees by Index <p class="is-size-7">Group with brackets <strong>[]</strong> - Separate with semicolons <strong>;</strong></p></label>
+            <input id="nth-value" class="input" type="text" placeholder="[1-50: blue];[60-200: green] ;[300,301,302: yellow]">
             <button id="execute-index-string" class="button is-small">Execute</button>
         </div>
     </div>`;
