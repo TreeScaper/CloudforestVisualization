@@ -39,12 +39,6 @@ const assign_colors = function(spec) {
 
 }
 
-
-const group_colors = [
-    "#0074D9", "#7FDBFF", "#39CCCC", "#3D9970", "#2ECC40",
-    "#01FF70", "#FFDC00", "#FF851B", "#FF4136", "#85144b", "#F012BE", "#B10DC9"
-]; //12 colors, beyond that use "#AAAAAA" gray
-
 // Data coming from treescaper is often poorly formatted. Need to 
 // do some cleaning here, mostly remove the artificats from having extra tabs in output.
 const clean_data = function (data) {
@@ -427,6 +421,37 @@ const subtree_by_index = function() {
     });
 }
 
+/**
+ * User wishes to load a text file for creating subsets of trees.
+ */
+const subtree_by_file = function () {
+    let s = `
+    <div id="user-plot-ctrls" class="tile is-parent">
+        <div class="tile is-child box>
+            <label for="subset-tree-file">Choose a text file to upload:</label>
+            <input type="file" id="subset-tree-file" name="subset-tree-file" accept="text/plain">
+        </div>
+    </div>`;
+
+    document.getElementById('subset-plots-div').append(htmlToElement(s));
+    document.getElementById('subset-tree-file').addEventListener('change', e => {
+        let file = e.target.files[0];
+        let reader = new FileReader();
+        reader.readAsText(file);
+        reader.onload = function() {
+            console.log(reader.result);
+            let d = coordinate_data[Object.keys(coordinate_data)[0]];    
+            let colors = parse_subset_string(reader.result, d.length)
+            cleanExistingPlot();
+            build_2d_3d(d, colors)
+        }
+        reader.onerror = function() {
+            console.error(reader.error);
+        }
+    });
+  
+}
+
 const clean_it = function() {
     try{
         document.getElementById('user-plot-ctrls').remove();
@@ -472,6 +497,7 @@ const build_subtree_menu = function() {
         }
         if (e.target.value === "load-index-file") {
             clean_it();
+            subtree_by_file();
         }
     });
 }
@@ -536,28 +562,6 @@ const plot_dimensions = function (dims, contents) {
     }
 }
 
-const generate_tree_by_group = function (groups) {
-    let r_val = new Map();
-    groups.forEach((g, idx) => {
-        let grp_num = Number(g[0]);
-        g[1].forEach(t_num => {
-            let o = {};
-            if (idx <= group_colors.length) {
-                o = {
-                    group_number: grp_num,
-                    group_color: group_colors[idx]
-                }
-            } else {
-                o = {
-                    group_number: grp_num,
-                    group_color: "#AAAAAA"
-                }
-            }
-            r_val.set(t_num, o);
-        })
-    });
-    return r_val;
-}
 
 const nldr_plot_init = function (init_obj) {
     let {
@@ -569,7 +573,7 @@ const nldr_plot_init = function (init_obj) {
 
     //User has requested that CD groups be used in plotting.
     addEventListener("UseCDGroupsTrue", e => {
-        cd_groups = generate_tree_by_group(e.detail.groups);
+        //cd_groups = generate_tree_by_group(e.detail.groups);
     });
     //User has requested that CD groups _not_ be used in plotting.
     addEventListener("UseCDGroupsFalse", e => {
