@@ -4,8 +4,7 @@ import * as Plotly3D from 'plotly.js-gl3d-dist';
 import * as PlotlyParallel from 'plotly.js-gl2d-dist';
 import {
     htmlToElement,
-    cleanExistingPlot,
-    removeChildNodes
+    cleanExistingPlot
 } from './html_templates';
 
 let coordinate_data = undefined;
@@ -170,7 +169,31 @@ const scatter_2d = function (file_contents, in_color) {
     const config = {
         responsive: true,
         displaylogo: false,
-        scrollZoom: true
+        scrollZoom: true,
+        modeBarButtonsToAdd: [
+            [
+                {
+                    name: 'Enlarge points',
+                    icon: Plotly2D.Icons.pencil,
+                    click: function() {
+                        let curr_size = data[0].marker.size;
+                        Plotly2D.restyle("dim-scatter-plot", 'marker.size', curr_size += 2);
+                    },   
+                },
+                {
+                    name: 'Shrink points',
+                    icon: Plotly2D.Icons.pencil,
+                    click: function() {
+                        let curr_size = data[0].marker.size;
+                        if (curr_size <= 4) {
+                            console.log('NOP');
+                        } else {
+                            Plotly2D.restyle("dim-scatter-plot", 'marker.size', curr_size -= 2);
+                        }
+                    }
+                }
+            ]
+        ]
     }
     const s_plot = document.getElementById("dim-scatter-plot");
     Plotly2D.newPlot("dim-scatter-plot", data, layout, config);
@@ -405,7 +428,7 @@ const subtree_by_index = function() {
     <div id="user-plot-ctrls" class="tile is-parent">
         <div class="tile is-child box>
             <label for="nth-value">Subset Trees by Index <p class="is-size-7">Group with brackets <strong>[]</strong> - Separate with semicolons <strong>;</strong></p></label>
-            <input id="nth-value" class="input" type="text" placeholder="[1-50: blue];[60-200: green] ;[300,301,302: yellow]">
+            <input id="nth-value" class="input" type="text" placeholder="[1-50: blue];[60-200: green] ;[300,301,302: yellow]" size="40">
             <button id="execute-index-string" class="button is-small">Execute</button>
         </div>
     </div>`;

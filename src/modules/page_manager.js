@@ -14,7 +14,7 @@ let select_objs = {
         event: "TreePlotRequest"
     },
     "cd-select": {
-        regex: [RegExp(/Plateaus of CD result/i), RegExp(/CD with NLDR coordinates/i), RegExp(/CD Results/i)],
+        regex: [RegExp(/CD Plateaus/i), RegExp(/CD with NLDR coordinates/i), RegExp(/CD Results/i)],
         files: [],
         event: "CDPlotRequest"
     }

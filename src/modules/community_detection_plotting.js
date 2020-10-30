@@ -1,4 +1,5 @@
-import Plotly from 'plotly.js-basic-dist';
+import { stratify } from 'd3-hierarchy';
+import Plotly, { redrawReglTraces } from 'plotly.js-basic-dist';
 import { htmlToElement, cleanExistingPlot } from "./html_templates";
 
 let event_build_fn = undefined;
@@ -202,6 +203,52 @@ const clean_data = function(data) {
     });
     return arr;
 }
+
+/**
+ *  CD plateaus can be computed for bipartitions or trees. 
+ *  
+ *  Here we parse a JSON object of data into on ordered JSON object
+ *  containing communitues per tree/bipartition for each range of calculation bounds
+ * 
+ * @param {*} raw_data CD plateau results in JSON format 
+ */
+const parse_plateau_data = function(raw_data) {
+    let data = raw_data[0].data;
+    let header = raw_data[0].header;
+    let file_name = raw_data[0].fileName;
+    let ret_val = {};
+    ret_val.file_name = file_name;
+    ret_val.node_type = header.node_type;
+    ret_val.cd_bounds = [];
+
+    let data_lines = data.split('\n').filter(v => v.length > 0);
+    data_lines.forEach((l, i) => {
+        let values = l.split('\t').filter(v => v.length > 0);
+        if (i === 0) {
+            values.slice(1).forEach(e => {
+                ret_val.cd_bounds.push({
+                    'cd_by_node': {}
+                });
+            });
+        }
+        if (i === 7) {
+            //noop
+        }
+        if (i < 7) {
+            values.slice(1).forEach((v,idx) => {
+                ret_val.cd_bounds[idx][values[0]] = Number(v);
+            });
+        }
+        if (i > 7) {
+            values.slice(1).forEach((v, idx) => {
+                ret_val.cd_bounds[idx].cd_by_node[values[0]] = v;
+            });
+        }
+        
+    });
+    return ret_val;
+}
+
 
 /**
  * Clean the raw grouping to k<group number> : v< [tree_num, tree_num, ...] >
