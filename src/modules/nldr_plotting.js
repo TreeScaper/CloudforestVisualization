@@ -335,7 +335,7 @@ const scatter_3d = function (file_contents, in_color) {
 }
 
 
-const plot_every_nth = function(cut_off) {
+const plot_every_nth = function(cut_off, dimension) {
 
     let c = assign_colors({"colors": color_list, "default_color": fall_back_color})
     let d = coordinate_data[Object.keys(coordinate_data)[0]];
@@ -348,7 +348,12 @@ const plot_every_nth = function(cut_off) {
         new_colors.push(current_color);
     });
     cleanExistingPlot();
-    build_2d_3d(d, new_colors);
+    if (dimension === 2) {
+        build_2d(d, new_colors);
+    }
+    if (dimension === 3) {
+        build_3d(d, new_colors);
+    }
 }
 
 /**
@@ -356,7 +361,7 @@ const plot_every_nth = function(cut_off) {
  * 
  * Draw gui, let user enter nth value, execute
  */
-const subtree_every_nth = function() {
+const subtree_every_nth = function(dimension) {
     let s = `
     <div id="user-plot-ctrls" class="tile is-parent">
         <div class="tile is-child box>
@@ -370,7 +375,7 @@ const subtree_every_nth = function() {
     document.getElementById('execute-nth-value').addEventListener('click', e => {
         let el = document.getElementById("nth-value");
         if (el.value.length > 0) {
-            plot_every_nth(Number(el.value));
+            plot_every_nth(Number(el.value), dimension);
         }
     });
 }
@@ -423,7 +428,7 @@ const parse_subset_string = function(s, ar_length) {
  * 
  * Draw gui, let user enter indexes, execute
  */
-const subtree_by_index = function() {
+const subtree_by_index = function(dimension) {
     let s = `
     <div id="user-plot-ctrls" class="tile is-parent">
         <div class="tile is-child box>
@@ -440,7 +445,12 @@ const subtree_by_index = function() {
             let d = coordinate_data[Object.keys(coordinate_data)[0]];    
             let colors = parse_subset_string(el.value, d.length)
             cleanExistingPlot();
-            build_2d_3d(d, colors)
+            if (dimension === 2) {
+                build_2d(d, colors);
+            }
+            if (dimension === 3) {
+                build_3d(d, colors);
+            }
         }
     });
 }
@@ -448,7 +458,7 @@ const subtree_by_index = function() {
 /**
  * User wishes to load a text file for creating subsets of trees.
  */
-const subtree_by_file = function () {
+const subtree_by_file = function (dimesion) {
     let s = `
     <div id="user-plot-ctrls" class="tile is-parent">
         <div class="tile is-child box>
@@ -467,7 +477,12 @@ const subtree_by_file = function () {
             let d = coordinate_data[Object.keys(coordinate_data)[0]];    
             let colors = parse_subset_string(reader.result, d.length)
             cleanExistingPlot();
-            build_2d_3d(d, colors)
+            if (dimesion === 2) {
+                build_2d(d, colors);
+            }
+            if (dimesion === 3) {
+                build_3d(d, colors);
+            }
         }
         reader.onerror = function() {
             console.error(reader.error);
@@ -490,7 +505,7 @@ const clean_it = function() {
  *  - User can request a consistent offset: every n trees generates a new group
  *  - Users can determine color overriding defaults. 
  */
-const build_subtree_menu = function() {
+const build_subtree_menu = function(dimension) {
     let div_slug = `
     <div class="tile is-parent">
         <div class="tile is-child box">
@@ -513,60 +528,29 @@ const build_subtree_menu = function() {
         }
         if (e.target.value === "every-nth") {
             clean_it();
-            subtree_every_nth();
+            subtree_every_nth(dimension);
         }
         if (e.target.value === "enter-indexes") {
             clean_it();
-            subtree_by_index();
+            subtree_by_index(dimension);
         }
         if (e.target.value === "load-index-file") {
             clean_it();
-            subtree_by_file();
+            subtree_by_file(dimension);
         }
     });
 }
 
-const build_2d_3d = function (contents, in_colors=["blue"]) {
-    
-    build_subtree_menu();
-
-    document.getElementById("plot").append(htmlToElement(`
-    <div id="scatter_dimensions" class="tabs is-centered is-small is-toggle">
-    <ul>
-      <li>
-        <a id="2d" value="2d">2-D</a>
-      </li>
-      <li class="is-active">
-        <a id="3d" value="3d">3-D</a>
-      </li>
-    </ul>
-  </div>
-  `));
+const build_3d = function (contents, in_colors=["blue"]) {
+    build_subtree_menu(3);
     document.getElementById("plot").append(htmlToElement(`<div id="dim-scatter-plot"/>`));
-    document.getElementById("scatter_dimensions").querySelectorAll('a').forEach(n => {
-        n.addEventListener('click', e => {
-            document.getElementById("scatter_dimensions").querySelectorAll('li').forEach(n => {
-                n.classList = ''
-            });
-            document.getElementById(e.target.getAttribute('value')).parentElement.classList = 'is-active';
-
-            document.getElementById('dim-scatter-plot').remove();
-            document.getElementById("plot").append(htmlToElement(`<div id="dim-scatter-plot"/>`))
-
-            if (e.target.getAttribute('value') === '3d') {
-                scatter_3d(contents, in_colors);
-            } else {
-                scatter_2d(contents, in_colors);
-            }
-        });
-    });
-
     scatter_3d(contents, in_colors);
 }
 
-const build_2d = function (contents) {
+const build_2d = function (contents, in_colors=["blue"]) {
+    build_subtree_menu(2);
     document.getElementById("plot").append(htmlToElement(`<div id="dim-scatter-plot"/>`));
-    scatter_2d(contents);
+    scatter_2d(contents, in_colors);
 }
 
 const build_multidimension = function (contents) {
@@ -579,7 +563,7 @@ const plot_dimensions = function (dims, contents) {
         build_2d(contents);
     }
     if (dims === 3) {
-        build_2d_3d(contents);
+        build_3d(contents);
     }
     if (dims > 3) {
         build_multidimension(contents);
