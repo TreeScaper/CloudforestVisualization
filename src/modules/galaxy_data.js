@@ -28,6 +28,7 @@ let href = undefined;
 let history_id = undefined;
 let bipartition_files = undefined;
 let nldr_coordinate_files = undefined;
+let community_detection_files = undefined;
 
 const admin_key = "?key=admin";
 const USE_KEY = false;
@@ -155,6 +156,7 @@ const process_history_contents = function (data) {
 
     bipartition_files = file_objects.filter(obj => RegExp(/[Bb]ipartition|Taxa IDs/).test(obj.name)); //Includes matrix and log
     nldr_coordinate_files = file_objects.filter(obj => RegExp(/cloudforest\.coordinates/).test(obj.extension));
+    community_detection_files = file_objects.filter(obj => RegExp(/cloudforest\.cd/).test(obj.extension));
 
     dispatchEvent(event_build_fn("BipartitionFiles", { files: bipartition_files }));
     dispatchEvent(event_build_fn("DataPrimed", {}));
@@ -280,6 +282,10 @@ const set_event_listeners = function () {
 
     addEventListener("NDLRCoordinateFilesRequest", e => {
         dispatchEvent(event_build_fn("NLDRCoordinateFiles", { files: nldr_coordinate_files }));
+    });
+
+    addEventListener("CDFilesRequest", e => {
+        dispatchEvent(event_build_fn("CDFiles", { files: community_detection_files }));
     });
 
 }

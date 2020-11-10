@@ -1,10 +1,14 @@
-import { stratify } from 'd3-hierarchy';
 import Plotly, { redrawReglTraces } from 'plotly.js-basic-dist';
 import { htmlToElement, cleanExistingPlot } from "./html_templates";
 
 let event_build_fn = undefined;
 let cd_grouping = undefined;
 let using_groups = false;
+
+let plateau_file = undefined;
+let coordinate_file = undefined;
+let cd_results_file = undefined;
+
 
 const draw_graph = function (data) {
     const line_width = 2;
@@ -213,9 +217,9 @@ const clean_data = function(data) {
  * @param {*} raw_data CD plateau results in JSON format 
  */
 const parse_plateau_data = function(raw_data) {
-    let data = raw_data[0].data;
-    let header = raw_data[0].header;
-    let file_name = raw_data[0].fileName;
+    let data = raw_data.data;
+    let header = raw_data.header;
+    let file_name = raw_data.fileName;
     let ret_val = {};
     ret_val.file_name = file_name;
     ret_val.node_type = header.node_type;
@@ -231,15 +235,15 @@ const parse_plateau_data = function(raw_data) {
                 });
             });
         }
-        if (i === 7) {
+        if (i === 6) {
             //noop
         }
-        if (i < 7) {
+        if (i < 6) {
             values.slice(1).forEach((v,idx) => {
                 ret_val.cd_bounds[idx][values[0]] = Number(v);
             });
         }
-        if (i > 7) {
+        if (i > 6) {
             values.slice(1).forEach((v, idx) => {
                 ret_val.cd_bounds[idx].cd_by_node[values[0]] = v;
             });
@@ -269,6 +273,18 @@ const group_groups = function (cd_obj) {
     return clean_groups;
 }
 
+
+const plot_community_detection = function() {
+    let foo = parse_plateau_data(plateau_file);
+    console.log(`STOP ${foo}`);
+    //let parsed_data = parse_results(clean_data(e.detail.contents[0].data));
+    build_dom();
+    draw_graph(parsed_data);
+    // let raw_cds = parse_communities(clean_data(e.detail.contents[0].data), parsed_data["label_community"]);
+    // let grouped_groups = group_groups(raw_cds);
+    // show_cd_groups(grouped_groups); 
+}
+
 const community_detection_init = function (init_obj) {
     let { guid_fn, event_fn } = init_obj;
     event_build_fn = event_fn;
@@ -276,17 +292,39 @@ const community_detection_init = function (init_obj) {
 
     addEventListener("FileContents", e => {
         if (e.detail.guid === my_guid) {
-            let parsed_data = parse_results(clean_data(e.detail.contents[0].data));
-            build_dom();
-            draw_graph(parsed_data);
-            let raw_cds = parse_communities(clean_data(e.detail.contents[0].data), parsed_data["label_community"]);
-            let grouped_groups = group_groups(raw_cds);
-            show_cd_groups(grouped_groups);
+
+            e.detail.contents.forEach(entry => {
+                if (RegExp(/CD Plateaus/i).test(entry.fileName)) {
+                    plateau_file = entry;
+                }
+                if (RegExp(/CD with NLDR Coordinates/i).test(entry.fileName)) {
+                    coordinate_file = entry;
+                }
+                if (RegExp(/CD Results/i).test(entry.fileName)) {
+                    cd_results_file = entry;
+                }
+            });
+            plot_community_detection();
+        }
+    });
+
+    addEventListener("CDFiles", e => {      
+        if (plateau_file) {
+            plot_community_detection();
+        } else {    
+            let plateau_file_obj = e.detail.files.filter(obj => RegExp(/CD Plateaus/i).test(obj.name));
+            let coordinate_file_obj = e.detail.files.filter(obj => RegExp(/CD with NLDR Coordinates/i).test(obj.name));
+            let cd_results_file_obj = e.detail.files.filter(obj => RegExp(/CD Results/i).test(obj.name));
+            
+            dispatchEvent(event_build_fn("FileContentsRequest", {
+                guid: my_guid,
+                files: [plateau_file_obj[0].id, coordinate_file_obj[0].id, cd_results_file_obj[0].id]
+            }));
         }
     });
 
     addEventListener("CDPlotRequest", e => {
-        dispatchEvent(event_build_fn("FileContentsRequest", { guid: my_guid, files: [e.detail.file_id] }));
+        dispatchEvent(event_build_fn("CDFilesRequest", {guid: my_guid}));
     });
 }
 
