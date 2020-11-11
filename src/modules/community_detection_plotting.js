@@ -273,13 +273,63 @@ const group_groups = function (cd_obj) {
     return clean_groups;
 }
 
+/**
+ * Nodes into groups, then run basic stats on the grouping.
+ * Add this as properties directly to the p_obj.
+ * @param {*} p_obj 
+ */
+const plateau_stats = function (p_obj) {
+    p_obj.cd_bounds.forEach(b => {
+        b.group_keys = {};
+        Object.values(b.cd_by_node).forEach(v => {
+          b.group_keys[v] = [];
+        }); 
+        Object.keys(b.cd_by_node).forEach(k => {
+          b.group_keys[b.cd_by_node[k]].push(k);
+        });
+        let arr = [];
+        Object.keys(b.group_keys).forEach(k => {
+            arr.push(b.group_keys[k].length);
+        });
+        b.avg_nodes_per_group = arr.reduce((a, b) => (a + b)) / arr.length;
+        b.number_of_groups = arr.length;
+    });
+}
+
+const present_plateaus = function(p_obj) {
+    cleanExistingPlot();
+    let s = `<div class="tile is-ancestor">
+        <div class="tile is-parent is-vertical">
+            <div class="tile is-child">
+                <h3>CD Grouping for ${p_obj.node_type}s by Plateau Bounds</h3>
+            </div>`;
+    
+    p_obj.cd_bounds.forEach(bound => {
+        s += `<div class="tile is-child box">
+        <div class="columns">
+        <div class="column is-one-fifth"><button class="button is-light">Use in Plotting</button></div>
+        <div class="column">
+        <p>Start LB: ${bound["startLB:"]} End LB: ${bound["endLB:"]}</p>
+        <p>Start UB: ${bound["startUB:"]} End UB: ${bound["endUB:"]}</p>
+        <p>Number of Groups: ${bound.number_of_groups}</p>
+        <p>Avg nodes per Group: ${bound.avg_nodes_per_group.toFixed(4)}</p>
+        </div>
+        </div>
+        </div>`;
+    });
+    s += `</div></div>`;
+    document.getElementById("plot").append(htmlToElement(s));
+} 
 
 const plot_community_detection = function() {
-    let foo = parse_plateau_data(plateau_file);
-    console.log(`STOP ${foo}`);
+    //Step 1: Prepare plateau data for presentaiton
+    //  - Stats of grouping: Number of groups, avg nodes per group, SD nodes per group.
+    let parsed_data = parse_plateau_data(plateau_file);
+    plateau_stats(parsed_data);
+    present_plateaus(parsed_data);
     //let parsed_data = parse_results(clean_data(e.detail.contents[0].data));
-    build_dom();
-    draw_graph(parsed_data);
+    //build_dom();
+    //draw_graph(parsed_data);
     // let raw_cds = parse_communities(clean_data(e.detail.contents[0].data), parsed_data["label_community"]);
     // let grouped_groups = group_groups(raw_cds);
     // show_cd_groups(grouped_groups); 
