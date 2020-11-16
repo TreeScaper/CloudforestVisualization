@@ -63,65 +63,9 @@ const draw_graph = function (data) {
         },
     };
     let config = { responsive: true, displaylogo: false, scrollZoom: true }
-    Plotly.newPlot("plot", trace_data, layout, config);
-    let myPlot = document.getElementById("plot");
-    myPlot.on('plotly_click', function (data) {
-        console.log(data.points[0].y);
-    });
-}
-
-// Generate bar graph showing distribution of trees among groups
-const show_cd_groups = function (groups) {
-    let sortable = [];
-    Object.keys(groups).forEach(k => {
-        sortable.push([k, groups[k]]);
-    })
-    sortable.sort((a, b) => { return b[1].length - a[1].length })
-
-    document.getElementById("group-count").setAttribute("min", sortable[sortable.length -1 ][1].length);
-    document.getElementById("group-count").setAttribute("max", sortable[0][1].length);
-    document.getElementById("group-count").setAttribute("value", sortable[0][1].length);
-
-    cd_grouping = sortable;
-
-    let x_data = [];
-    let y_data = [];
-    let colors = [];
-    sortable.forEach(vals => {
-        x_data.push(`Group ${vals[0]}`);
-        y_data.push(vals[1].length);
-        colors.push("blue");
-    });
-    let data = [
-        {
-            x: x_data,
-            y: y_data,
-            type: 'bar',
-            marker: {color: colors}
-        }
-    ];
-    let grp_plot = document.getElementById("plot-controls");
-    Plotly.newPlot("plot-controls", data, {
-        title: "Count by CD Group",
-        xaxis: {
-            tickangle: -45
-        },
-    });
-
-    grp_plot.on("plotly_click", function(data){
-        let pn='',
-            tn='',
-            colors=[];
-        for(var i=0; i < data.points.length; i++){
-            pn = data.points[i].pointNumber;
-            tn = data.points[i].curveNumber;
-            colors = data.points[i].data.marker.color;
-        };
-        colors[pn] = '#C54C82';
-
-        let update = {'marker':{color: colors}};
-        Plotly.restyle('plot-controls', update, [tn]);
-    });
+    
+    document.getElementById("plot").append(htmlToElement(`<div id="quality_graph"></div>`));
+    Plotly.newPlot("quality_graph", trace_data, layout, config);
 }
 
 const dispatch_use_groups = function() {
@@ -129,26 +73,6 @@ const dispatch_use_groups = function() {
     let filtered_data = cd_grouping.filter(obj => obj[1].length >= filter_count);
     dispatchEvent(event_build_fn("UseCDGroupsTrue", { groups: filtered_data }));
     using_groups = true;
-}
-
-const build_dom = function () {
-    cleanExistingPlot();
-    let e = document.getElementById("plot-metadata");
-    e.append(htmlToElement(`<input type="checkbox" id="use-cd" name="use-cd">`));
-    e.append(htmlToElement(`<label for="use-cd">Use CD grouping where count &ge;</label>`));
-    e.append(htmlToElement(`<input type="number" id="group-count" name="group-count" style="width: 5em;" min="1">`));
-    if (using_groups) {
-        document.getElementById("use-cd").checked = true;
-    }
-    document.getElementById("use-cd").addEventListener('input', (e) => {
-        console.log(`Use CD ${e.target}`);
-        if (e.target.checked) {
-            dispatch_use_groups();
-        } else {
-            dispatchEvent(event_build_fn("UseCDGroupsFalse", {}));
-            using_groups = false;
-        }
-    });
 }
 
 // Returns an array of index offsets showing where the community ids are.
@@ -166,25 +90,6 @@ const get_cd_indexes = function (arr) {
         }
     })
     return d[Math.min(...cd_idxs)];
-}
-
-const parse_communities = function (data, labels) {
-    let cd_indexes = get_cd_indexes(labels);
-    let communities = {};
-    data.forEach((arr, idx) => {
-        if (idx > 8) {
-            let cds = [];
-            cd_indexes.forEach(i => { cds.push(arr[i]) });
-            communities[arr[0]] = cds;
-        }
-    });
-    //sanity check
-    Object.keys(communities).forEach(k => {
-        if (!(Math.min(...communities[k]) === Math.max(...communities[k]))) {
-            console.error(`All values for ${k} should be equal, they are not --> ${communities[k]}`);
-        }
-    });
-    return communities;
 }
 
 const parse_results = function (data) {
@@ -252,7 +157,6 @@ const parse_plateau_data = function(raw_data) {
     });
     return ret_val;
 }
-
 
 /**
  * Clean the raw grouping to k<group number> : v< [tree_num, tree_num, ...] >
@@ -327,12 +231,10 @@ const plot_community_detection = function() {
     let parsed_data = parse_plateau_data(plateau_file);
     plateau_stats(parsed_data);
     present_plateaus(parsed_data);
-    //let parsed_data = parse_results(clean_data(e.detail.contents[0].data));
-    //build_dom();
-    //draw_graph(parsed_data);
-    // let raw_cds = parse_communities(clean_data(e.detail.contents[0].data), parsed_data["label_community"]);
-    // let grouped_groups = group_groups(raw_cds);
-    // show_cd_groups(grouped_groups); 
+    
+    //Step 2: Prepare the lambda/modularuty data
+    let lambda_data = parse_results(clean_data(cd_results_file.data));
+    draw_graph(lambda_data);
 }
 
 const community_detection_init = function (init_obj) {
