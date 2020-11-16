@@ -206,12 +206,13 @@ const present_plateaus = function(p_obj) {
         <div class="tile is-parent is-vertical">
             <div class="tile is-child">
                 <h3>CD Grouping for ${p_obj.node_type}s by Plateau Bounds</h3>
+                <div id="group-msg" class="has-text-success"></div>
             </div>`;
     
-    p_obj.cd_bounds.forEach(bound => {
+    p_obj.cd_bounds.forEach((bound, idx) => {
         s += `<div class="tile is-child box">
         <div class="columns">
-        <div class="column is-one-fifth"><button class="button is-light">Use in Plotting</button></div>
+        <div class="column is-one-fifth"><button value="${idx}" class="button is-light grouping-command">Use in Plotting</button></div>
         <div class="column">
         <p>Start LB: ${bound["startLB:"]} End LB: ${bound["endLB:"]}</p>
         <p>Start UB: ${bound["startUB:"]} End UB: ${bound["endUB:"]}</p>
@@ -223,6 +224,22 @@ const present_plateaus = function(p_obj) {
     });
     s += `</div></div>`;
     document.getElementById("plot").append(htmlToElement(s));
+
+    //Wire the buttons
+    document.querySelectorAll('.grouping-command').forEach(n => {
+        n.addEventListener('click', evt => {
+            let offset = evt.target.getAttribute('value');
+            let msg = `Using the ${p_obj.cd_bounds[offset].number_of_groups} groups in bound ${offset} for plotting.`;
+            let e = document.getElementById('group-msg');
+            e.innerHTML = msg;
+
+            let node_type = p_obj.node_type;
+            let cd_grouping = p_obj.cd_bounds[offset].cd_by_node;
+            let evt_title = `CDBy${node_type}`; //CDByTree or CDByBipartition
+            dispatchEvent(event_build_fn(evt_title, {groups: cd_grouping}));
+        });
+    });
+
 } 
 
 const plot_community_detection = function() {
