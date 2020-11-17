@@ -1,5 +1,5 @@
 import Plotly from 'plotly.js-basic-dist';
-import { htmlToElement, cleanExistingPlot } from "./html_templates";
+import { htmlToElement, cleanExistingPlot, removeChildNodes } from "./html_templates";
 
 let event_build_fn = undefined;
 let plateau_file = undefined;
@@ -182,15 +182,24 @@ const present_plateaus = function(p_obj) {
     //Wire the buttons
     document.querySelectorAll('.grouping-command').forEach(n => {
         n.addEventListener('click', evt => {
+
             let offset = evt.target.getAttribute('value');
-            let msg = `Using the ${p_obj.cd_bounds[offset].number_of_groups} groups in bound ${Number(offset) + 1} for plotting.`;
+            let msg = `<p>Using the ${p_obj.cd_bounds[offset].number_of_groups} groups in bound ${Number(offset) + 1} for plotting.</p>`;
             let e = document.getElementById('group-msg');
-            e.innerHTML = msg;
+            removeChildNodes('group-msg');
+            e.append(htmlToElement(msg));
+            e.append(htmlToElement(`<button id="btn-clear-cd" class="button is-warning is-small">Clear</button>`));
 
             let node_type = p_obj.node_type;
             let cd_grouping = p_obj.cd_bounds[offset].cd_by_node;
             let evt_title = `CDBy${node_type}`; //CDByTree or CDByBipartition
             dispatchEvent(event_build_fn(evt_title, {groups: cd_grouping}));
+
+            document.getElementById('btn-clear-cd').addEventListener('click', () => {
+                removeChildNodes('group-msg');
+                dispatchEvent(event_build_fn('RemoveCDPlotting', {}));
+            });
+
         });
     });
 

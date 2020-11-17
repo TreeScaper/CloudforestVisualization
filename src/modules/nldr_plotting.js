@@ -580,11 +580,11 @@ const nldr_plot_init = function (init_obj) {
     const my_guid = guid_fn();
 
     //User has requested that CD groups be used in plotting.
-    addEventListener("UseCDGroupsTrue", e => {
+    addEventListener("CDByTree", e => {
         //cd_groups = generate_tree_by_group(e.detail.groups);
     });
     //User has requested that CD groups _not_ be used in plotting.
-    addEventListener("UseCDGroupsFalse", e => {
+    addEventListener("RemoveCDPlotting", e => {
         cd_groups = new Map();
     });
 
