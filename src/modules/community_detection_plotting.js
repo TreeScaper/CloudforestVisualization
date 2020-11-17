@@ -1,14 +1,10 @@
-import Plotly, { redrawReglTraces } from 'plotly.js-basic-dist';
+import Plotly from 'plotly.js-basic-dist';
 import { htmlToElement, cleanExistingPlot } from "./html_templates";
 
 let event_build_fn = undefined;
-let cd_grouping = undefined;
-let using_groups = false;
-
 let plateau_file = undefined;
-let coordinate_file = undefined;
 let cd_results_file = undefined;
-
+let coordinate_file = undefined; //TODO: Unclear what this coordinate file can be used for. This is an open question to Zhifeng. Grabbing and holding the file for future use.
 
 const draw_graph = function (data) {
     const line_width = 2;
@@ -68,29 +64,6 @@ const draw_graph = function (data) {
     Plotly.newPlot("quality_graph", trace_data, layout, config);
 }
 
-const dispatch_use_groups = function() {
-    let filter_count = Number(document.getElementById("group-count").value);
-    let filtered_data = cd_grouping.filter(obj => obj[1].length >= filter_count);
-    dispatchEvent(event_build_fn("UseCDGroupsTrue", { groups: filtered_data }));
-    using_groups = true;
-}
-
-// Returns an array of index offsets showing where the community ids are.
-const get_cd_indexes = function (arr) {
-    let d = {};
-    arr.forEach((cv, idx) => {
-        if (!(cv in d)) {
-            d[cv] = [];
-        }
-        d[cv].push(idx + 1); //the data line for num of communities has been sliced before this step.
-    });
-    let cd_idxs = Object.keys(d).filter(k => {
-        if (k > 0 && d[k].length > 2) {
-            return k
-        }
-    })
-    return d[Math.min(...cd_idxs)];
-}
 
 const parse_results = function (data) {
     let plot_data = {};
@@ -159,25 +132,6 @@ const parse_plateau_data = function(raw_data) {
 }
 
 /**
- * Clean the raw grouping to k<group number> : v< [tree_num, tree_num, ...] >
- * @param {{}} cd_obj 
- */
-const group_groups = function (cd_obj) {
-    let clean_groups = {};
-    Object.keys(cd_obj).forEach(k => {
-        let tree_num = Number(k) + 1;
-        let group_num = Number(cd_obj[k][0]);
-
-        if (!(group_num in clean_groups)) {
-            clean_groups[group_num] = [];
-        }
-
-        clean_groups[group_num].push(tree_num);
-    });
-    return clean_groups;
-}
-
-/**
  * Nodes into groups, then run basic stats on the grouping.
  * Add this as properties directly to the p_obj.
  * @param {*} p_obj 
@@ -229,7 +183,7 @@ const present_plateaus = function(p_obj) {
     document.querySelectorAll('.grouping-command').forEach(n => {
         n.addEventListener('click', evt => {
             let offset = evt.target.getAttribute('value');
-            let msg = `Using the ${p_obj.cd_bounds[offset].number_of_groups} groups in bound ${offset} for plotting.`;
+            let msg = `Using the ${p_obj.cd_bounds[offset].number_of_groups} groups in bound ${Number(offset) + 1} for plotting.`;
             let e = document.getElementById('group-msg');
             e.innerHTML = msg;
 
@@ -249,7 +203,7 @@ const plot_community_detection = function() {
     plateau_stats(parsed_data);
     present_plateaus(parsed_data);
     
-    //Step 2: Prepare the lambda/modularuty data
+    //Step 2: Prepare the lambda/modularity data
     let lambda_data = parse_results(clean_data(cd_results_file.data));
     draw_graph(lambda_data);
 }
