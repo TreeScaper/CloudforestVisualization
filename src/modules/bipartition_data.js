@@ -113,17 +113,22 @@ const bipartition_data_init = function (init_obj) {
     });
 
     addEventListener("BipartitionFiles", e => {
-        let m = e.detail.files.filter(obj => RegExp(/[Bb]ipartition [Mm]atrix/).test(obj.name));
-        let l = e.detail.files.filter(obj => RegExp(/[Bb]ipartition [Cc]ounts/).test(obj.name));
-        let t = e.detail.files.filter(obj => RegExp(/Taxa IDs/).test(obj.name));
-        bipartition_files.matrix = m[0];
-        bipartition_files.counts = l[0];
-        bipartition_files.taxa = t[0];
-        dispatchEvent(event_build_fn("FileContentsRequest", {
-            guid: my_guid,
-            files: [bipartition_files.matrix.id, bipartition_files.counts.id, bipartition_files.taxa.id]
-        }));
+        if (e.detail.files.length > 0) {
+            let m = e.detail.files.filter(obj => RegExp(/[Bb]ipartition [Mm]atrix/).test(obj.name));
+            let l = e.detail.files.filter(obj => RegExp(/[Bb]ipartition [Cc]ounts/).test(obj.name));
+            let t = e.detail.files.filter(obj => RegExp(/Taxa IDs/).test(obj.name));
+            bipartition_files.matrix = m[0];
+            bipartition_files.counts = l[0];
+            bipartition_files.taxa = t[0];
+            dispatchEvent(event_build_fn("FileContentsRequest", {
+                guid: my_guid,
+                files: [bipartition_files.matrix.id, bipartition_files.counts.id, bipartition_files.taxa.id]
+            }));
+        } else {
+            console.error('History does not contain CLVTreescaper -dist files.');
+        }
     });
+
     dispatchEvent(event_build_fn("RequestBipartitionFile", {}));
 }
 
