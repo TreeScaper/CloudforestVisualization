@@ -113,7 +113,7 @@ const bipartition_data_init = function (init_obj) {
     });
 
     addEventListener("BipartitionFiles", e => {
-        if (e.detail.files.length === 3) {
+        if (e.detail.files.length > 0) {
             let m = e.detail.files.filter(obj => RegExp(/[Bb]ipartition [Mm]atrix/).test(obj.name));
             let l = e.detail.files.filter(obj => RegExp(/[Bb]ipartition [Cc]ounts/).test(obj.name));
             let t = e.detail.files.filter(obj => RegExp(/Taxa IDs/).test(obj.name));
@@ -125,9 +125,10 @@ const bipartition_data_init = function (init_obj) {
                 files: [bipartition_files.matrix.id, bipartition_files.counts.id, bipartition_files.taxa.id]
             }));
         } else {
-            console.log('CLVTreescaper -dist file output is not present in the history.');
+            console.error('History does not contain CLVTreescaper -dist files.');
         }
     });
+
     dispatchEvent(event_build_fn("RequestBipartitionFile", {}));
 }
 

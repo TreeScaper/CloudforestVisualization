@@ -4,18 +4,40 @@ import * as Plotly3D from 'plotly.js-gl3d-dist';
 import * as PlotlyParallel from 'plotly.js-gl2d-dist';
 import {
     htmlToElement,
-    cleanExistingPlot,
-    removeChildNodes
+    cleanExistingPlot
 } from './html_templates';
 
 let coordinate_data = undefined;
 let event_buld_fn = undefined;
-let cd_groups = new Map();
+let subtree_by_index_string = undefined;
 
-const group_colors = [
-    "#0074D9", "#7FDBFF", "#39CCCC", "#3D9970", "#2ECC40",
-    "#01FF70", "#FFDC00", "#FF851B", "#FF4136", "#85144b", "#F012BE", "#B10DC9"
-]; //12 colors, beyond that use "#AAAAAA" gray
+//From plotly python alphabet color sequence
+let color_list = ["#AA0DFE", "#3283FE", "#85660D", "#782AB6", "#565656", "#1C8356", "#16FF32",
+                    "#F7E1A0", "#E2E2E2", "#1CBE4F", "#C4451C", "#DEA0FD", "#FE00FA", "#325A9B",
+                    "#FEAF16", "#F8A19F", "#90AD1C", "#F6222E", "#1CFFCE", "#2ED9FF", "#B10DA1",
+                    "#C075A6", "#FC1CBF", "#B00068", "#FBE426", "#FA0087"];
+
+let fall_back_color = "black";
+/**
+ * Object for generating colors for plotting
+ */
+const assign_colors = function(spec) {
+    let {colors, default_color} = spec;
+    let count = 0;
+    let assign_color = function() {
+        if (count < colors.length) {
+            let rval = colors[count];
+            count++;
+            return rval;
+        } else {
+            return default_color;
+        }
+    }
+    return Object.freeze({
+        assign_color
+    });
+
+}
 
 // Data coming from treescaper is often poorly formatted. Need to 
 // do some cleaning here, mostly remove the artificats from having extra tabs in output.
@@ -85,7 +107,7 @@ const parallel_coordinates = function (file_contents) {
  * 
  * @param {number[][]} file_contents 
  */
-const scatter_2d = function (file_contents) {
+const scatter_2d = function (file_contents, in_color) {
 
     let axis_max_min = function (axis_data) {
         const max_mag = Math.ceil(Math.max(...axis_data.map(Math.abs)));
@@ -108,10 +130,10 @@ const scatter_2d = function (file_contents) {
         row_data['x'].push(Number(r[0]));
         row_data['y'].push(Number(r[1]));
         row_data['text'].push(`Tree: ${idx + 1}`);
-        if (cd_groups.get(idx + 1)) {
-            row_data.color.push(cd_groups.get(idx + 1).group_color);
+        if (in_color.length > 1) {
+            row_data.color.push(in_color[idx]);
         } else {
-            row_data.color.push("#DDDDDD");
+            row_data.color.push(in_color[0]);
         }    
     });
 
@@ -125,7 +147,7 @@ const scatter_2d = function (file_contents) {
         mode: 'markers',
         type: 'scatter',
         marker: {
-            size: 5,
+            size: 8,
             color: row_data.color
         },
         hovertemplate: "%{text}<extra></extra>",
@@ -133,6 +155,7 @@ const scatter_2d = function (file_contents) {
 
 
     const layout = {
+        height: 800,
         xaxis: {
             range: axis_max_min(row_data['x']),
             zeroline: false,
@@ -146,7 +169,31 @@ const scatter_2d = function (file_contents) {
     const config = {
         responsive: true,
         displaylogo: false,
-        scrollZoom: true
+        scrollZoom: true,
+        modeBarButtonsToAdd: [
+            [
+                {
+                    name: 'Enlarge points',
+                    icon: Plotly2D.Icons.pencil,
+                    click: function() {
+                        let curr_size = data[0].marker.size;
+                        Plotly2D.restyle("dim-scatter-plot", 'marker.size', curr_size += 2);
+                    },   
+                },
+                {
+                    name: 'Shrink points',
+                    icon: Plotly2D.Icons.pencil,
+                    click: function() {
+                        let curr_size = data[0].marker.size;
+                        if (curr_size <= 4) {
+                            console.log('NOP');
+                        } else {
+                            Plotly2D.restyle("dim-scatter-plot", 'marker.size', curr_size -= 2);
+                        }
+                    }
+                }
+            ]
+        ]
     }
     const s_plot = document.getElementById("dim-scatter-plot");
     Plotly2D.newPlot("dim-scatter-plot", data, layout, config);
@@ -162,7 +209,7 @@ const scatter_2d = function (file_contents) {
     });
 }
 
-const scatter_3d = function (file_contents) {
+const scatter_3d = function (file_contents, in_color) {
     const three_d_dom = "dim-scatter-plot";
     let row_data = {
         'x': [],
@@ -176,13 +223,12 @@ const scatter_3d = function (file_contents) {
         row_data['y'].push(Number(r[1]));
         row_data['z'].push(Number(r[2]));
         row_data.text.push(`Tree: ${idx + 1}`);
-        if (cd_groups.get(idx + 1)) {
-            row_data.color.push(cd_groups.get(idx + 1).group_color);
-            console.log(`Grouped point coordinates x:${r[0]} y:${r[1]} z:${r[2]}`);
+        if (in_color.length > 1){
+            row_data.color.push(in_color[idx]);
         } else {
-            row_data.color.push("#DDDDDD");
-        }    
-        });
+            row_data.color.push(in_color[0]);
+        }
+    });
     let data = [];
     data = [{
         x: row_data['x'],
@@ -288,41 +334,166 @@ const scatter_3d = function (file_contents) {
     });
 }
 
+
+const plot_every_nth = function(cut_off, dimension) {
+
+    let c = assign_colors({"colors": color_list, "default_color": fall_back_color})
+    let d = coordinate_data[Object.keys(coordinate_data)[0]];
+    let new_colors = [];
+    let current_color = c.assign_color();
+    d.forEach((v, idx) => {
+        if ((idx + 1) % cut_off === 0) {
+            current_color = c.assign_color();
+        }
+        new_colors.push(current_color);
+    });
+    cleanExistingPlot();
+    if (dimension === 2) {
+        build_2d(d, new_colors);
+    }
+    if (dimension === 3) {
+        build_3d(d, new_colors);
+    }
+}
+
 /**
  * User wishes to subset the NLDR trees every nth number of trees.
  * 
  * Draw gui, let user enter nth value, execute
  */
-const subtree_every_nth = function() {
+const subtree_every_nth = function(dimension) {
     let s = `
     <div id="user-plot-ctrls" class="tile is-parent">
         <div class="tile is-child box>
             <label for="nth-value">Subset Trees every Nth Tree</label>
             <input id="nth-value" class="input" type="text" placeholder="10">
-            <button class="button is-small">Execute</button>
+            <button id="execute-nth-value" class="button is-small">Execute</button>
         </div>
     </div>`;
-
     document.getElementById('subset-plots-div').append(htmlToElement(s));
+
+    document.getElementById('execute-nth-value').addEventListener('click', e => {
+        let el = document.getElementById("nth-value");
+        if (el.value.length > 0) {
+            plot_every_nth(Number(el.value), dimension);
+        }
+    });
 }
+
+/**
+ * Parse the user's subset string
+ *  
+ *  (1-50: blue); (60-200: green); (300,301,302: yellow)
+ * 
+ * into an array of colors by offset
+ * 
+ *  ["blue","blue"...,"green","green"...,"yellow"...]
+ * 
+ * @param {int} ar_length the lenght of the data set to plot
+ * @param {string} s the user's subset string 
+ */
+const parse_subset_string = function(s, ar_length) {
+    let rval = [];
+    rval.length = ar_length
+    rval.fill("black"); //default color for data point
+
+    let t = s.split(';').filter(v => v.length > 0).map(d => d.trim())
+    t.forEach(entry => {
+        let cln = entry.replace(/[\[|\]]/g, "");
+        let t2 = cln.split(':'); //Array [ "1-50", " blue" ]
+        if (t2[0].includes('-')) {
+            //Ranges
+            let offsets = t2[0].split('-');
+            let start = Number(offsets[0]) - 1;
+            let end = Number(offsets[1]) -1 ;
+            rval.fill(t2[1].trim(), start, end);
+        } if (t2[0].includes(',')) {
+            //Specific indexes
+            let sp = t2[0].split(',');
+            let sp_idx = sp.map(v => Number(v));
+            sp_idx.forEach(v => {
+                rval[v - 1] = t2[1].trim();
+            });
+        } if (Number(t2[0]) != NaN) {
+            rval[t2[0] - 1] = t2[1].trim();
+        } else {
+            console.error(`Incorrect formatting of ${t2[0]}`);
+        }
+
+    });
+    return rval;
+}
+
 
 /**
  * User wishes to subset the NLDR trees by sepcific indexes.
  * 
  * Draw gui, let user enter indexes, execute
  */
-const subtree_by_index = function() {
+const subtree_by_index = function(dimension) {
     let s = `
     <div id="user-plot-ctrls" class="tile is-parent">
         <div class="tile is-child box>
-            <label for="nth-value">Subset Trees by Index</label>
-            <input id="nth-value" class="input" type="text" placeholder="1-10: Blue">
-            <button class="button is-small">Execute</button>
+            <label for="nth-value">Subset Trees by Index <p class="is-size-7">Group with brackets <strong>[]</strong> - Separate with semicolons <strong>;</strong></p></label>
+            <input id="nth-value" class="input" type="text" placeholder="[1-50: blue];[60-200: green] ;[300,301,302: yellow]" size="40">
+            <button id="execute-index-string" class="button is-small">Execute</button>
         </div>
     </div>`;
 
     document.getElementById('subset-plots-div').append(htmlToElement(s));
+    if (subtree_by_index_string) {
+        document.getElementById('nth-value').value = subtree_by_index_string;
+    }
+    document.getElementById('execute-index-string').addEventListener('click', e => {
+        let el = document.getElementById("nth-value");
+        if (el.value.length > 0) {
+            let d = coordinate_data[Object.keys(coordinate_data)[0]];    
+            let colors = parse_subset_string(el.value, d.length)
+            cleanExistingPlot();
+            if (dimension === 2) {
+                build_2d(d, colors);
+            }
+            if (dimension === 3) {
+                build_3d(d, colors);
+            }
+        }
+    });
+}
 
+/**
+ * User wishes to load a text file for creating subsets of trees.
+ */
+const subtree_by_file = function (dimesion) {
+    let s = `
+    <div id="user-plot-ctrls" class="tile is-parent">
+        <div class="tile is-child box>
+            <label for="subset-tree-file">Choose a text file to upload:</label>
+            <input type="file" id="subset-tree-file" name="subset-tree-file" accept="text/plain">
+        </div>
+    </div>`;
+
+    document.getElementById('subset-plots-div').append(htmlToElement(s));
+    document.getElementById('subset-tree-file').addEventListener('change', e => {
+        let file = e.target.files[0];
+        let reader = new FileReader();
+        reader.readAsText(file);
+        reader.onload = function() {
+            console.log(reader.result);
+            let d = coordinate_data[Object.keys(coordinate_data)[0]];    
+            let colors = parse_subset_string(reader.result, d.length)
+            cleanExistingPlot();
+            if (dimesion === 2) {
+                build_2d(d, colors);
+            }
+            if (dimesion === 3) {
+                build_3d(d, colors);
+            }
+        }
+        reader.onerror = function() {
+            console.error(reader.error);
+        }
+    });
+  
 }
 
 const clean_it = function() {
@@ -339,7 +510,7 @@ const clean_it = function() {
  *  - User can request a consistent offset: every n trees generates a new group
  *  - Users can determine color overriding defaults. 
  */
-const build_subtree_menu = function() {
+const build_subtree_menu = function(dimension) {
     let div_slug = `
     <div class="tile is-parent">
         <div class="tile is-child box">
@@ -362,59 +533,29 @@ const build_subtree_menu = function() {
         }
         if (e.target.value === "every-nth") {
             clean_it();
-            subtree_every_nth();
+            subtree_every_nth(dimension);
         }
         if (e.target.value === "enter-indexes") {
             clean_it();
-            subtree_by_index();
+            subtree_by_index(dimension);
         }
         if (e.target.value === "load-index-file") {
             clean_it();
+            subtree_by_file(dimension);
         }
     });
 }
 
-const build_2d_3d = function (contents) {
-    
-    build_subtree_menu();
-
-    document.getElementById("plot").append(htmlToElement(`
-    <div id="scatter_dimensions" class="tabs is-centered is-small is-toggle">
-    <ul>
-      <li>
-        <a id="2d" value="2d">2-D</a>
-      </li>
-      <li class="is-active">
-        <a id="3d" value="3d">3-D</a>
-      </li>
-    </ul>
-  </div>
-  `));
+const build_3d = function (contents, in_colors=["blue"]) {
+    build_subtree_menu(3);
     document.getElementById("plot").append(htmlToElement(`<div id="dim-scatter-plot"/>`));
-    document.getElementById("scatter_dimensions").querySelectorAll('a').forEach(n => {
-        n.addEventListener('click', e => {
-            document.getElementById("scatter_dimensions").querySelectorAll('li').forEach(n => {
-                n.classList = ''
-            });
-            document.getElementById(e.target.getAttribute('value')).parentElement.classList = 'is-active';
-
-            document.getElementById('dim-scatter-plot').remove();
-            document.getElementById("plot").append(htmlToElement(`<div id="dim-scatter-plot"/>`))
-
-            if (e.target.getAttribute('value') === '3d') {
-                scatter_3d(contents);
-            } else {
-                scatter_2d(contents);
-            }
-        });
-    });
-
-    scatter_3d(contents);
+    scatter_3d(contents, in_colors);
 }
 
-const build_2d = function (contents) {
+const build_2d = function (contents, in_colors=["blue"]) {
+    build_subtree_menu(2);
     document.getElementById("plot").append(htmlToElement(`<div id="dim-scatter-plot"/>`));
-    scatter_2d(contents);
+    scatter_2d(contents, in_colors);
 }
 
 const build_multidimension = function (contents) {
@@ -427,35 +568,13 @@ const plot_dimensions = function (dims, contents) {
         build_2d(contents);
     }
     if (dims === 3) {
-        build_2d_3d(contents);
+        build_3d(contents);
     }
     if (dims > 3) {
         build_multidimension(contents);
     }
 }
 
-const generate_tree_by_group = function (groups) {
-    let r_val = new Map();
-    groups.forEach((g, idx) => {
-        let grp_num = Number(g[0]);
-        g[1].forEach(t_num => {
-            let o = {};
-            if (idx <= group_colors.length) {
-                o = {
-                    group_number: grp_num,
-                    group_color: group_colors[idx]
-                }
-            } else {
-                o = {
-                    group_number: grp_num,
-                    group_color: "#AAAAAA"
-                }
-            }
-            r_val.set(t_num, o);
-        })
-    });
-    return r_val;
-}
 
 const nldr_plot_init = function (init_obj) {
     let {
@@ -466,12 +585,30 @@ const nldr_plot_init = function (init_obj) {
     const my_guid = guid_fn();
 
     //User has requested that CD groups be used in plotting.
-    addEventListener("UseCDGroupsTrue", e => {
-        cd_groups = generate_tree_by_group(e.detail.groups);
+    //Transform cd groups into string and place in the existing Subset Trees by Index text box.
+    //Key: tree index Value: community index
+    addEventListener("CDByTree", e => {
+        let cd_groups = e.detail.groups;
+        let trees_by_groups = Object.values(cd_groups).reduce((a,b) => (a[b]=[], a), {});
+        Object.keys(cd_groups).forEach(k => {
+            trees_by_groups[cd_groups[k]].push(Number(k) + 1); //These are offset indexes. Change to tree number 1...n
+        });
+        let str = '';
+        let c = assign_colors({"colors": color_list, "default_color": 'lightblue'})
+        let current_color = c.assign_color();
+
+        //Sorted desc number of nodes per group
+        let sorted_keys = Object.keys(trees_by_groups).sort((a,b) => {return trees_by_groups[b].length - trees_by_groups[a].length});
+        sorted_keys.forEach(grp_num => {  
+            str += `[${trees_by_groups[grp_num].join()}: ${current_color}];`;
+            current_color = c.assign_color();
+        });
+        str = str.slice(0,-1);
+        subtree_by_index_string = str;
     });
     //User has requested that CD groups _not_ be used in plotting.
-    addEventListener("UseCDGroupsFalse", e => {
-        cd_groups = new Map();
+    addEventListener("RemoveCDPlotting", e => {
+        subtree_by_index_string = undefined;
     });
 
     addEventListener("FileContents", e => {
