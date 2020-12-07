@@ -260,12 +260,11 @@ const community_detection_init = function (init_obj) {
             plot_community_detection();
         } else {    
             let plateau_file_obj = e.detail.files.filter(obj => RegExp(/CD Plateaus/i).test(obj.name));
-            let coordinate_file_obj = e.detail.files.filter(obj => RegExp(/CD with NLDR Coordinates/i).test(obj.name));
             let cd_results_file_obj = e.detail.files.filter(obj => RegExp(/CD Results/i).test(obj.name));
             
             dispatchEvent(event_build_fn("FileContentsRequest", {
                 guid: my_guid,
-                files: [plateau_file_obj[0].id, coordinate_file_obj[0].id, cd_results_file_obj[0].id]
+                files: [plateau_file_obj[0].id, cd_results_file_obj[0].id]
             }));
         }
     });
