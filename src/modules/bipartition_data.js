@@ -122,7 +122,7 @@ const bipartition_data_init = function (init_obj) {
             bipartition_files.taxa = t[0];
             dispatchEvent(event_build_fn("FileContentsRequest", {
                 guid: my_guid,
-                files: [bipartition_files.matrix.id, bipartition_files.counts.id, bipartition_files.taxa.id]
+                files: [bipartition_files.matrix.dataset_id, bipartition_files.counts.dataset_id, bipartition_files.taxa.dataset_id]
             }));
         } else {
             console.error('History does not contain CLVTreescaper -dist files.');
