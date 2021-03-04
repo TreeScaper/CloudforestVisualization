@@ -1,7 +1,7 @@
 {
-  "name": "cloudforest-two",
-  "version": "1.0.0",
-  "description": "CloudForest Experimentation",
+  "name": "cloudforest-viz",
+  "version": "0.0.1",
+  "description": "CloudForest Visualization",
   "main": "index.js",
   "scripts": {
     "build": "webpack --mode development",
@@ -14,6 +14,9 @@
     "name": "Thomas McGowan",
     "email": "mcgo0092@umn.edu"
   },
+  "contributors": [
+      "Reid Wagner <wagnerr@umn.edu>"
+  ],
   "license": "MIT",
   "devDependencies": {
     "clean-webpack-plugin": "^3.0.0",
