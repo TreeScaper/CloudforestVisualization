@@ -405,7 +405,7 @@ const parse_subset_string = function(s, ar_length) {
             //Ranges
             let offsets = t2[0].split('-');
             let start = Number(offsets[0]) - 1;
-            let end = Number(offsets[1]) -1 ;
+            let end = Number(offsets[1]);
             rval.fill(t2[1].trim(), start, end);
         } if (t2[0].includes(',')) {
             //Specific indexes
