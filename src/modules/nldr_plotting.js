@@ -109,17 +109,6 @@ const parallel_coordinates = function (file_contents) {
  */
 const scatter_2d = function (file_contents, in_color) {
 
-    let axis_max_min = function (axis_data) {
-        const max_mag = Math.ceil(Math.max(...axis_data.map(Math.abs)));
-        let data_min = undefined;
-        if (Math.min(...axis_data) < 0) {
-            data_min = (-1) * max_mag;
-        } else {
-            data_min = Math.floor(Math.min(...axis_data));
-        }
-        return [data_min, max_mag];
-    };
-
     let row_data = {
         x: [],
         y: [],
@@ -157,11 +146,9 @@ const scatter_2d = function (file_contents, in_color) {
     const layout = {
         height: 800,
         xaxis: {
-            range: axis_max_min(row_data['x']),
             zeroline: false,
         },
         yaxis: {
-            range: axis_max_min(row_data['y']),
             zeroline: false
         },
     };
