@@ -147,9 +147,12 @@ const scatter_2d = function (file_contents, in_color) {
         height: 800,
         xaxis: {
             zeroline: false,
+            scaleratio: 1
         },
         yaxis: {
-            zeroline: false
+            zeroline: false,
+            scaleanchor: "x",
+            scaleratio: 1
         },
     };
 
@@ -235,16 +238,16 @@ const scatter_3d = function (file_contents, in_color) {
         autosize: true,
         height: 800,
         scene: {
-            aspectratio: {
-                x: 1.25,
-                y: 1.25,
-                z: 1.25
-            },
+            aspectmode: "data",
             xaxis: {
                 type: 'linear',
                 zeroline: false
             },
             yaxis: {
+                type: 'linear',
+                zeroline: false
+            },
+            zaxis: {
                 type: 'linear',
                 zeroline: false
             }
