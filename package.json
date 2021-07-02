@@ -1,6 +1,6 @@
 {
   "name": "cloudforest-viz",
-  "version": "0.1.4",
+  "version": "0.1.5",
   "description": "CloudForest Visualization",
   "main": "index.js",
   "scripts": {
