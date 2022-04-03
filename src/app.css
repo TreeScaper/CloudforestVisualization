@@ -13,3 +13,13 @@ div.tooltip {
     border-radius: 8px;			
     pointer-events: none;			
 }
+
+#quality_graph {
+    display: inline-block;
+    vertical-align: top;
+}
+
+#dim-scatter-plot {
+    display: inline-block;
+    vertical-align: top;
+}

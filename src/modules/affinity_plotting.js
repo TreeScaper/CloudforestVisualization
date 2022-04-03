@@ -5,6 +5,7 @@ import { select, event } from "d3-selection";
 import { drag } from "d3-drag";
 import { htmlToElement, cleanExistingPlot } from './html_templates';
 import { isNull } from "plotly.js-gl2d-dist";
+import { build_event } from "./support_funcs";
 
 let score_array = undefined;
 let event_buld_fn = undefined;
@@ -285,8 +286,7 @@ const clean_data = function(data) {
 }
 
 const affinity_plot_init = function (init_obj) {
-    let { guid_fn, event_fn } = init_obj;
-    event_buld_fn = event_fn;
+    let { guid_fn} = init_obj;
     const my_guid = guid_fn();
 
     addEventListener("FileContents", e => {
@@ -301,7 +301,7 @@ const affinity_plot_init = function (init_obj) {
 
     addEventListener("TreePlotRequest", e => {
         if (FILE_NAME_REGEXP.test(e.detail.file_name)) {
-            dispatchEvent(event_buld_fn("FileContentsRequest", { guid: my_guid, files: [e.detail.file_id] }));
+            dispatchEvent(build_event("FileContentsRequest", { guid: my_guid, files: [e.detail.file_id] }));
         }
     });
 

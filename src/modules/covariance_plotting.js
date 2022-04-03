@@ -7,6 +7,7 @@ import { mean, max } from "d3-array";
 import { roundedRect } from "./support_funcs";
 import { cleanExistingPlot, htmlToElement } from "./html_templates";
 import { css_colors } from "./colors";
+import { build_event } from "./support_funcs";
 
 const getEvent = () => event; // This is necessary when using webpack >> https://github.com/d3/d3-zoom/issues/32
 const d3 = Object.assign(
@@ -23,7 +24,6 @@ const d3 = Object.assign(
 );
 
 
-let event_build_fn = undefined;
 let graph_data = undefined;
 let filtered_adjacency_list = undefined;
 let bipartition_file = undefined;
@@ -362,7 +362,7 @@ const build_link_edit_ui = function () {
     });
 
     document.getElementById("publish-graph").addEventListener("click", () => {
-        dispatchEvent(event_build_fn("PublishData", {
+        dispatchEvent(build_event("PublishData", {
             data: filtered_adjacency_list,
             file_name: `Filtered Adjacency at ${document.getElementById("link-strength").value}`
         }));
@@ -382,8 +382,7 @@ const clean_data = function(data) {
 }
 
 const covariance_plot_init = function (init_obj) {
-    let { guid_fn, event_fn } = init_obj;
-    event_build_fn = event_fn;
+    let { guid_fn } = init_obj;
     const my_guid = guid_fn();
 
 
@@ -392,7 +391,7 @@ const covariance_plot_init = function (init_obj) {
         let files = e.detail.files.filter(obj => RegExp(/[Bb]ipartition [Mm]atrix/).test(obj.name));
         bipartition_file = files[0];
     });
-    dispatchEvent(event_build_fn("RequestBipartitionFile", {guid: my_guid}));
+    dispatchEvent(build_event("RequestBipartitionFile", {guid: my_guid}));
 
     //User has requested that CD groups be used in plotting.
     addEventListener("UseCDGroupsTrue", e => {
@@ -431,7 +430,7 @@ const covariance_plot_init = function (init_obj) {
 
     addEventListener("TreePlotRequest", e => {
         if (FILE_NAME_REGEX.test(e.detail.file_name)) {
-            dispatchEvent(event_build_fn("FileContentsRequest", {
+            dispatchEvent(build_event("FileContentsRequest", {
                 guid: my_guid,
                 files: [e.detail.file_id, bipartition_file.id]
             }));

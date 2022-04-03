@@ -5,6 +5,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>CloudForest Visualizations</title>  
+    <script src="https://d3js.org/d3.v7.min.js"></script>
 </head>
 
 <body style="display: none;">
@@ -33,36 +34,27 @@
             <div class="tile is-ancestor">
                 <div class="tile is-parent">
                     <div class="tile is-child box">
-                        <h5>NLDR</h5>
+                        <h5>Visualization</h5>
                         <div class="tile is-vertical is-parent">
                             <div class="control">
                                 <div class="select">
-                                    <select id="nldr-select" class="is-small" disabled>
-                                     <option value="">--Please choose a file--</option>
-                                    </select>
+                                    <div id ="viz-interface">
+                                        <select id="visualization-select" class="is-small" disabled>
+                                            <option value="">--Please choose a visualization--</option>
+                                        </select>
+                                    </div>
                                 </div>
                             </div>
                         </div>
-                    </div>
-                    <div class="tile is-child box">
-                        <h5>Trees and Matrices</h5>
+                        <h5>Files</h5>
                         <div class="tile is-vertical is-parent">
                             <div class="control">
                                 <div class="select">
-                                    <select id="tree-select" class="is-small" disabled>
-                                     <option value="">--Please choose a file--</option></select>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="tile is-child box">
-                        <h5>Community Detection</h5>
-                        <div class="tile is-vertical is-parent">
-                            <div class="control">
-                                <div class="select">
-                                    <select id="cd-select" class="is-small" disabled>
-                                     <option value="">--Please choose a file--</option>
-                                    </select>
+                                    <div id ="file-select-menu">
+                                        <select id="file-select" class="is-small" disabled>
+                                            <option value="">--Please choose a file--</option>
+                                        </select>
+                                    </div>
                                 </div>
                             </div>
                         </div>
@@ -79,7 +71,7 @@
            
             <div class="tile is-ancestor">
                 <div class="tile box has-text-centered" style="overflow-x: auto;">
-                    <div id="plot" style="width: 100%; margin: 0 auto;"></div>
+                    <div id="plot" style="width: 100%; margin: 0 auto, font-size:0;"></div>
                 </div>
             </div>
             <div class="tile is-ancestor">

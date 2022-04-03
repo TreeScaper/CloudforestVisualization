@@ -21,5 +21,14 @@ const roundedRect = function (ctx, x, y, width, height, radius) {
     ctx.fill(r);
 }
 
+const build_event = function (name, details) {
+    return new CustomEvent(name, {
+        bubbles: true,
+        detail: details
+    });
+}
 
-export { roundedRect }
+export {
+    roundedRect,
+    build_event
+}

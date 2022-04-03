@@ -1,16 +1,15 @@
 import { removeChildNodes } from "./html_templates";
 import { newick_parse } from "./tree_data_parsing";
+import { build_event } from "./support_funcs";
 
 let data_files = undefined;
-let event_build_fn = undefined;
 
 /**
  * Handles bootstrapped tree data and phylogram plotting.
  * @param {*} init_obj 
  */
 const pyhlogram_data_init = function (init_obj) {
-    let { guid_fn, event_fn } = init_obj;
-    event_build_fn = event_fn;
+    let { guid_fn } = init_obj;
     const my_guid = guid_fn();
 
     addEventListener("TreeRequest", e => {
@@ -21,7 +20,7 @@ const pyhlogram_data_init = function (init_obj) {
             removeChildNodes("plot-metadata");
             let f = data_files[0];
             let parsed_data = newick_parse(f.data.split(/\n/)[tree_num]);
-            dispatchEvent(event_build_fn("PlotForTree", {
+            dispatchEvent(build_event("PlotForTree", {
                 tree: parsed_data,
                 tree_num: tree_num + 1,
                 width: document.getElementById("plot").clientWidth,
@@ -36,7 +35,7 @@ const pyhlogram_data_init = function (init_obj) {
         data_files = e.detail.contents;
     });
 
-    dispatchEvent(event_build_fn("BootstrappedTrees", { guid: my_guid }))
+    dispatchEvent(build_event("BootstrappedTrees", { guid: my_guid }))
 }
 
 export { pyhlogram_data_init }

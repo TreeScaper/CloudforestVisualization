@@ -1,14 +1,15 @@
 import { removeChildNodes, cleanExistingPlot, htmlToElement } from "./html_templates";
 import { newick_parse as parseNewick } from "./tree_data_parsing"
+import { build_event } from "./support_funcs";
 
-let event_build_fn = undefined;
+const FILE_NAME_REGEXP = /trees$/;
 
 const animate = function (data) {
 
     let tree_num = 0;
     let parsed_branchset = parseNewick(data[tree_num]);
     cleanExistingPlot();
-    dispatchEvent(event_build_fn("PlotForTree", {
+    dispatchEvent(build_event("PlotForTree", {
         tree_num: 1,
         tree: parsed_branchset,
         width: document.getElementById("plot").clientWidth,
@@ -28,7 +29,7 @@ const animate = function (data) {
         document.getElementById("boottree-number").textContent = tn;
         removeChildNodes("plot");
         let pn = parseNewick(data[tn - 1]);
-        dispatchEvent(event_build_fn("PlotForTree", {
+        dispatchEvent(build_event("PlotForTree", {
             tree: pn,
             tree_num: tn,
             width: document.getElementById("plot").clientWidth,
@@ -39,8 +40,7 @@ const animate = function (data) {
 }
 
 const hierarchy_plot_init = function (init_obj) {
-    let { guid_fn, event_fn } = init_obj;
-    event_build_fn = event_fn;
+    let { guid_fn } = init_obj;
     const my_guid = guid_fn();
 
     addEventListener("TreeFileContents", e => {
@@ -50,7 +50,7 @@ const hierarchy_plot_init = function (init_obj) {
                     let parsed_branchset = parseNewick(item.data);
                     cleanExistingPlot();
 
-                    dispatchEvent(event_build_fn("PlotForTree", {
+                    dispatchEvent(build_event("PlotForTree", {
                         tree_num: undefined,
                         tree: parsed_branchset,
                         width: document.getElementById("plot").clientWidth,
@@ -67,7 +67,10 @@ const hierarchy_plot_init = function (init_obj) {
     });
 
     addEventListener("TreePlotRequest", e => {
-        dispatchEvent(event_build_fn("TreeFileContentsRequest", { guid: my_guid, files: [e.detail.file_id] }));
+        console.log("Hierarchy plot TreePlotRequest");
+        if (FILE_NAME_REGEXP.test(e.detail.file_name)) {
+            dispatchEvent(build_event("TreeFileContentsRequest", { guid: my_guid, files: [e.detail.file_id] }));
+        }
     });
 
 }

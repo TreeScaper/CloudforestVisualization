@@ -1,25 +1,113 @@
 import Plotly from 'plotly.js-basic-dist';
+import * as Plotly2D from 'plotly.js-basic-dist';
+import * as Plotly3D from 'plotly.js-gl3d-dist';
 import { htmlToElement, cleanExistingPlot, removeChildNodes } from "./html_templates";
+import { build_event } from "./support_funcs";
+import {
+    nldr_clean_data,
+    plot_dimensions,
+    assign_colors,
+    color_list,
+    subtree_by_index,
+    build_2d,
+    build_3d,
+    parse_subset_string,
+    create_scatter_3d_data,
+    create_scatter_2d_data
+} from './nldr_plotting_core.js';
 
-let event_build_fn = undefined;
 let plateau_file = undefined;
 let cd_results_file = undefined;
-let coordinate_file = undefined; //TODO: Unclear what this coordinate file can be used for. This is an open question to Zhifeng. Grabbing and holding the file for future use.
+let cd_with_coordinates_file = undefined; //TODO: Unclear what this coordinate file can be used for. This is an open question to Zhifeng. Grabbing and holding the file for future use.
+let nldr_coordinate_file = undefined;
 let grouping_message = undefined;
 
-const draw_graph = function (data) {
+/*
+ * Creates NLDR Plot.
+ */
+const plot_nldr = function (cd_groups) {
+
+    // Create an array where each element is a group, and contains the member trees.
+    let trees_by_groups = Object.values(cd_groups).reduce((a,b) => (a[b]=[], a), {});
+    Object.keys(cd_groups).forEach(k => {
+        trees_by_groups[cd_groups[k]].push(Number(k) + 1); //These are offset indexes. Change to tree number 1...n
+    });
+
+    let str = '';
+    let c = assign_colors({"colors": color_list, "default_color": 'lightblue'})
+    let current_color = c.assign_color();
+
+    // Sort descending by number of trees in group.
+    let sorted_keys = Object.keys(trees_by_groups).sort((a,b) => {return trees_by_groups[b].length - trees_by_groups[a].length});
+
+    // Create color formatting string. Each group is mapped to a color, and each mapping is separated by a semicolon in string representing the format.
+    sorted_keys.forEach(grp_num => {
+        str += `[${trees_by_groups[grp_num].join()}: ${current_color}];`;
+        current_color = c.assign_color();
+    });
+
+    // Remove last semicolon
+    str = str.slice(0,-1);
+
+    let subtree_by_index_string = str;
+
+    // Clean NLDR coordinate data
+    let coordinate_data = nldr_clean_data([nldr_coordinate_file]);
+
+    // Determine dimension of coordinates. Each item in the coordinates a tree with n coordinates.
+    let plot_dimension = coordinate_data[Object.keys(coordinate_data)[0]][0].length;
+
+    // The actual coordinates from the coordinate_data object.
+    let d = coordinate_data[Object.keys(coordinate_data)[0]];
+
+    // Generate object representing color-coding of coordinates.
+    let colors = parse_subset_string(subtree_by_index_string, d.length)
+
+    // Plot data.
+    // WAGNERR: We should update instead of creating a new plot. Currently it just
+    // overwrites the old.
+    if (!document.getElementById("dim-scatter-plot")) {
+        if (plot_dimension === 2) {
+            build_2d(d, colors, false);
+        }
+        if (plot_dimension === 3) {
+            build_3d(d, colors, false);
+        }
+    } else {
+        if (plot_dimension === 2) {
+            Plotly2D.update('dim-scatter-plot', create_scatter_3d_data(d, colors)[0]);
+        }
+        if (plot_dimension === 3) {
+            build_3d(d, colors, false);
+
+            //let data = create_scatter_3d_data(d, colors);
+            //data['marker.color'] ='red';
+            //console.log(data)
+            //console.log(data[0]);
+            //Plotly3D.update('dim-scatter-plot', data[0]);
+        }
+    }
+}
+
+/*
+ * Creates both community detection lambda and NLDR plots.
+ */
+const draw_graph = function (cd_data, nldr_data) {
+
+    // Create traces for plotting label_community, num_communities, and modularity
+    // against lambda.
     const line_width = 2;
     let trace1 = {
-        x: data["lambda"],
-        y: data["label_community"],
+        x: cd_data["lambda"],
+        y: cd_data["label_community"],
         type: "lines+markers",
         name: "Labels for Communities",
         line: { width: line_width, color: "red" },
         hovertemplate: "<b>Community Labels: </b>%{y}<extra></extra>"
     }
     let trace2 = {
-        x: data["lambda"],
-        y: data["num_communities"],
+        x: cd_data["lambda"],
+        y: cd_data["num_communities"],
         type: "lines+markers",
         name: "Number of Communities",
         yaxis: "y3",
@@ -27,17 +115,57 @@ const draw_graph = function (data) {
         hovertemplate: "<b>Num. Communities: </b>%{y}<extra></extra>"
     }
     let trace3 = {
-        x: data["lambda"],
-        y: data["modularity"],
+        x: cd_data["lambda"],
+        y: cd_data["modularity"],
         type: "lines+markers",
         name: "Modularity",
         yaxis: "y2",
         line: { width: line_width, color: "blue" },
         hovertemplate: "<b>Modularity: </b>%{y:.3f}<extra></extra>"
     }
+
     let trace_data = [trace1, trace2, trace3];
+
+    // Object with values for each of the four variables.
+    let data_points = [...Array(cd_data['lambda'].length).keys()].map( function(i) {
+        return {
+            'lambda': cd_data['lambda'][i],
+            'label_community': cd_data['label_community'][i],
+            'num_communities': cd_data['num_communities'][i],
+            'modularity': cd_data['modularity'][i],
+        };
+    });
+
+    // Create an object for each step of the lambda-value slider, with a method
+    // for updating the layout. This is passed to d3.
+    let slider_steps = data_points.map(function(d) {
+        return {
+            label: d['lambda'],
+            execute: true,
+            method: 'relayout',
+            args: [{
+                'shapes' : [{
+                    type: 'rect',
+                    xref: 'x',
+                    yref: 'paper',
+                    x0: d['lambda'] - 0.005,
+                    y0: 0,
+                    x1: d['lambda'] + 0.005,
+                    y1: 1,
+                    fillcolor: 'black',
+                    opacity: 1,
+                    line: {
+                        width: 0
+                    }
+                }]
+            }]
+        };
+    });
+
+    // Create layout for cd lambda plot.
     let layout = {
         title: 'Community Detection',
+        showlegend: false,
         xaxis: {
             title: "Lambda", zeroline: false,
         },
@@ -58,25 +186,76 @@ const draw_graph = function (data) {
             showgrid: false,
             zeroline: false,
         },
+
+        // This slider adjusts lambda and updates the layout as it changes.
+        sliders:
+        [{
+            pad: {t: 30},
+            currentvalue: {
+                xanchor: 'right',
+                prefix: '\u03BB: ',
+                font: {
+                    color: 'black',
+                    size: 10
+                }
+            },
+            steps: slider_steps,
+        }],
     };
-    let config = { responsive: true, displaylogo: false, scrollZoom: true }
-    
-    document.getElementById("plot").append(htmlToElement(`<div id="quality_graph"></div>`));
+
+    let config = { responsive: true, displaylogo: false, scrollZoom: true };
+
+    // Add div for plot.
+    document.getElementById("plot").append(htmlToElement(`<div id="quality_graph";style="float:center;vertical-align:top;"></div>`));
+
+    // Plot NLDR visualization.
+    plot_nldr(cd_data["community_maps"][0]);
+
+    // Plot community detection trace data.
     Plotly.newPlot("quality_graph", trace_data, layout, config);
+
+    // Update NLDR to group trees by colors according to communities corresponding to current
+    // slider lambda value.
+    var cd_plot = document.getElementById('quality_graph')
+    cd_plot.on('plotly_sliderchange', function(sliderValue){
+
+        // WAGNERR: This code may be useful for improving performance.
+        //lambda_index = cd_data['lambda'].find_index(l => l == sliderValue.slider.active);
+        //document.getElementById('dim-scatter-plot').remove();
+
+        // Get lambda value.
+        let lambda_index = sliderValue.slider.active;
+
+        // Replot NLDR data with new communities.
+        plot_nldr(cd_data["community_maps"][lambda_index]);
+    });
 }
 
 
+/*
+ * Parses community detection results from TreeScaper output.
+ */
 const parse_results = function (data) {
     let plot_data = {};
     plot_data["label_community"] = data[1].splice(1).filter(f => f.length > 0).map(v => Number(v.trim()));
     plot_data["lambda"] = data[3].splice(1).filter(f => f.length > 0).map(v => Number(v.trim()));
     plot_data["num_communities"] = data[5].splice(1).map(v => Number(v.trim()));
     plot_data["modularity"] = data[7].splice(1).map(v => Number(v.trim()));
+    //console.log(data.slice(9));
+    plot_data["community_maps"] = [...Array(plot_data["lambda"].length - 1).keys()].map( function(i) {
+        //console.log(i);
+        //console.log(data.slice(9).map(r => r[i + 1]))
+        return data.slice(9).map(r => r[i + 1]);
+    });
+
     return plot_data;
 }
 
 //REFACTOR THIS TO MODULE
-const clean_data = function(data) {
+/*
+ * Parses community detection data, separating by newline & tab
+ */
+const cd_clean_data = function(data) {
     let t_arr = data.split('\n');
     let arr = []
     t_arr.forEach(d => {
@@ -155,14 +334,20 @@ const plateau_stats = function (p_obj) {
     });
 }
 
+/*
+ * Clears grouping information and NLDR plotting from the "Use in Plotting" option.
+ */
 const wire_cd_clear = function() {
     document.getElementById('btn-clear-cd').addEventListener('click', () => {
         removeChildNodes('group-msg');
         grouping_message = undefined;
-        dispatchEvent(event_build_fn('RemoveCDPlotting', {}));
+        dispatchEvent(build_event('RemoveCDPlotting', {}));
     });
 }
 
+/*
+ * Creates HTML to display community detection grouping information
+ */
 const draw_grouping_message = function(msg) {
     let e = document.getElementById('group-msg');
     removeChildNodes('group-msg');
@@ -172,6 +357,9 @@ const draw_grouping_message = function(msg) {
     wire_cd_clear();
 }
 
+/*
+ * Creates HTML to display community detection plataeu information
+ */
 const present_plateaus = function(p_obj) {
     cleanExistingPlot();
     let s = `<div class="tile is-ancestor">
@@ -213,13 +401,16 @@ const present_plateaus = function(p_obj) {
             let node_type = p_obj.node_type;
             let cd_grouping = p_obj.cd_bounds[offset].cd_by_node;
             let evt_title = `CDBy${node_type}`; //CDByTree or CDByBipartition
-            dispatchEvent(event_build_fn(evt_title, {groups: cd_grouping}));
+            dispatchEvent(build_event(evt_title, {groups: cd_grouping}));
             wire_cd_clear();
         });
     });
 
 } 
 
+/*
+ * Top-level function to plot plataeu data, lambda data, and NDLR points.
+ */
 const plot_community_detection = function() {
     //Step 1: Prepare plateau data for presentaiton
     //  - Stats of grouping: Number of groups, avg nodes per group, SD nodes per group.
@@ -228,13 +419,16 @@ const plot_community_detection = function() {
     present_plateaus(parsed_data);
     
     //Step 2: Prepare the lambda/modularity data
-    let lambda_data = parse_results(clean_data(cd_results_file.data));
+    let lambda_data = parse_results(cd_clean_data(cd_results_file.data));
     draw_graph(lambda_data);
 }
 
+
+/*
+ * Initializes events for community detection plotting.
+ */
 const community_detection_init = function (init_obj) {
-    let { guid_fn, event_fn } = init_obj;
-    event_build_fn = event_fn;
+    let { guid_fn } = init_obj;
     const my_guid = guid_fn();
 
     addEventListener("FileContents", e => {
@@ -245,10 +439,13 @@ const community_detection_init = function (init_obj) {
                     plateau_file = entry;
                 }
                 if (RegExp(/CD with NLDR Coordinates/i).test(entry.fileName)) {
-                    coordinate_file = entry;
+                    cd_with_coordinates_file = entry;
                 }
                 if (RegExp(/CD Results/i).test(entry.fileName)) {
                     cd_results_file = entry;
+                }
+                if (RegExp(/NLDR Coordinates/i).test(entry.fileName)) {
+                    nldr_coordinate_file = entry;
                 }
             });
             plot_community_detection();
@@ -261,16 +458,18 @@ const community_detection_init = function (init_obj) {
         } else {    
             let plateau_file_obj = e.detail.files.filter(obj => RegExp(/CD Plateaus/i).test(obj.name));
             let cd_results_file_obj = e.detail.files.filter(obj => RegExp(/CD Results/i).test(obj.name));
+            let nldr_coordinate_file_obj = e.detail.files.filter(obj => RegExp(/NLDR Coordinates/i).test(obj.name));
             
-            dispatchEvent(event_build_fn("FileContentsRequest", {
+            dispatchEvent(build_event("FileContentsRequest", {
                 guid: my_guid,
-                files: [plateau_file_obj[0].id, cd_results_file_obj[0].id]
+                files: [plateau_file_obj[0].id, cd_results_file_obj[0].id, nldr_coordinate_file_obj[0].id]
             }));
         }
     });
 
     addEventListener("CDPlotRequest", e => {
-        dispatchEvent(event_build_fn("CDFilesRequest", {guid: my_guid}));
+        console.log("CDPlot EVENT");
+        dispatchEvent(build_event("CDFilesRequest", {guid: my_guid}));
     });
 }
 

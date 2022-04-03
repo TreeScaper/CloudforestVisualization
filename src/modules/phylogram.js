@@ -8,13 +8,13 @@ import { create, select } from "d3-selection";
 import { ascending } from "d3-array";
 import { scaleLinear, eas } from "d3-scale";
 import { htmlToElement } from "./html_templates";
+import { build_event } from "./support_funcs";
 
 const d3 = Object.assign(
     {},
     { hierarchy, cluster, create, select, ascending, scaleLinear }
 );
 
-let event_build_fn = undefined;
 let width = undefined;
 let height = undefined;
 let plot_div = undefined;
@@ -176,9 +176,7 @@ const create_tree = function (data) {
     });
 }
 
-const tree_plot_init = function (init_obj) {
-    const { event_fn } = init_obj;
-    event_build_fn = event_fn;
+const tree_plot_init = function () {
 
     addEventListener("BipartitionsForTree", e => {
 

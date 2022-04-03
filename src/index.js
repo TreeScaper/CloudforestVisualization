@@ -8,6 +8,7 @@ import { community_detection_init } from "./modules/community_detection_plotting
 import { pyhlogram_data_init } from "./modules/phylogram_data";
 import { tree_plot_init } from "./modules/phylogram";
 import { bipartition_data_init } from "./modules/bipartition_data";
+import { affinity_plot_chord_init } from "./modules/affinity_plotting_chord";
 
 import { page_mgr_init } from "./modules/page_manager";
 
@@ -27,36 +28,30 @@ const build_event = function (name, details) {
 
 const init_modules = function () {
     page_mgr_init({
-        guid_fn: get_guid,
-        event_fn: build_event
+        guid_fn: get_guid
     });
 
     nldr_plot_init({
-        guid_fn: get_guid,
-        event_fn: build_event
+        guid_fn: get_guid
     });
     covariance_plot_init({
-        guid_fn: get_guid,
-        event_fn: build_event
+        guid_fn: get_guid
     });
     hierarchy_plot_init({
-        guid_fn: get_guid,
-        event_fn: build_event
+        guid_fn: get_guid
     });
     community_detection_init({
-        guid_fn: get_guid,
-        event_fn: build_event
+        guid_fn: get_guid
     });
-    tree_plot_init({
-        event_fn: build_event
-    });
+    tree_plot_init();
     pyhlogram_data_init({
-        guid_fn: get_guid,
-        event_fn: build_event
+        guid_fn: get_guid
     });
     bipartition_data_init({
-        guid_fn: get_guid,
-        event_fn: build_event
+        guid_fn: get_guid
+    });
+    affinity_plot_chord_init({
+        guid_fn: get_guid
     });
 }
 
@@ -65,7 +60,6 @@ const run_app = function () {
 
     addEventListener("DataPrimed", () => { init_modules(); });
     data_manager_init({
-        event_fn: build_event,
         conf_elem_id: "galaxy-config"
     });
 }

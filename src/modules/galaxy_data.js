@@ -22,13 +22,15 @@
  *      }
  * 
  */
-let event_build_fn = undefined;
+import { build_event } from "./support_funcs";
+
 let file_objects = undefined; //Holds array of file objects from history
 let href = undefined;
 let history_id = undefined;
 let bipartition_files = undefined;
 let nldr_coordinate_files = undefined;
 let community_detection_files = undefined;
+let affinity_matrix_files = undefined;
 
 const admin_key = "?key=admin";
 const USE_KEY = false;
@@ -98,7 +100,7 @@ const send_file_contents = async (obj, event = "FileContents") => {
     for (const f of funcs) {
         file_contents.push(await f());
     }
-    dispatchEvent(event_build_fn(event, {
+    dispatchEvent(build_event(event, {
         guid: obj.guid,
         contents: file_contents
     }));
@@ -156,10 +158,11 @@ const process_history_contents = function (data) {
 
     bipartition_files = file_objects.filter(obj => RegExp(/[Bb]ipartition|Taxa IDs/).test(obj.name)); //Includes matrix and log
     nldr_coordinate_files = file_objects.filter(obj => RegExp(/cloudforest\.coordinates/).test(obj.extension));
-    community_detection_files = file_objects.filter(obj => RegExp(/cloudforest\.cd/).test(obj.extension));
+    community_detection_files = file_objects.filter(obj => RegExp(/cloudforest\.cd/).test(obj.extension) || RegExp(/cloudforest\.coordinates/).test(obj.extension));
+    affinity_matrix_files = file_objects.filter(obj => RegExp(/cloudforest\.cd/).test(obj.extension) || RegExp(/cloudforest\.affinity/).test(obj.extension));
 
-    dispatchEvent(event_build_fn("BipartitionFiles", { files: bipartition_files }));
-    dispatchEvent(event_build_fn("DataPrimed", {}));
+    dispatchEvent(build_event("BipartitionFiles", { files: bipartition_files }));
+    dispatchEvent(build_event("DataPrimed", {}));
 };
 
 const parse_galaxy_history = function (href, history_id) {
@@ -232,7 +235,7 @@ const set_event_listeners = function () {
 
     addEventListener("AvailableFilesRequest", e => {
         const request_guid = e.detail.guid;
-        dispatchEvent(event_build_fn("AvailableFiles", {
+        dispatchEvent(build_event("AvailableFiles", {
             guid: request_guid,
             files: file_identifiers()
         }));
@@ -277,22 +280,25 @@ const set_event_listeners = function () {
     });
 
     addEventListener("RequestBipartitionFile", () => {
-        dispatchEvent(event_build_fn("BipartitionFiles", { files: bipartition_files }));
+        dispatchEvent(build_event("BipartitionFiles", { files: bipartition_files }));
     });
 
     addEventListener("NDLRCoordinateFilesRequest", e => {
-        dispatchEvent(event_build_fn("NLDRCoordinateFiles", { files: nldr_coordinate_files }));
+        dispatchEvent(build_event("NLDRCoordinateFiles", { files: nldr_coordinate_files }));
     });
 
     addEventListener("CDFilesRequest", e => {
-        dispatchEvent(event_build_fn("CDFiles", { files: community_detection_files }));
+        dispatchEvent(build_event("CDFiles", { files: community_detection_files }));
+    });
+
+    addEventListener("AffinityFilesRequest", e => {
+        dispatchEvent(build_event("AffinityFiles", { files: affinity_matrix_files }));
     });
 
 }
 
 const galaxy_data_init = function (init_obj) {
-    let { event_fn, conf_elem_id } = init_obj;
-    event_build_fn = event_fn;
+    let { conf_elem_id } = init_obj;
     
     set_event_listeners();
 

@@ -1,7 +1,8 @@
 /**
  * Manage TreeScaper bipartition parsing and data requests.
  */
-let event_build_fn = undefined;
+import { build_event } from "./support_funcs";
+
 let bipartition_files = { matrix: undefined, counts: undefined, taxa: undefined };
 let trees_by_partition = undefined;
 let partition_taxa = undefined;
@@ -58,7 +59,7 @@ const bipartions_for_tree = function (tree_num) {
             taxa[key] = part_taxa[key];
         }
     });
-    dispatchEvent(event_build_fn("BipartitionsForTree", {
+    dispatchEvent(build_event("BipartitionsForTree", {
         partitions: bipartitions,
         taxa: taxa
     }));
@@ -77,8 +78,7 @@ const clean_data = function(data) {
 }
 
 const bipartition_data_init = function (init_obj) {
-    let { guid_fn, event_fn } = init_obj;
-    event_build_fn = event_fn;
+    let { guid_fn } = init_obj;
     const my_guid = guid_fn();
 
     addEventListener("BipartitionsForTreeRequst", e => {
@@ -120,7 +120,7 @@ const bipartition_data_init = function (init_obj) {
             bipartition_files.matrix = m[0];
             bipartition_files.counts = l[0];
             bipartition_files.taxa = t[0];
-            dispatchEvent(event_build_fn("FileContentsRequest", {
+            dispatchEvent(build_event("FileContentsRequest", {
                 guid: my_guid,
                 files: [bipartition_files.matrix.dataset_id, bipartition_files.counts.dataset_id, bipartition_files.taxa.dataset_id]
             }));
@@ -129,7 +129,7 @@ const bipartition_data_init = function (init_obj) {
         }
     });
 
-    dispatchEvent(event_build_fn("RequestBipartitionFile", {}));
+    dispatchEvent(build_event("RequestBipartitionFile", {}));
 }
 
 export { bipartition_data_init }
