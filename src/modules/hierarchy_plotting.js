@@ -2,8 +2,6 @@ import { removeChildNodes, cleanExistingPlot, htmlToElement } from "./html_templ
 import { newick_parse as parseNewick } from "./tree_data_parsing"
 import { build_event } from "./support_funcs";
 
-const FILE_NAME_REGEXP = /trees$/;
-
 const animate = function (data) {
 
     let tree_num = 0;
@@ -67,10 +65,7 @@ const hierarchy_plot_init = function (init_obj) {
     });
 
     addEventListener("TreePlotRequest", e => {
-        console.log("Hierarchy plot TreePlotRequest");
-        if (FILE_NAME_REGEXP.test(e.detail.file_name)) {
-            dispatchEvent(build_event("TreeFileContentsRequest", { guid: my_guid, files: [e.detail.file_id] }));
-        }
+        dispatchEvent(build_event("TreeFileContentsRequest", { guid: my_guid, files: [e.detail.file_id] }));
     });
 
 }

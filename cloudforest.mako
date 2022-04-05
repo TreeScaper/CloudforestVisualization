@@ -46,6 +46,8 @@
                                 </div>
                             </div>
                         </div>
+                    </div>
+                    <div class="tile is-child box">
                         <h5>Files</h5>
                         <div class="tile is-vertical is-parent">
                             <div class="control">

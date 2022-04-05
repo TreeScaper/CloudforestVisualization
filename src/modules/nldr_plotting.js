@@ -10,7 +10,8 @@ import {
 import {
     nldr_clean_data,
     assign_colors,
-    plot_dimensions
+    plot_dimensions,
+    color_list
 } from './nldr_plotting_core.js';
 import { build_event } from "./support_funcs";
 

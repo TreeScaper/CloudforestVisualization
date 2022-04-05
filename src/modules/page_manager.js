@@ -20,12 +20,6 @@ let select_objs = {
         regex: [RegExp(/CD Plateaus/i), RegExp(/CD with NLDR coordinates/i), RegExp(/CD Results/i)],
         files: [],
         event: "CDPlotRequest"
-    },
-    "affinity-select": {
-        name: "Affinity Matrix",
-        regex: [RegExp(/Affinity Matrix/i)],
-        files: [],
-        event: "AffinityPlotRequest"
     }
 };
 
@@ -47,6 +41,10 @@ const populate_visualizations = function () {
         let viz_interface = document.getElementById('file-select-menu');
         if (e.target.selectedIndex > 0) {
             let viz_key = e.target.children[e.target.selectedIndex].getAttribute('viz_key');
+            if (viz_key === "covariance-select" || viz_key === "cd-select") {
+                dispatchEvent(build_event(select_objs[viz_key].event, {}));
+                return;
+            }
 
             let file_select_el = document.getElementById("file-select");
             if (document.contains(file_select_el)) {
@@ -114,7 +112,6 @@ const process_available_files = function (files) {
     Object.keys(select_objs).forEach(k => {
         select_objs[k].regex.forEach(rx => {
             files.forEach(f => {
-                console.log(rx, f);
                 if (rx.test(f.name)) {
                     select_objs[k].files.push(f);
                 }

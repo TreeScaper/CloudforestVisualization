@@ -78,7 +78,7 @@ const rows_to_dimensions = function (row_data) {
  */
 const parallel_coordinates = function (file_contents) {
     if (!document.getElementById("dim-scatter-plot")) {
-        document.getElementById("plot").append(htmlToElement(`<div id="dim-scatter-plot" style="float:center;vertical-align:top;"/>`));
+        document.getElementById("inline-plot").append(htmlToElement(`<div id="dim-scatter-plot" style="float:center;vertical-align:top;display:inline-block;"/>`));
     }
     let dims = [];
     let dim_data = rows_to_dimensions(file_contents);
@@ -158,7 +158,10 @@ const scatter_2d = function (file_contents, in_color) {
     let data = create_scatter_2d_data(file_contents, in_color);
 
     const layout = {
-        height: 800,
+        height: 600,
+        margin: {
+            l: 10
+        },
         xaxis: {
             zeroline: false,
             scaleratio: 1
@@ -264,6 +267,10 @@ const scatter_3d = function (file_contents, in_color) {
     const layout = {
         autosize: true,
         height: 600,
+        // margin seems to be undocumented, but works.
+        margin: {
+            l: 10
+        },
         scene: {
             aspectmode: "data",
             xaxis: {
@@ -576,7 +583,11 @@ const build_3d = function (contents, in_colors=["blue"], build_menu=true) {
         build_subtree_menu(3);
     }
     if (!document.getElementById("dim-scatter-plot")) {
-        document.getElementById("plot").append(htmlToElement(`<div id="dim-scatter-plot" style="float:center;vertical-align:top;"/>`));
+        let plot_div = "plot";
+        if (document.getElementById("inline-plot")) {
+            plot_div = "inline-plot";
+        }
+        document.getElementById(plot_div).append(htmlToElement(`<div id="dim-scatter-plot" style="float:center;vertical-align:top;"/>`));
     }
     scatter_3d(contents, in_colors);
 }
@@ -589,7 +600,11 @@ const build_2d = function (contents, in_colors=["blue"], build_menu=true) {
         build_subtree_menu(2);
     }
     if (!document.getElementById("dim-scatter-plot")) {
-        document.getElementById("plot").append(htmlToElement(`<div id="dim-scatter-plot" style="float:center;vertical-align:top;"/>`));
+        let plot_div = "plot";
+        if (document.getElementById("inline-plot")) {
+            plot_div = "inline-plot";
+        }
+        document.getElementById(plot_div).append(htmlToElement(`<div id="dim-scatter-plot" style="float:center;vertical-align:top;"/>`));
     }
     scatter_2d(contents, in_colors);
 }

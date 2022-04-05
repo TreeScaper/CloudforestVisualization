@@ -75,10 +75,18 @@ const plot_nldr = function (cd_groups) {
         }
     } else {
         if (plot_dimension === 2) {
-            Plotly2D.update('dim-scatter-plot', create_scatter_3d_data(d, colors)[0]);
+            let new_marker = create_scatter_2d_data(d, colors)[0]['marker'];
+            let update = {
+                marker: new_marker
+            };
+            Plotly2D.restyle('dim-scatter-plot', update);
         }
         if (plot_dimension === 3) {
-            build_3d(d, colors, false);
+            let new_marker = create_scatter_3d_data(d, colors)[0]['marker'];
+            let update = {
+                marker: new_marker
+            };
+            Plotly3D.restyle('dim-scatter-plot', update);
 
             //let data = create_scatter_3d_data(d, colors);
             //data['marker.color'] ='red';
@@ -166,6 +174,9 @@ const draw_graph = function (cd_data, nldr_data) {
     let layout = {
         title: 'Community Detection',
         showlegend: false,
+        margin: {
+            r: 10
+        },
         xaxis: {
             title: "Lambda", zeroline: false,
         },
@@ -206,7 +217,7 @@ const draw_graph = function (cd_data, nldr_data) {
     let config = { responsive: true, displaylogo: false, scrollZoom: true };
 
     // Add div for plot.
-    document.getElementById("plot").append(htmlToElement(`<div id="quality_graph";style="float:center;vertical-align:top;"></div>`));
+    document.getElementById("inline-plot").append(htmlToElement(`<div id="quality_graph";style="float:left;vertical-align:top;display:inline-block;"></div>`));
 
     // Plot NLDR visualization.
     plot_nldr(cd_data["community_maps"][0]);
@@ -417,6 +428,10 @@ const plot_community_detection = function() {
     let parsed_data = parse_plateau_data(plateau_file);
     plateau_stats(parsed_data);
     present_plateaus(parsed_data);
+
+    if (!document.getElementById("inline-plot")) {
+        document.getElementById("plot").append(htmlToElement('<div id="inline-plot" style="display: flex; width: 100%; margin: 0 auto, font-size:0;"/>'));
+    }
     
     //Step 2: Prepare the lambda/modularity data
     let lambda_data = parse_results(cd_clean_data(cd_results_file.data));
@@ -462,7 +477,8 @@ const community_detection_init = function (init_obj) {
             
             dispatchEvent(build_event("FileContentsRequest", {
                 guid: my_guid,
-                files: [plateau_file_obj[0].id, cd_results_file_obj[0].id, nldr_coordinate_file_obj[0].id]
+                // Grab the latest of each filetype
+                files: [plateau_file_obj.pop().dataset_id, cd_results_file_obj.pop().dataset_id, nldr_coordinate_file_obj.pop().dataset_id]
             }));
         }
     });
