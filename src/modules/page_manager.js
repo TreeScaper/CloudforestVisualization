@@ -11,7 +11,7 @@ let select_objs = {
     },
     "tree-select": {
         name: "Tree Diagram",
-        regex: [RegExp(/cloudforest\.trees/), RegExp(/^Consensus Tree/), RegExp(/^Covariance Matrix/), RegExp(/Affinity Matrix/i)],
+        regex: [RegExp(/cloudforest\.trees/), RegExp(/^Consensus Tree/)],
         files: [],
         event: "TreePlotRequest"
     },
