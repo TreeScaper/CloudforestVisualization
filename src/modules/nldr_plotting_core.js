@@ -532,56 +532,10 @@ const clean_it = function() {
     }
 }
 
-/**
- * Create user controls for sub-tree loading and marking.
- *  - User can load a file with tree indexes marking subtrees
- *  - User can type the contents of the above file
- *  - User can request a consistent offset: every n trees generates a new group
- *  - Users can determine color overriding defaults.
- */
-const build_subtree_menu = function(dimension) {
-    let div_slug = `
-    <div class="tile is-parent">
-        <div class="tile is-child box">
-            <div class="select">
-                <select id="subtree-select">
-                    <option value="clear-controls">Subset Plot</option>
-                    <option value="every-nth">Every Nth Trees</option>
-                    <option value="enter-indexes">Enter Tree Indexes</option>
-                    <option value="load-index-file">Load Index File</option>
-                </select>
-            <div>
-        </div>
-    </div>
-    `;
-
-    document.getElementById("subset-plots-div").append(htmlToElement(div_slug));
-    document.getElementById("subtree-select").addEventListener('change', e=>{
-        if (e.target.value === "clear-controls") {
-            clean_it();
-        }
-        if (e.target.value === "every-nth") {
-            clean_it();
-            subtree_every_nth(dimension, coordinate_data);
-        }
-        if (e.target.value === "enter-indexes") {
-            clean_it();
-            subtree_by_index(dimension, coordinate_data);
-        }
-        if (e.target.value === "load-index-file") {
-            clean_it();
-            subtree_by_file(dimension, coordinate_data);
-        }
-    });
-}
-
 /*
  * Builds 3D plotting menu, creates plot element, and scatter plots data.
  */
 const build_3d = function (contents, in_colors=["blue"], build_menu=true) {
-    if (build_menu) {
-        build_subtree_menu(3);
-    }
     if (!document.getElementById("dim-scatter-plot")) {
         let plot_div = "plot";
         if (document.getElementById("inline-plot")) {
@@ -596,9 +550,6 @@ const build_3d = function (contents, in_colors=["blue"], build_menu=true) {
  * Builds 2D plotting menu, creates plot element, and scatter plots data.
  */
 const build_2d = function (contents, in_colors=["blue"], build_menu=true) {
-    if (build_menu) {
-        build_subtree_menu(2);
-    }
     if (!document.getElementById("dim-scatter-plot")) {
         let plot_div = "plot";
         if (document.getElementById("inline-plot")) {
@@ -630,10 +581,13 @@ export {
     assign_colors,
     color_list,
     subtree_by_index,
+    subtree_by_file,
+    subtree_every_nth,
     build_2d,
     build_3d,
     parse_subset_string,
     create_scatter_3d_data,
-    create_scatter_2d_data
+    create_scatter_2d_data,
+    clean_it
 };
 

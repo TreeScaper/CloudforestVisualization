@@ -11,13 +11,60 @@ import {
     nldr_clean_data,
     assign_colors,
     plot_dimensions,
-    color_list
+    color_list,
+    clean_it,
+    subtree_by_index,
+    subtree_by_file,
+    subtree_every_nth
 } from './nldr_plotting_core.js';
 import { build_event } from "./support_funcs";
 
 let coordinate_data = undefined;
 let subtree_by_index_string = undefined;
 
+
+/**
+ * Create user controls for sub-tree loading and marking.
+ *  - User can load a file with tree indexes marking subtrees
+ *  - User can type the contents of the above file
+ *  - User can request a consistent offset: every n trees generates a new group
+ *  - Users can determine color overriding defaults.
+ */
+const build_subtree_menu = function(dimension) {
+    let div_slug = `
+    <div class="tile is-parent">
+        <div class="tile is-child box">
+            <div class="select">
+                <select id="subtree-select">
+                    <option value="clear-controls">Subset Plot</option>
+                    <option value="every-nth">Every Nth Trees</option>
+                    <option value="enter-indexes">Enter Tree Indexes</option>
+                    <option value="load-index-file">Load Index File</option>
+                </select>
+            <div>
+        </div>
+    </div>
+    `;
+
+    document.getElementById("subset-plots-div").append(htmlToElement(div_slug));
+    document.getElementById("subtree-select").addEventListener('change', e=>{
+        if (e.target.value === "clear-controls") {
+            clean_it();
+        }
+        if (e.target.value === "every-nth") {
+            clean_it();
+            subtree_every_nth(dimension, coordinate_data);
+        }
+        if (e.target.value === "enter-indexes") {
+            clean_it();
+            subtree_by_index(dimension, coordinate_data);
+        }
+        if (e.target.value === "load-index-file") {
+            clean_it();
+            subtree_by_file(dimension, coordinate_data);
+        }
+    });
+}
 
 const nldr_plot_init = function (init_obj) {
     let { guid_fn } = init_obj;
@@ -55,6 +102,7 @@ const nldr_plot_init = function (init_obj) {
             coordinate_data = nldr_clean_data(e.detail.contents);
             let plot_dimension = coordinate_data[Object.keys(coordinate_data)[0]][0].length;
             cleanExistingPlot();
+            build_subtree_menu(plot_dimension);
             plot_dimensions(plot_dimension, coordinate_data[Object.keys(coordinate_data)[0]]);
         }
     });
