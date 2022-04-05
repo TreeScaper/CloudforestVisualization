@@ -425,9 +425,11 @@ const present_plateaus = function(p_obj) {
 const plot_community_detection = function() {
     //Step 1: Prepare plateau data for presentaiton
     //  - Stats of grouping: Number of groups, avg nodes per group, SD nodes per group.
-    let parsed_data = parse_plateau_data(plateau_file);
-    plateau_stats(parsed_data);
-    present_plateaus(parsed_data);
+    if (plateau_file.data !== "") {
+        let parsed_data = parse_plateau_data(plateau_file);
+        plateau_stats(parsed_data);
+        present_plateaus(parsed_data);
+    }
 
     if (!document.getElementById("inline-plot")) {
         document.getElementById("plot").append(htmlToElement('<div id="inline-plot" style="display: flex; width: 100%; margin: 0 auto, font-size:0;"/>'));
