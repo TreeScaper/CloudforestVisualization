@@ -144,9 +144,15 @@ const draw_graph = function (cd_data, nldr_data) {
         };
     });
 
+    let lambda_max = Math.max(...cd_data['lambda']);
+    let lambda_min = Math.min(...cd_data['lambda']);
+    let lambda_range = lambda_max - lambda_min;
+    let lambda_line_width = lambda_range / 200;
+
     // Create an object for each step of the lambda-value slider, with a method
     // for updating the layout. This is passed to d3.
     let slider_steps = data_points.map(function(d) {
+
         return {
             label: d['lambda'],
             execute: true,
@@ -156,9 +162,9 @@ const draw_graph = function (cd_data, nldr_data) {
                     type: 'rect',
                     xref: 'x',
                     yref: 'paper',
-                    x0: d['lambda'] - 0.005,
+                    x0: d['lambda'] - lambda_line_width/2,
                     y0: 0,
-                    x1: d['lambda'] + 0.005,
+                    x1: d['lambda'] + lambda_line_width/2,
                     y1: 1,
                     fillcolor: 'black',
                     opacity: 1,
