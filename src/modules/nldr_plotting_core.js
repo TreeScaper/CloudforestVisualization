@@ -78,7 +78,7 @@ const rows_to_dimensions = function (row_data) {
  */
 const parallel_coordinates = function (file_contents) {
     if (!document.getElementById("dim-scatter-plot")) {
-        document.getElementById("inline-plot").append(htmlToElement(`<div id="dim-scatter-plot" style="float:center;vertical-align:top;display:inline-block;"/>`));
+        document.getElementById("plot").append(htmlToElement(`<div id="dim-scatter-plot" style="float:center;vertical-align:top;display:inline-block;"/>`));
     }
     let dims = [];
     let dim_data = rows_to_dimensions(file_contents);

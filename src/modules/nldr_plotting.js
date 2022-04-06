@@ -57,7 +57,7 @@ const build_subtree_menu = function(dimension) {
         }
         if (e.target.value === "enter-indexes") {
             clean_it();
-            subtree_by_index(dimension, coordinate_data);
+            subtree_by_index(dimension, subtree_by_index_string, coordinate_data);
         }
         if (e.target.value === "load-index-file") {
             clean_it();
