@@ -1,6 +1,8 @@
 const path = require('path');
-const HtmlWebpackPlugin = require("html-webpack-plugin");
+const webpack = require("webpack");
 const { CleanWebpackPlugin } = require("clean-webpack-plugin");
+
+var package_json  = require('./package.json');
 
 module.exports = {
     mode: "development",
@@ -10,13 +12,13 @@ module.exports = {
     },
     entry: "./src/index.js",
     plugins: [
-        new HtmlWebpackPlugin({
-            template: 'assets/index.html'
-        }),
         new CleanWebpackPlugin(),
+        new webpack.DefinePlugin({
+            __VERSION__: JSON.stringify(package_json.version)
+        })
     ],
     output: {
-        filename: "bundle.js",
+        filename: "bundle-" + package_json.version + ".js",
         path: path.resolve(__dirname, "dist"),
     },
     module: {

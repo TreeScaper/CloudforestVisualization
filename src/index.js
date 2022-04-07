@@ -27,6 +27,10 @@ const build_event = function (name, details) {
 }
 
 const init_modules = function () {
+
+    let navbar_version_banner = document.getElementById("navbar-version-banner");
+    navbar_version_banner.append("Visualization tools version: " + __VERSION__);
+
     page_mgr_init({
         guid_fn: get_guid
     });

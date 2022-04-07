@@ -26,6 +26,8 @@
                     </div>
                 </div>
             </nav>
+            <div class="navbar" id="navbar-version-banner">
+            </div>
         </div>
     </div>
 
@@ -83,7 +85,7 @@
     </div>
     
     <div id="galaxy-config" href="${h.url_for('', qualified=True)}" history-id="${trans.security.encode_id( hda.history_id )}"></div>
-    <script src="/static/plugins/visualizations/cloudforest/static/bundle.js"></script>
+    <script src="/static/plugins/visualizations/cloudforest/static/bundle-@VISUALIZATION_VERSION_REPLACE@.js"></script>
 </body>
 
 
