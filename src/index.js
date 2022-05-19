@@ -51,9 +51,9 @@ const init_modules = function () {
     pyhlogram_data_init({
         guid_fn: get_guid
     });
-    bipartition_data_init({
-        guid_fn: get_guid
-    });
+//    bipartition_data_init({
+//        guid_fn: get_guid
+//    });
     affinity_plot_chord_init({
         guid_fn: get_guid
     });

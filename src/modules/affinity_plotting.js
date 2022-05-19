@@ -300,9 +300,9 @@ const affinity_plot_init = function (init_obj) {
     });
 
     addEventListener("TreePlotRequest", e => {
-        if (FILE_NAME_REGEXP.test(e.detail.file_name)) {
+//        if (FILE_NAME_REGEXP.test(e.detail.file_name)) {
             dispatchEvent(build_event("FileContentsRequest", { guid: my_guid, files: [e.detail.file_id] }));
-        }
+ //       }
     });
 
 }

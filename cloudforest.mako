@@ -68,8 +68,8 @@
             
             <div class="tile is-ancestor">
                 <div class="tile is-vertical is-parent">
-                    <div id="plot-metadata" class="tile"></div>
-                    <div id="plot-controls" class="tile"></div>
+                    <div id="plot-metadata"></div>
+                    <div id="plot-controls"></div>
                 </div>
             </div>
            

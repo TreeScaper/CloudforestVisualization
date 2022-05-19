@@ -1,6 +1,6 @@
 /**
  * Creates a traditional phylogenetic tree respecting supplied distances
- * 
+ *
  * Generates and returns an svg element based on event request.
  */
 import { hierarchy, cluster, tree } from "d3-hierarchy";
@@ -15,8 +15,6 @@ const d3 = Object.assign(
     { hierarchy, cluster, create, select, ascending, scaleLinear }
 );
 
-let width = undefined;
-let height = undefined;
 let plot_div = undefined;
 let tree_number = undefined;
 
@@ -45,7 +43,7 @@ const root_distance = function (root) {
  *  Maximally spread out the nodes
  * @param {} root - d3 root node 
  */
-const y_node_spacing = function (root) {
+const y_node_spacing = function (root, height, width) {
     //Modifies nodes with addition of unscaled_y value
     const dy = height / root.leaves().length + 1;
     let cur_y = dy;
@@ -104,12 +102,7 @@ const set_parent_y = function (root) {
     root.x = 0;
 }
 
-/**
- * Create an canvas element consisting of a phylogenetic tree.
- * 
- * @param {*} data - tree data
- */
-const create_tree = function (data) {
+const get_root = function (data, height, width) {
     let root = d3.hierarchy(data, d => d.branchset)
         .sort((a, b) => d3.ascending(b.data.length, a.data.length))
     root_distance(root);
@@ -118,15 +111,24 @@ const create_tree = function (data) {
 
     let scale_x = d3.scaleLinear()
         .domain([0, max_distance])
-        .range([10, width - (.10 * width)]);
-    let scale_y = y_node_spacing(root);
+        .range([10, width - (.2 * width)]);
+    let scale_y = y_node_spacing(root, height, width);
 
     root.leaves().forEach(n => {
         n.x = n.root_distance;
     });
 
     set_parent_y(root);
+    return [scale_x, scale_y, root];
+}
 
+/**
+ * Create an canvas element consisting of a phylogenetic tree.
+ *
+ * @param {*} data - tree data
+ */
+const create_tree = function (data, height, width) {
+    let [scale_x, scale_y, root] = get_root(data, height, width);
     let canvas = document.createElement('canvas');
     canvas.setAttribute("width", width);
     canvas.setAttribute("height", height);
@@ -185,12 +187,15 @@ const tree_plot_init = function () {
     addEventListener("PlotForTree", e => {
         let tree_data = e.detail.tree;
         tree_number = e.detail.tree_num;
-        width = e.detail.width;
-        height = e.detail.height;
-        plot_div = e.detail.plot_div
+        plot_div = e.detail.plot_div;
 
-        create_tree(tree_data)
+        create_tree(tree_data, e.detail.height, e.detail.width);
     });
 }
 
-export { tree_plot_init }
+export {
+    root_distance,
+    y_node_spacing,
+    set_parent_y,
+    get_root,
+    tree_plot_init }

@@ -479,9 +479,23 @@ const community_detection_init = function (init_obj) {
         if (plateau_file) {
             plot_community_detection();
         } else {    
-            let plateau_file_obj = e.detail.files.filter(obj => RegExp(/CD Plateaus/i).test(obj.name));
-            let cd_results_file_obj = e.detail.files.filter(obj => RegExp(/CD Results/i).test(obj.name));
-            let nldr_coordinate_file_obj = e.detail.files.filter(obj => RegExp(/NLDR Coordinates/i).test(obj.name));
+            // Find which history item plateau file points to.
+            let plateau_file_obj = e.detail.files.filter(obj => obj.name == e.detail.selected_file);
+            let plateau_history_item_string = plateau_file_obj[0].name.match(/data [0-9]+$/)[0];
+            let plateau_target_history_number = parseInt(plateau_history_item_string.match(/[0-9]+/));
+
+            // Find which history item the result of the above block points to.
+            let plateau_target_file_obj = e.detail.files.filter(obj => obj.hid == plateau_target_history_number);
+            let plateau_target_history_item_string = plateau_target_file_obj[0].name.match(/data [0-9]+$/)[0];
+            let nldr_target_history_number = parseInt(plateau_target_history_item_string.match(/[0-9]+/));
+
+            // Find NLDR results pointing to the same history item as the above.
+            let nldr_regex = new RegExp(`NLDR Coordinates.*${nldr_target_history_number}$`);
+            let nldr_coordinate_file_obj = e.detail.files.filter(obj => nldr_regex.test(obj.name));
+
+            // Find CD Results pointing to same history item as Plateau file.
+            let cd_results_regex = new RegExp(`CD Results.*${plateau_target_history_number}$`);
+            let cd_results_file_obj = e.detail.files.filter(obj => cd_results_regex.test(obj.name));
             
             dispatchEvent(build_event("FileContentsRequest", {
                 guid: my_guid,
@@ -492,8 +506,7 @@ const community_detection_init = function (init_obj) {
     });
 
     addEventListener("CDPlotRequest", e => {
-        console.log("CDPlot EVENT");
-        dispatchEvent(build_event("CDFilesRequest", {guid: my_guid}));
+        dispatchEvent(build_event("CDFilesRequest", {guid: my_guid, selected_file: e.detail.file_name}));
     });
 }
 

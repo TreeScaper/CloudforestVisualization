@@ -85,6 +85,7 @@ const fetch_decode = (f_obj) => {
         let contents = await response.text();
         let formatted_contents = string_parser(contents);
         formatted_contents.fileName = f_obj.name;
+        formatted_contents.fileExt = f_obj.extension;
         return formatted_contents;
     }
 }
@@ -156,12 +157,14 @@ const process_history_contents = function (data) {
     let f_data = filter_data(data);
     file_objects = f_data;
 
-    bipartition_files = file_objects.filter(obj => RegExp(/[Bb]ipartition|Taxa IDs/).test(obj.name)); //Includes matrix and log
+    // Get all files to allow module to find correct items.
+    bipartition_files = file_objects;
     nldr_coordinate_files = file_objects.filter(obj => RegExp(/cloudforest\.coordinates/).test(obj.extension));
-    community_detection_files = file_objects.filter(obj => RegExp(/cloudforest\.cd/).test(obj.extension) || RegExp(/cloudforest\.coordinates/).test(obj.extension));
+
+    // Get all files to allow module to find correct items.
+    community_detection_files = file_objects;
     affinity_matrix_files = file_objects.filter(obj => RegExp(/cloudforest\.cd/).test(obj.extension) || RegExp(/cloudforest\.affinity/).test(obj.extension));
 
-    dispatchEvent(build_event("BipartitionFiles", { files: bipartition_files }));
     dispatchEvent(build_event("DataPrimed", {}));
 };
 
@@ -279,8 +282,8 @@ const set_event_listeners = function () {
         });
     });
 
-    addEventListener("RequestBipartitionFile", () => {
-        dispatchEvent(build_event("BipartitionFiles", { files: bipartition_files }));
+    addEventListener("RequestBipartitionFile", e => {
+        dispatchEvent(build_event("BipartitionFiles", { files: bipartition_files, selected_file: e.detail.selected_file}));
     });
 
     addEventListener("NDLRCoordinateFilesRequest", e => {
@@ -288,7 +291,7 @@ const set_event_listeners = function () {
     });
 
     addEventListener("CDFilesRequest", e => {
-        dispatchEvent(build_event("CDFiles", { files: community_detection_files }));
+        dispatchEvent(build_event("CDFiles", { files: community_detection_files, selected_file: e.detail.selected_file}));
     });
 
     addEventListener("AffinityFilesRequest", e => {

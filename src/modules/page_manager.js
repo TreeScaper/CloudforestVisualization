@@ -11,7 +11,7 @@ let select_objs = {
     },
     "tree-select": {
         name: "Tree Diagram",
-        regex: [RegExp(/cloudforest\.trees/), RegExp(/^Consensus Tree/)],
+        regex: [RegExp(/cloudforest\.trees/), RegExp(/^Consensus Tree/), RegExp(/Affinity Matrix/i)],
         files: [],
         event: "TreePlotRequest"
     },
@@ -20,6 +20,18 @@ let select_objs = {
         regex: [RegExp(/CD Plateaus/i), RegExp(/CD with NLDR coordinates/i), RegExp(/CD Results/i)],
         files: [],
         event: "CDPlotRequest"
+    },
+    "affinity-select": {
+        name: "Affinity Matrix",
+        regex: [RegExp(/Affinity Matrix/i)],
+        files: [],
+        event: "AffinityPlotRequest"
+    },
+    "covariance-select": {
+        name: "Covariance Plotting",
+        regex: [RegExp(/Covariance Matrix/i)],
+        files: [],
+        event: "CovariancePlotRequest"
     }
 };
 
@@ -41,10 +53,11 @@ const populate_visualizations = function () {
         let viz_interface = document.getElementById('file-select-menu');
         if (e.target.selectedIndex > 0) {
             let viz_key = e.target.children[e.target.selectedIndex].getAttribute('viz_key');
-            if (viz_key === "covariance-select" || viz_key === "cd-select") {
-                dispatchEvent(build_event(select_objs[viz_key].event, {}));
-                return;
-            }
+            //if (viz_key === "covariance-select" || viz_key === "cd-select") {
+            //    console.log("Matching viz_key", viz_key);
+            //    dispatchEvent(build_event(select_objs[viz_key].event, {}));
+            //    return;
+            //}
 
             let file_select_el = document.getElementById("file-select");
             if (document.contains(file_select_el)) {
@@ -53,6 +66,7 @@ const populate_visualizations = function () {
             viz_interface.append(htmlToElement('<select id="file-select" class="is-small">'));
             file_select_el = document.getElementById("file-select");
             file_select_el.append(htmlToElement('<option value="">--Please choose a file--</option>'));
+
 
             select_objs[viz_key].files.forEach(f => {
                 let s = `<option class='file-list-option' data_id="${f.id}" data_name="${f.name}">${f.name}</option>`;
