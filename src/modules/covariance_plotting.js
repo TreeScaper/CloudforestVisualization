@@ -494,7 +494,7 @@ const build_link_edit_ui = function () {
         let tree_canvas = document.getElementById('tree-canvas');
 
         combined_canvas.setAttribute('width', covariance_canvas.width + tree_canvas.width);
-        combined_canvas.setAttribute('height', covariance_canvas.height + tree_canvas.height);
+        combined_canvas.setAttribute('height', Math.max(covariance_canvas.height,tree_canvas.height));
         let combined_ctx = combined_canvas.getContext('2d');
 
         combined_ctx.drawImage(tree_canvas, 0, 0);
