@@ -85,7 +85,7 @@ let parsed_bipartition_taxa = undefined;
 let boottree_data = undefined;
 
 // Radius for tree nodes
-const node_radius = 5;
+const tree_node_r = 5;
 
 // Radius for covariance plot nodes
 const cov_node_r = 5;
@@ -469,7 +469,8 @@ const draw_covariance = function () {
             let dist = Math.sqrt(Math.pow(x - d.x, 2) + Math.pow(y - d.y, 2));
 
             // If that distance is less than the node radius, the user's mouse is found to be within the node drawing,
-            if (dist < cov_node_r) {
+            // Use the slightly larger highlighted radius for an extra margin in which the node becomes highlighted.
+            if (dist < highlight_cov_node_r) {
 
                 // Get the set of taxa representing the moused over bipartition.
                 let bipartition_set = new Set(parsed_bipartition_taxa[d.id]);
@@ -684,17 +685,17 @@ const draw_single_line = function(ctx, source_x, source_y, target_x, target_y, s
     let adjusted_source_y = source_y;
     let adjusted_target_y = target_y;
     if (source_y < target_y) {
-        adjusted_source_y = source_y + node_radius;
+        adjusted_source_y = source_y + tree_node_r;
     } else if (source_y > target_y) {
-        adjusted_source_y = source_y - node_radius;
+        adjusted_source_y = source_y - tree_node_r;
     }
 
     let adjusted_source_x = source_x;
     let adjusted_target_x = target_x;
     if (source_x < target_x) {
-        adjusted_target_x = target_x - node_radius;
+        adjusted_target_x = target_x - tree_node_r;
     } else if (source_x > target_x) {
-        adjusted_target_x = target_x + node_radius;
+        adjusted_target_x = target_x + tree_node_r;
     }
 
     // Eventually create a draw queue. For now we just erase old lines.
