@@ -1,8 +1,8 @@
 import Plotly from 'plotly.js-basic-dist';
 import * as Plotly2D from 'plotly.js-basic-dist';
 import * as Plotly3D from 'plotly.js-gl3d-dist';
-import { htmlToElement, cleanExistingPlot, removeChildNodes } from "./html_templates";
-import { build_event } from "./support_funcs";
+import { htmlToElement, cleanExistingPlot, removeChildNodes } from "./utilities/html_templates";
+import { build_event } from "./utilities/support_funcs";
 import {
     nldr_clean_data,
     plot_dimensions,
@@ -14,7 +14,7 @@ import {
     parse_subset_string,
     create_scatter_3d_data,
     create_scatter_2d_data
-} from './nldr_plotting_core.js';
+} from './components/nldr_plotting_core.js';
 
 let plateau_file = undefined;
 let cd_results_file = undefined;

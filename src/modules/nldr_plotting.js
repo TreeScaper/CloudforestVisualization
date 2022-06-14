@@ -5,7 +5,7 @@ import * as PlotlyParallel from 'plotly.js-gl2d-dist';
 import {
     htmlToElement,
     cleanExistingPlot
-} from './html_templates';
+} from './utilities/html_templates';
 
 import {
     nldr_clean_data,
@@ -16,8 +16,8 @@ import {
     subtree_by_index,
     subtree_by_file,
     subtree_every_nth
-} from './nldr_plotting_core.js';
-import { build_event } from "./support_funcs";
+} from './components/nldr_plotting_core.js';
+import { build_event } from "./utilities/support_funcs";
 
 let coordinate_data = undefined;
 let subtree_by_index_string = undefined;

@@ -3,9 +3,9 @@ import { interpolatePiYG } from "d3-scale-chromatic";
 import { forceSimulation, forceCollide, forceManyBody, forceX, forceY } from "d3-force";
 import { select, event } from "d3-selection";
 import { drag } from "d3-drag";
-import { htmlToElement, cleanExistingPlot } from './html_templates';
+import { htmlToElement, cleanExistingPlot } from './utilities/html_templates';
 import { isNull } from "plotly.js-gl2d-dist";
-import { build_event } from "./support_funcs";
+import { build_event } from "./utilities/support_funcs";
 
 let score_array = undefined;
 let event_buld_fn = undefined;

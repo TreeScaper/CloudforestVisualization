@@ -22,7 +22,7 @@
  *      }
  * 
  */
-import { build_event } from "./support_funcs";
+import { build_event } from "./utilities/support_funcs";
 
 let file_objects = undefined; //Holds array of file objects from history
 let href = undefined;

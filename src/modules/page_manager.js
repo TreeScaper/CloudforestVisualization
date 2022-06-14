@@ -1,6 +1,6 @@
 //Module to handle UI <-> human
-import { htmlToElement } from "./html_templates";
-import { build_event } from "./support_funcs";
+import { htmlToElement } from "./utilities/html_templates";
+import { build_event } from "./utilities/support_funcs";
 
 let select_objs = {
     "nldr-select": {

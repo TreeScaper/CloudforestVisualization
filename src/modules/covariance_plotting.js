@@ -6,13 +6,13 @@ import { mean, max, ascending } from "d3-array";
 import { hierarchy, cluster, tree } from "d3-hierarchy";
 import { scaleLinear, eas } from "d3-scale";
 
-import { roundedRect } from "./support_funcs";
-import { removeChildNodes, cleanExistingPlot, htmlToElement } from "./html_templates";
-import { css_colors } from "./colors";
-import { build_event } from "./support_funcs";
-import { parse_taxa_partitions } from "./bipartition_data.js";
-import { get_root } from "./phylogram.js";
-import { newick_parse } from "./tree_data_parsing"
+import { roundedRect } from "./utilities/support_funcs";
+import { removeChildNodes, cleanExistingPlot, htmlToElement } from "./utilities/html_templates";
+import { css_colors } from "./utilities/colors";
+import { build_event } from "./utilities/support_funcs";
+import { parse_taxa_partitions } from "./components/bipartition_data.js";
+import { get_root } from "./phylogram_plotting.js";
+import { newick_parse } from "./components/tree_data_parsing"
 
 const getEvent = () => event; // This is necessary when using webpack >> https://github.com/d3/d3-zoom/issues/32
 const d3 = Object.assign(
