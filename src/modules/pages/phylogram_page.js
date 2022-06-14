@@ -7,8 +7,8 @@ import { hierarchy, cluster, tree } from "d3-hierarchy";
 import { create, select } from "d3-selection";
 import { ascending } from "d3-array";
 import { scaleLinear, eas } from "d3-scale";
-import { htmlToElement } from "./utilities/html_templates";
-import { build_event } from "./utilities/support_funcs";
+import { htmlToElement } from "../utilities/html_templates";
+import { build_event } from "../utilities/support_funcs";
 
 const d3 = Object.assign(
     {},
@@ -206,7 +206,7 @@ const animate = function (data) {
     });
 }
 
-const phylogram_init = function (init_obj) {
+const phylogram_page_init = function (init_obj) {
     let { guid_fn } = init_obj;
     const my_guid = guid_fn();
 
@@ -234,4 +234,4 @@ export {
     y_node_spacing,
     set_parent_y,
     get_root,
-    phylogram_init}
+    phylogram_page_init}

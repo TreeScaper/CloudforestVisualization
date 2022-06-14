@@ -1,8 +1,8 @@
 import Plotly from 'plotly.js-basic-dist';
 import * as Plotly2D from 'plotly.js-basic-dist';
 import * as Plotly3D from 'plotly.js-gl3d-dist';
-import { htmlToElement, cleanExistingPlot, removeChildNodes } from "./utilities/html_templates";
-import { build_event } from "./utilities/support_funcs";
+import { htmlToElement, cleanExistingPlot, removeChildNodes } from "../utilities/html_templates";
+import { build_event } from "../utilities/support_funcs";
 import {
     nldr_clean_data,
     plot_dimensions,
@@ -14,7 +14,7 @@ import {
     parse_subset_string,
     create_scatter_3d_data,
     create_scatter_2d_data
-} from './components/nldr_plotting_core.js';
+} from '../components/nldr_plotting_core.js';
 
 let plateau_file = undefined;
 let cd_results_file = undefined;
@@ -450,7 +450,7 @@ const plot_community_detection = function() {
 /*
  * Initializes events for community detection plotting.
  */
-const community_detection_init = function (init_obj) {
+const community_detection_page_init = function (init_obj) {
     let { guid_fn } = init_obj;
     const my_guid = guid_fn();
 
@@ -510,4 +510,4 @@ const community_detection_init = function (init_obj) {
     });
 }
 
-export { community_detection_init }
+export { community_detection_page_init }

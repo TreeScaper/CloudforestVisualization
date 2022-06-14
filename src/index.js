@@ -3,11 +3,11 @@ import "./bulma.min.css";
 import { galaxy_data_init as data_manager_init } from "./modules/galaxy_data";
 
 // Import primary plotting modules
-import { nldr_plot_init } from "./modules/nldr_plotting";
-import { covariance_plot_init } from "./modules/covariance_plotting";
-import { community_detection_init } from "./modules/community_detection_plotting";
-import { tree_plot_init } from "./modules/phylogram_plotting";
-import { affinity_chord_plot_init } from "./modules/affinity_chord_plotting";
+import { nldr_page_init } from "./modules/pages/nldr_page";
+import { covariance_page_init } from "./modules/pages/covariance_page";
+import { community_detection_page_init } from "./modules/pages/community_detection_page";
+import { phylogram_page_init } from "./modules/pages/phylogram_page";
+import { affinity_chord_page_init } from "./modules/pages/affinity_chord_page";
 
 import { page_mgr_init } from "./modules/page_manager";
 
@@ -34,23 +34,23 @@ const init_modules = function () {
         guid_fn: get_guid
     });
 
-    nldr_plot_init({
+    nldr_page_init({
         guid_fn: get_guid
     });
 
-    covariance_plot_init({
+    covariance_page_init({
         guid_fn: get_guid
     });
 
-    community_detection_init({
+    community_detection_page_init({
         guid_fn: get_guid
     });
 
-    pyhlogram_init({
+    pyhlogram_page_init({
         guid_fn: get_guid
     });
 
-    affinity_chord_plot_init({
+    affinity_chord_page_init({
         guid_fn: get_guid
     });
 }

@@ -3,9 +3,9 @@ import { interpolatePiYG } from "d3-scale-chromatic";
 import { forceSimulation, forceCollide, forceManyBody, forceX, forceY } from "d3-force";
 import { select, event } from "d3-selection";
 import { drag } from "d3-drag";
-import { htmlToElement, cleanExistingPlot } from './utilities/html_templates';
+import { htmlToElement, cleanExistingPlot } from '../utilities/html_templates';
 import { isNull } from "plotly.js-gl2d-dist";
-import { build_event } from "./utilities/support_funcs";
+import { build_event } from "../utilities/support_funcs";
 
 let score_array = undefined;
 let event_buld_fn = undefined;
@@ -285,7 +285,7 @@ const clean_data = function(data) {
     return arr;
 }
 
-const affinity_plot_init = function (init_obj) {
+const affinity_page_init = function (init_obj) {
     let { guid_fn} = init_obj;
     const my_guid = guid_fn();
 
@@ -307,4 +307,4 @@ const affinity_plot_init = function (init_obj) {
 
 }
 
-export { affinity_plot_init }
+export { affinity_page_init }

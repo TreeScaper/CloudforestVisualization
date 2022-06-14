@@ -3,9 +3,9 @@ import { interpolatePiYG } from "d3-scale-chromatic";
 import { forceSimulation, forceCollide, forceManyBody, forceX, forceY } from "d3-force";
 import { select, event } from "d3-selection";
 import { drag } from "d3-drag";
-import { htmlToElement, cleanExistingPlot } from './utilities/html_templates';
+import { htmlToElement, cleanExistingPlot } from '../utilities/html_templates';
 import { isNull } from "plotly.js-gl2d-dist";
-import { build_event } from "./utilities/support_funcs";
+import { build_event } from "../utilities/support_funcs";
 
 // Percentile threshold for affinity value
 const threshold = .001;
@@ -531,7 +531,7 @@ const chord_plot = function (matrix) {
 /*
  * Initialize event listeners.
  */
-const affinity_chord_plot_init = function (init_obj) {
+const affinity_chord_page_init = function (init_obj) {
     let { guid_fn} = init_obj;
     const my_guid = guid_fn();
 
@@ -612,4 +612,4 @@ const affinity_chord_plot_init = function (init_obj) {
 }
 
 
-export { affinity_chord_plot_init }
+export { affinity_chord_page_init }
