@@ -7,31 +7,31 @@ let select_objs = {
         name: "NLDR",
         regex: [RegExp(/^NLDR Coordinates/)],
         files: [],
-        event: "NLDRPlotRequest"
+        event: "NLDRPageRequest"
     },
     "tree-select": {
         name: "Tree Diagram",
         regex: [RegExp(/cloudforest\.trees/), RegExp(/^Consensus Tree/), RegExp(/Affinity Matrix/i)],
         files: [],
-        event: "TreePlotRequest"
+        event: "TreePageRequest"
     },
     "cd-select": {
         name: "Community Detection",
         regex: [RegExp(/CD Plateaus/i), RegExp(/CD with NLDR coordinates/i), RegExp(/CD Results/i)],
         files: [],
-        event: "CDPlotRequest"
+        event: "CDPageRequest"
     },
     "affinity-select": {
         name: "Affinity Matrix",
         regex: [RegExp(/Affinity Matrix/i)],
         files: [],
-        event: "AffinityPlotRequest"
+        event: "AffinityPageRequest"
     },
     "covariance-select": {
         name: "Covariance Plotting",
         regex: [RegExp(/Covariance Matrix/i)],
         files: [],
-        event: "CovariancePlotRequest"
+        event: "CovariancePageRequest"
     }
 };
 

@@ -606,7 +606,7 @@ const affinity_chord_page_init = function (init_obj) {
         //}
     });
 
-    addEventListener("AffinityPlotRequest", e => {
+    addEventListener("AffinityPageRequest", e => {
         dispatchEvent(build_event("AffinityFilesRequest", {guid: my_guid}));
     });
 }

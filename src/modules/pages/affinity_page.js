@@ -299,7 +299,7 @@ const affinity_page_init = function (init_obj) {
         }
     });
 
-    addEventListener("TreePlotRequest", e => {
+    addEventListener("TreePageRequest", e => {
 //        if (FILE_NAME_REGEXP.test(e.detail.file_name)) {
             dispatchEvent(build_event("FileContentsRequest", { guid: my_guid, files: [e.detail.file_id] }));
  //       }

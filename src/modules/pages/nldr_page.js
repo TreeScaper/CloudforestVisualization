@@ -107,7 +107,7 @@ const nldr_page_init = function (init_obj) {
         }
     });
 
-    addEventListener("NLDRPlotRequest", e => {
+    addEventListener("NLDRPageRequest", e => {
         dispatchEvent(build_event("FileContentsRequest", {
             guid: my_guid,
             files: [e.detail.file_id]

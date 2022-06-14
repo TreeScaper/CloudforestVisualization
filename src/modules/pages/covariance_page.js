@@ -1039,7 +1039,7 @@ const covariance_page_init = function (init_obj) {
     });
 
     // Event for initial plot request
-    addEventListener("CovariancePlotRequest", e => {
+    addEventListener("CovariancePageRequest", e => {
         dispatchEvent(build_event("RequestBipartitionFile", {guid: my_guid, selected_file: e.detail.file_name}));
     });
 

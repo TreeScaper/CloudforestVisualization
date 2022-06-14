@@ -505,7 +505,7 @@ const community_detection_page_init = function (init_obj) {
         }
     });
 
-    addEventListener("CDPlotRequest", e => {
+    addEventListener("CDPageRequest", e => {
         dispatchEvent(build_event("CDFilesRequest", {guid: my_guid, selected_file: e.detail.file_name}));
     });
 }

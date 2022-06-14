@@ -224,7 +224,7 @@ const phylogram_page_init = function (init_obj) {
 
         }
     });
-    addEventListener("TreePlotRequest", e => {
+    addEventListener("TreePageRequest", e => {
         dispatchEvent(build_event("TreeFileContentsRequest", { guid: my_guid, files: [e.detail.file_id] }));
     });
 }
