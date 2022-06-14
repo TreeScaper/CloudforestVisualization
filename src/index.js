@@ -1,6 +1,6 @@
 import "./bulma.min.css";
 
-import { galaxy_data_init as data_manager_init } from "./modules/galaxy_data";
+import { data_manager_init } from "./modules/data_manager";
 
 // Import primary plotting modules
 import { nldr_page_init } from "./modules/pages/nldr_page";
