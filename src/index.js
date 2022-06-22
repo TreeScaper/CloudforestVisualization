@@ -46,7 +46,7 @@ const init_modules = function () {
         guid_fn: get_guid
     });
 
-    pyhlogram_page_init({
+    phylogram_page_init({
         guid_fn: get_guid
     });
 
