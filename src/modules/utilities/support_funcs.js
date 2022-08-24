@@ -28,7 +28,43 @@ const build_event = function (name, details) {
     });
 }
 
+/**
+ * Check if two sets are equal
+ *
+ * @param {Object} a Set A
+ * @param {Object} b Set B
+ */
+const set_equality = function(a, b) {
+    if (a.size !== b.size) {
+        return false;
+    }
+    for (const e of a) {
+        if (!b.has(e)) {
+            return false;
+        }
+    }
+    return true;
+}
+
+/**
+ * Set background for canvas elements
+ *
+ * @param {string} canvas_id ID of the canvas element
+ */
+const set_background = function(canvas_id) {
+    let canvas = document.getElementById(canvas_id);
+    let ctx = undefined;
+    if (canvas != null) {
+        ctx = canvas.getContext('2d');
+        //ctx.globalCompositeOperation = 'destination-over'
+        ctx.fillStyle = "white";
+        ctx.globalAlpha = 1.0;
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+    }
+}
+
 export {
+    set_equality,
     roundedRect,
     build_event
 }

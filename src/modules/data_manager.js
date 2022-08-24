@@ -300,7 +300,7 @@ const set_event_listeners = function () {
 
 }
 
-const galaxy_data_init = function (init_obj) {
+const data_manager_init = function (init_obj) {
     let { conf_elem_id } = init_obj;
     
     set_event_listeners();
@@ -311,4 +311,4 @@ const galaxy_data_init = function (init_obj) {
     parse_galaxy_history(href, history_id);
 }
 
-export { galaxy_data_init }
+export { data_manager_init }

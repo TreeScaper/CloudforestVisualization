@@ -1,18 +1,18 @@
-import { scaleQuantize } from "d3-scale";
-import { forceSimulation, forceCollide, forceManyBody, forceLink, forceX, forceY, forceCenter } from "d3-force";
+import { scalequantize } from "d3-scale";
+import { forcesimulation, forcecollide, forcemanybody, forcelink, forcex, forcey, forcecenter } from "d3-force";
 import { create, select } from "d3-selection";
 import { drag } from "d3-drag";
 import { mean, max, ascending } from "d3-array";
 import { hierarchy, cluster, tree } from "d3-hierarchy";
-import { scaleLinear, eas } from "d3-scale";
+import { scalelinear, eas } from "d3-scale";
 
-import { roundedRect } from "../utilities/support_funcs";
-import { removeChildNodes, cleanExistingPlot, htmlToElement } from "../utilities/html_templates";
+import { roundedrect } from "../utilities/support_funcs";
+import { removechildnodes, cleanexistingplot, htmltoelement } from "../utilities/html_templates";
 import { css_colors } from "../utilities/colors";
 import { build_event } from "../utilities/support_funcs";
 import { parse_taxa_partitions } from "../components/bipartition_data.js";
 import { get_root } from "./phylogram_page.js";
-import { newick_parse } from "../components/tree_data_parsing"
+import { newick_parse } from "tree_data_parsing"
 
 const getEvent = () => event; // This is necessary when using webpack >> https://github.com/d3/d3-zoom/issues/32
 const d3 = Object.assign(
@@ -32,997 +32,147 @@ const d3 = Object.assign(
     }
 );
 
-// Nodes and links of covariance plot
-let graph_data = {
-    "nodes": [],
-    // Only links that are displayed. Links with a covariance below a certain threshold
-    // will not be in this list.
-    "displayed_links": [],
-    "all_links": []
-};
+class CovariancePage {
 
-// Hovering tooltip for both phylogram and covariance plot
-let tooltip = null;
+    // Hovering tooltip for both phylogram and covariance plot
+    tooltip = null;
+    guid = undefined;
 
-// Representation of covariance network
-let filtered_adjacency_list = undefined;
+    constructor() {}
 
-// Community detection groups
-let cd_groups = undefined;
-
-// Maximum covariance, by magnitude, found between all bipartitions
-let max_covariance = 0;
-
-// Number of trees for phylogram
-let num_trees = 0;
-
-// Array of taxa names
-let taxa_array = [];
-
-// Links in phylogram
-let tree_links = [];
-
-// Phylogram root
-let tree_root = undefined;
-
-// Functions for scaling x and y coordinates of phylogram
-let scale_x = undefined;
-let scale_y = undefined;
-
-// The phylogram link and covariance bipartition being highlighted due one or the other,
-// and its associated member in the other plot.
-let current_link = null;
-let current_bipartition = null;
-
-// All links and bipartitions selected for highlighting.
-let selected_links = [];
-let selected_bipartitions = [];
-
-// List where each entry is a list of taxa representing the bipartition corresponding with that index.
-let parsed_bipartition_taxa = undefined;
-
-// Tree diagrams for phylogram
-let boottree_data = undefined;
-
-// Radius for tree nodes
-const tree_node_r = 5;
-
-// Radius for covariance plot nodes
-const cov_node_r = 5;
-const highlight_cov_node_r = 7;
-
-/**
- * Check if two sets are equal
- *
- * @param {Object} a Set A
- * @param {Object} b Set B
- */
-const set_equality = function(a, b) {
-    if (a.size !== b.size) {
-        return false;
+    /*
+     * Draw hover-over tooltip for bipartitions on both the phylogram and covariance network
+     */
+    draw_tooltip() {
+        let x_tooltip_width_abs = 100;
+        let y_tooltip_width_abs = 18;
+    
+        let x_tooltip_mag = (this.tooltip.x < x_tooltip_width_abs) ? -1 : 1;
+        let y_tooltip_mag = (this.tooltip.y < y_tooltip_width_abs) ? -1 : 1;
+    
+        let x_tooltip_width = x_tooltip_mag * x_tooltip_width_abs;
+        let y_tooltip_width = y_tooltip_mag * y_tooltip_width_abs;
+    
+        this.tooltip.ctx.beginPath();
+        this.tooltip.ctx.globalAlpha = 1.0;
+        this.tooltip.ctx.fillStyle = "black";
+    
+        // This should be adjusted to scale.
+        this.tooltip.ctx.font = '18px serif';
+        let x_text_loc = (x_tooltip_mag == 1) ? this.tooltip.x - x_tooltip_width + 5 : this.tooltip.x + 5;
+        let y_text_loc = (y_tooltip_mag == 1) ? this.tooltip.y - 5 : this.tooltip.y  - y_tooltip_width + 5;
+        this.tooltip.ctx.fillText(this.tooltip.text, x_text_loc, y_text_loc);
     }
-    for (const e of a) {
-        if (!b.has(e)) {
-            return false;
-        }
-    }
-    return true;
-}
 
-/**
- * Parses out communities and assigns corresponding colors
- *
- * @param {[]} groups Group data
- */
-const parse_cd = function (groups) {
-    let d = {};
-    let hsl_colors = Object.keys(groups).map((v, i) => {
-        return css_colors[i];
-    });
-
-    Object.keys(groups).forEach((k, idx) => {
-        groups[k].forEach(bp => {
-            d[bp] = { group: k, color: hsl_colors[idx] };
-        });
-    });
-    cd_groups = d;
-}
-
-/**
- * Create data structure with entry for each element, representing a link in the covariance graph,
- * of the covariance matrix.
- *
- * @param {[][]} m The covariance matrix data.
- */
-const parse_covariance = function (m) {
-    m.forEach((arr, idx) => {
-
-        //Removing superflous empty value at end of each array
-        arr.filter(v => v.length > 1).forEach((val, i) => {
-            if (i != idx) {
-                let o = {
-                    "source": String(idx),
-                    "target": String(i),
-                    "value": Number(val.trim())
-                }
-                graph_data.displayed_links.push(o);
-                graph_data.all_links.push(o);
-                if (Math.abs((Number(val.trim()))) > max_covariance) {
-                    max_covariance = Math.abs(Number(val.trim()));
-                }
+    /**
+     * Creates 2d array from raw data by splitting on newlines and tabs.
+     *
+     * @param {string} data Raw data
+     */
+    static clean_data(data) {
+        let t_arr = data.split('\n');
+        let arr = []
+        t_arr.forEach(d => {
+            if (d.length > 0) {
+                arr.push(d.split('\t'));
             }
         });
-    });
-}
-
-/**
- * Parses the TreeScaper bipartition matrix producing a BP -> tree object.
- * Key: bipartition number; Value: array of trees where the bipartition is present.
- * @param {[][]} m - Bipartition Matrix generated by TreeScaper
- */
-const parse_bipartition_cov = function (m) {
-    let b = {};
-    m.forEach(r => {
-        //let bp_name = String(Number(r[0].trim()) + 1);
-        let bp_name = String(Number(r[0].trim()));
-        if (!(bp_name in b)) {
-            b[bp_name] = [];
-        }
-        b[bp_name].push(r[1]);
-    });
-
-    Object.keys(b).forEach(k => {
-        let o = {
-            "id": k,
-            "num_trees": b[k].length
-        };
-        graph_data.nodes.push(o);
-        if (b[k].length > num_trees) {
-            num_trees = b[k].length;
-        }
-    });
-}
-
-/**
- * Return a profile for the requested node, including
- * link information.
- * @param {*} node
- */
-const profile_node = function (node) {
-    let r_val = {
-        "id": node.id,
-        "num_trees": node.num_trees
-    };
-    let pos_values = [];
-    let neg_values = [];
-    graph_data.all_links.forEach(l => {
-        if (l.source === node.id || l.target === node.id) {
-            if (l.value < 0) {
-                neg_values.push(l.value);
-            }
-            if (l.value >= 0) {
-                pos_values.push(l.value);
-            }
-        }
-    });
-    r_val["num_pos_cova"] = pos_values.length;// || NaN;
-    r_val["num_neg_cova"] = neg_values.length;// || NaN;
-    r_val["mean_pos_cova"] = d3.mean(pos_values);// || NaN;
-    r_val["mean_neg_cova"] = d3.mean(neg_values) || NaN;
-    r_val["max_neg_cova"] = -1 * d3.max(neg_values.map(v => Math.abs(v))) || NaN;
-    r_val["max_pos_cova"] = d3.max(pos_values);// || NaN;
-    return r_val;
-}
-
-/**
- * Creates HTML displaying information on selected node.
- *
- * @param {Object} p Profiled node data
- */
-const draw_profile_legend = function (p) {
-    const elm = document.getElementById("plot-metadata");
-    //elm.classList.add("box");
-    let e_string = `
-    <h4>Partition ${p.id}</h4>
-    <table class="table"><thead><tr>
-    <th>Tree Count</th><th># Pos. Cova</th><th>Mean Pos. Cova</th><th>Max Pos. Cova</th>
-    <th># Neg. Cova</th><th>Mean Neg. Cova</th><th>Max Neg. Cova</th></tr></thead>
-    <tbody>
-    <td>${p.num_trees}</td><td>${p.num_pos_cova}</td><td>${p.mean_pos_cova.toPrecision(4)}</td><td>${p.max_pos_cova.toPrecision(4)}</td>
-    <td>${p.num_neg_cova}</td><td>${p.mean_neg_cova.toPrecision(4)}</td><td>${p.max_neg_cova.toPrecision(4)}</td>
-    </tbody>
-    </table>
-    `
-    elm.innerHTML = e_string;
-}
-
-/**
- * Set background for canvas elements
- *
- * @param {string} canvas_id ID of the canvas element
- */
-const set_background = function(canvas_id) {
-    let canvas = document.getElementById(canvas_id);
-    let ctx = undefined;
-    if (canvas != null) {
-        ctx = canvas.getContext('2d');
-        //ctx.globalCompositeOperation = 'destination-over'
-        ctx.fillStyle = "white";
-        ctx.globalAlpha = 1.0;
-        ctx.fillRect(0, 0, canvas.width, canvas.height);
-    }
-}
-
-// Scale for calculating width of covariance network link on canvas.
-const link_scale = d3.scaleQuantize()
-        .domain([0, max_covariance])
-        .range([.5, 2, 5, 10]);
-
-/**
- * Check if bipartition is either moused over, or in selected bipartitions.
- *
- * @param {number} b Bipartition ID
- */
-const is_highlighted_bipartition = function(b) {
-    return (b == current_bipartition || selected_bipartitions.includes(b));
-}
-
-/**
- * Draw a single node in covariance network.
- *
- * @param {Object} d Node object.
- */
-const drawNode = function (d) {
-    let canvas = document.getElementById("covariance-canvas");
-    let ctx = canvas.getContext('2d');
-    ctx.beginPath();
-    ctx.moveTo(d.x, d.y);
-    let r = is_highlighted_bipartition(d.id) ? highlight_cov_node_r : cov_node_r;
-    ctx.arc(d.x, d.y, r, 0, Math.PI * 2);
-    ctx.globalAlpha = set_node_alpha(d);
-    ctx.fillStyle = set_fillstyle(d);
-    ctx.fill();
-}
-
-/**
- * Draw a single link in covariance network.
- *
- * @param {Object} l Link object.
- */
-const drawLink = function (l) {
-    let canvas = document.getElementById("covariance-canvas");
-    let ctx = canvas.getContext('2d');
-    if (l.value < 0) {
-        ctx.strokeStyle = "red";
-    } else if (l.value > 0) {
-        ctx.strokeStyle = "blue";
-    } else {
-        ctx.strokeStyle = "lime";
-        ctx.lineDashOffset = 1;
-    }
-    ctx.beginPath();
-    ctx.globalAlpha = set_link_alpha(l);
-    ctx.lineWidth = link_scale(Math.abs(l.value)) / 5;
-    ctx.moveTo(l.source.x, l.source.y);
-    ctx.lineTo(l.target.x, l.target.y);
-    ctx.stroke();
-}
-
-/**
- * Redraws covariance network on existing covariance-canvas element.
- */
-const redraw_full_cov_graph = function () {
-        let canvas = document.getElementById("covariance-canvas");
-        let cov_ctx = canvas.getContext('2d');
-        cov_ctx.beginPath();
-        cov_ctx.clearRect(0, 0, canvas.width, canvas.height);
-        set_background('covariance-canvas');
-        cov_ctx.globalAlpha = 1.0;
-        graph_data.displayed_links.forEach(drawLink);
-        graph_data.nodes.forEach(drawNode);
-}
-
-/**
- * Sets alpha for covariance network link in proportion to its relation to the maximum magnitude for all links.
- *
- * @param {Object} l Link
- */
-const set_link_alpha = function (l) {
-    let alpha = 1 - ((max_covariance - Math.abs(l.value)) / max_covariance);
-    return alpha;
-}
-
-/**
- * Sets alpha for covariance network node in proportion to the frequency of its occurence in the corresponding tree set.
- *
- * @param {Object} d Node
- */
-const set_node_alpha = function (d) {
-    if (is_highlighted_bipartition(d.id)) {
-        return 1.0;
-    }
-    let alpha_pct = (d.num_trees / num_trees);
-    if (alpha_pct < 0.1) { alpha_pct = 0.1 };
-    if (cd_groups) {
-        return 1.0;
-    } else {
-        return alpha_pct;
-    }
-}
-
-/**
- * Sets color for covariance network node.
- *
- * @param {Object} d Node object
- */
-const set_fillstyle = function (d) {
-
-    // Neon green if highlighted.
-    if (is_highlighted_bipartition(d.id)) {
-        return "rgba(57, 255, 20, 1)";
+        return arr;
     }
 
-    // If we have corresponding CD data, use those colors.
-    if (cd_groups) {
-        try {
-            let x = cd_groups[Number(d.id)].color;
-            return x;
-        } catch (error) {
-            return "white";
-        }
-    } else {
-        return "black";
-    }
-}
+    build_publish_button() {
+        // Downloads a PNG displaying both phylogram and covariance network side-by-side as they are shown.
+        document.getElementById("publish-graph").addEventListener("click", () => {
+            let combined_canvas = document.createElement('canvas');
+            let covariance_canvas = document.getElementById('covariance-canvas');
+            let tree_canvas = document.getElementById('tree-canvas');
 
-/*
- * Draw hover-over tooltip for bipartitions on both the phylogram and covariance network
- */
-const draw_tooltip = function () {
-    let x_tooltip_width_abs = 100;
-    let y_tooltip_width_abs = 18;
+            combined_canvas.setAttribute('width', covariance_canvas.width + tree_canvas.width);
+            combined_canvas.setAttribute('height', Math.max(covariance_canvas.height,tree_canvas.height));
+            let combined_ctx = combined_canvas.getContext('2d');
 
-    let x_tooltip_mag = (tooltip.x < x_tooltip_width_abs) ? -1 : 1;
-    let y_tooltip_mag = (tooltip.y < y_tooltip_width_abs) ? -1 : 1;
+            combined_ctx.drawImage(tree_canvas, 0, 0);
+            combined_ctx.drawImage(covariance_canvas, tree_canvas.width, 0);
 
-    let x_tooltip_width = x_tooltip_mag * x_tooltip_width_abs;
-    let y_tooltip_width = y_tooltip_mag * y_tooltip_width_abs;
+            let download_link = document.createElement('a')
+            download_link.href = combined_canvas.toDataURL('image/png');
+            download_link.download = 'covariance_plot.png';
+            download_link.click();
+        });
 
-    tooltip.ctx.beginPath();
-    tooltip.ctx.globalAlpha = 1.0;
-    tooltip.ctx.fillStyle = "black";
-
-    // This should be adjusted to scale.
-    tooltip.ctx.font = '18px serif';
-    let x_text_loc = (x_tooltip_mag == 1) ? tooltip.x - x_tooltip_width + 5 : tooltip.x + 5;
-    let y_text_loc = (y_tooltip_mag == 1) ? tooltip.y - 5 : tooltip.y  - y_tooltip_width + 5;
-    tooltip.ctx.fillText(tooltip.text, x_text_loc, y_text_loc);
-}
-
-/*
- * Create covariance network visualization.
- */
-const draw_covariance = function () {
-
-    // Remove child-nodes of cov-plot and recreate canvas as child
-    removeChildNodes("cov-plot");
-    let doc_width = document.getElementById("cov-plot").clientWidth;
-    let div_width = Math.floor((doc_width - (.15 * doc_width)) / 100) * 100;
-    let div_height = div_width;
-    let canvas_elm = htmlToElement(`<canvas id="covariance-canvas" width="${div_width}" height="${div_height}">`);
-    document.getElementById("cov-plot").append(canvas_elm);
-
-    let canvas = document.getElementById("covariance-canvas"),
-        ctx = canvas.getContext('2d'),
-        width = canvas.getAttribute("width"),
-        height = canvas.getAttribute("height");
-
-    // Clear selected bipartitions if we're recreating the visualization
-    selected_bipartitions = [];
-
-    // Tick function that redraws the graph and tooltip
-    let tick = function () {
-        redraw_full_cov_graph();
-        if (tooltip !== null) {
-            draw_tooltip();
-        }
-    }
-
-    // d3 library that simulates forces acting between and on the graph nodes
-    let simulation = d3.forceSimulation(graph_data.nodes)
-        .force('center', d3.forceCenter(width / 2, height / 2))
-        .force("x", d3.forceX(width / 2))
-        .force("y", d3.forceY(height / 2))
-        .force("charge", d3.forceManyBody().strength(-20))
-        .force("link", d3.forceLink()
-            .id(function (d) { return d.id; }).distance(width / 3));
-
-    // Assign our function to the simulation tick
-    simulation.on("tick", () => {
-        tick();
-    });
-
-    // Add links to simulation
-    simulation.force("link")
-        .links(graph_data.all_links);
-
-    // This populates the displayed_links field with only links above a certain threshold.
-    update_links(50);
-
-    // Called when user moves their mouse over the canvas. This allows for the inspecting and selecting
-    // of specific bipartitions in the network.
-    canvas.addEventListener("mousemove", function(e) {
-
-        // Get coordinates of the canvas element in the browser page.
-        let canvas_rect = canvas.getBoundingClientRect();
-
-        // This represents the X and Y in relation to the canvas element.
-        let x = e.clientX - canvas_rect.left, y = e.clientY - canvas_rect.top;
-
-        // Will be set to a bipartition that is found to be under the user's mouse.
-        let found_bipartition = null;
-
-        // Iterate through each node.
-        for (const d of graph_data.nodes) {
-
-            // Find distance between user's mouse and center of the node.
-            let dist = Math.sqrt(Math.pow(x - d.x, 2) + Math.pow(y - d.y, 2));
-
-            // If that distance is less than the node radius, the user's mouse is found to be within the node drawing,
-            // Use the slightly larger highlighted radius for an extra margin in which the node becomes highlighted.
-            if (dist < highlight_cov_node_r) {
-
-                // Get the set of taxa representing the moused over bipartition.
-                let bipartition_set = new Set(parsed_bipartition_taxa[d.id]);
-
-                // Iterate through links in the phylogram
-                for (const t of tree_links) {
-
-                    // For each phylogram link, representing a bipartition, find the associated taxa.
-                    let leaf_names = [];
-                    for (const leaf of t.link.target.leaves()) {
-                        leaf_names.push(leaf.data.name);
-                    }
-                    let leaves_set = new Set(leaf_names);
-
-                    // If the taxa both from the covariance network bipartition (node), and the phylogram bipartition (link) are equal
-                    // they are the same bipartition. Select the found link as the current_link, which means it will be highlighted.
-                    if (set_equality(leaves_set, bipartition_set)) {
-                        current_link = t;
-                    }
-                }
-
-                // Node the bipartition we found under the mouse and break.
-                found_bipartition = d.id;
-                break;
-            }
-        }
-
-        // If we found a bipartition under the mouse, set the current_bipartition, redraw both phylogram and covariance network, and the tooltip.
-        if (found_bipartition !== null) {
-            if (current_bipartition !== found_bipartition) {
-                current_bipartition = found_bipartition;
-            }
-            redraw_full_cov_graph();
-            redraw_full_tree();
-            tooltip = {
-                ctx: ctx,
-                x: x,
-                y: y,
-                text: `Bipartition ${found_bipartition}`
-            };
-            draw_tooltip();
-
-        // If we found nothing, and there was in the previous mouseover event a bipartition under the mouse (the mouse is moving out of a node),
-        // clear tooltip, current link and bipartition, and redraw visualization.
-        } else {
-            tooltip = null;
-            if (current_bipartition !== null) {
-                current_link = null;
-                current_bipartition = null;
-                redraw_full_cov_graph();
-                redraw_full_tree();
-            }
-        }
-    });
-
-    // When a bipartition node is clicked, its added to the list of selected bipartitions and both it and its corresponding bipartition in phylogram (if it
-    // exists) are highlighted until another node is selected. Holding shift allows for the selection, and deselecting, of multiple nodes.
-    canvas.addEventListener("click", function(e) {
-        if (current_bipartition != null) {
-            if (!selected_bipartitions.includes(current_bipartition)){
-                if (e.shiftKey) {
-                    selected_bipartitions.push(current_bipartition);
-                    selected_links.push(current_link);
-                } else {
-                    selected_bipartitions = [current_bipartition];
-                    selected_links = [current_link];
-                }
-            } else {
-                selected_bipartitions = selected_bipartitions.filter(b => b != current_bipartition);
-                selected_links = selected_links.filter(b => b != current_link);
-            }
-        }
-    });
-
-}
-
-/**
- * Create an adjacency list from the covariance matrix.
- */
-const build_matrix = function () {
-    filtered_adjacency_list = {}; //Matrix as adjacency list
-    graph_data.nodes.forEach(n => {
-        filtered_adjacency_list[n.id] = [];
-    });
-    graph_data.displayed_links.forEach(l => {
-        filtered_adjacency_list[l.source.id].push({ id: l.target.id, covariance: l.value });
-    });
-}
-
-
-/*
- * Populates graph_data.displayed_links by selecting only links above a certain threshold.
- * These are the links that are actually drawn on the visualization. The user may adjust this threshold
- * in the interface, and the links are redrawn.
- *
- * This function also rebuilds the filtered_adjacency_list
- *
- * @param {number} link_threshold The threshold in percentage of maximum covariance
- */
-const update_links = function (link_threshold) {
-    let link_strength_thresh = link_threshold / 100.0;
-    let edited_links = [];
-    graph_data.all_links.forEach(obj => {
-        if (Math.abs(obj.value) >= (link_strength_thresh * max_covariance)) {
-            edited_links.push(obj);
-        }
-    });
-    graph_data.displayed_links = edited_links;
-    build_matrix();
-}
-
-/**
- * Create HTML interface for interacting with plots.
- */
-const build_link_edit_ui = function () {
-    let pcc = document.getElementById("plot-controls");
-    pcc.append(htmlToElement(`<div class="field has-addons">
-        <h4>Remove Links Below&nbsp;</h4>
+        pcc.append(htmlToElement(`<div class="field has-addons">
         <div class="control">
-            <input type="number" id="link-strength" min="1" max="100" value="50" size="4"></input>
-        </div >
-        <h4>% of Maximum Magnitude</h4>
-        </div > `));
+            <button id="publish-graph" class="button is-info">Publish Graph</button>
+        </div>`));
 
-    pcc.append(htmlToElement(`<div class="field has-addons">
-    <div class="control">
-        <button id="publish-graph" class="button is-info">Publish Graph</button>
-    </div>`));
-
-    document.getElementById("link-strength").addEventListener("input", event => {
-        let thresh = Number(document.getElementById("link-strength").value);
-        update_links(thresh);
-        redraw_full_cov_graph();
-    });
-
-    // Downloads a PNG displaying both phylogram and covariance network side-by-side as they are shown.
-    document.getElementById("publish-graph").addEventListener("click", () => {
-        let combined_canvas = document.createElement('canvas');
-        let covariance_canvas = document.getElementById('covariance-canvas');
-        let tree_canvas = document.getElementById('tree-canvas');
-
-        combined_canvas.setAttribute('width', covariance_canvas.width + tree_canvas.width);
-        combined_canvas.setAttribute('height', Math.max(covariance_canvas.height,tree_canvas.height));
-        let combined_ctx = combined_canvas.getContext('2d');
-
-        combined_ctx.drawImage(tree_canvas, 0, 0);
-        combined_ctx.drawImage(covariance_canvas, tree_canvas.width, 0);
-
-        let download_link = document.createElement('a')
-        download_link.href = combined_canvas.toDataURL('image/png');
-        download_link.download = 'covariance_plot.png';
-        download_link.click();
-    });
-
-    // Create slider for selecting tree to display
-    pcc.append(htmlToElement(`
-    <div class="field"><div class="control"><label for="boottree-slider">Tree Number: <span id="boottree-number">1</span></label>
-    <input type="range" id="boottree-slider" name="boottree"
-    min="1" max="${boottree_data.length - 1}" step="1" value="1" style="width: 60em;">
-        </div></div>`));
-}
-
-/**
- * Creates 2d array from raw data by splitting on newlines and tabs.
- *
- * @param {string} data Raw data
- */
-const clean_data = function(data) {
-    let t_arr = data.split('\n');
-    let arr = []
-    t_arr.forEach(d => {
-        if (d.length > 0) {
-            arr.push(d.split('\t'));
-        }
-    });
-    return arr;
-}
-
-/**
- * Creates an empty line. This is useful for creating a canvas stroke over an existing line,
- * and determining if coordinates lies within it.
- *
- * @param {Object} ctx Canvas context
- * @param {number} source_x Source x-coordinate
- * @param {number} source_y Source y-coordinate
- * @param {number} target_x Target x-coordinate
- * @param {number} target_y Target y-coordinate
- */
-const create_empty_line = function(ctx, source_x, source_y, target_x, target_y) {
-  ctx.beginPath();
-  ctx.moveTo(source_x, source_y);
-  ctx.lineTo(target_x, target_y);
-  ctx.lineWidth = 20;
-}
-
-/**
- * Draws a single line on canvas for phylogram. This can also be used to erase
- * lines if erase_width is set.
- *
- * @param {Object} ctx Canvas context
- * @param {number} source_x Source x-coordinate
- * @param {number} source_y Source y-coordinate
- * @param {number} target_x Target x-coordinate
- * @param {number} target_y Target y-coordinate
- * @param {string} style Canvas strokeStyle
- * @param {number} width Width of line
- * @param {number} erase_width Width of line drawn to erase an old line.
- */
-const draw_single_line = function(ctx, source_x, source_y, target_x, target_y, style, width, erase_width=null) {
-
-    // Account for node radius
-    let adjusted_source_y = source_y;
-    let adjusted_target_y = target_y;
-    if (source_y < target_y) {
-        adjusted_source_y = source_y + tree_node_r;
-    } else if (source_y > target_y) {
-        adjusted_source_y = source_y - tree_node_r;
     }
 
-    let adjusted_source_x = source_x;
-    let adjusted_target_x = target_x;
-    if (source_x < target_x) {
-        adjusted_target_x = target_x - tree_node_r;
-    } else if (source_x > target_x) {
-        adjusted_target_x = target_x + tree_node_r;
-    }
-
-    // Eventually create a draw queue. For now we just erase old lines.
-    if (erase_width !== null) {
-        draw_single_line(ctx, source_x, source_y, target_x, target_y, 'white', erase_width);
-    }
-
-    ctx.beginPath();
-    ctx.moveTo(adjusted_source_x, adjusted_source_y);
-    ctx.lineTo(adjusted_target_x, adjusted_target_y);
-    ctx.lineWidth = width;
-    ctx.strokeStyle = style;
-    ctx.stroke();
-}
-
-// Default color for lines in phylogram.
-const default_link_style = `rgba(128, 128, 128, 1)`;
-
-/**
- * Draws a link in the phylogram. This involves drawing both a vertical and a horizontal component.
- *
- * @param {Object} ctx Canvas context
- * @param {number} source_x Source x-coordinate
- * @param {number} source_y Source y-coordinate
- * @param {number} target_x Target x-coordinate
- * @param {number} target_y Target y-coordinate
- * @param {string} style Canvas strokeStyle
- * @param {number} width Width of line
- * @param {number} erase_width Width of line drawn to erase an old line.
- */
-const draw_tree_link = function(ctx, source_x, source_y, target_x, target_y, style=default_link_style, width=1, erase_width=4) {
-    draw_single_line(ctx, source_x, source_y, source_x, target_y, style, width, erase_width);
-    draw_single_line(ctx, source_x, target_y, target_x, target_y, style, width, erase_width);
-}
-
-/**
- * Redraws phylogram on existing tree-canvas element.
- */
-const redraw_full_tree = function () {
-    let canvas = document.getElementById("tree-canvas");
-    let tree_ctx = canvas.getContext('2d');
-    tree_ctx.clearRect(0, 0, canvas.width, canvas.height);
-    set_background('tree-canvas');
-
-    // Draw highlighted links as purple
-    tree_links.forEach(t => {
-        if (t == current_link || selected_links.includes(t)) {
-            draw_tree_link(tree_ctx, t.scaled_coord.source.x, t.scaled_coord.source.y, t.scaled_coord.target.x, t.scaled_coord.target.y, 'purple', 3, 2);
-        } else {
-            draw_tree_link(tree_ctx, t.scaled_coord.source.x, t.scaled_coord.source.y, t.scaled_coord.target.x, t.scaled_coord.target.y);
-        }
-    });
-
-    // Leaves are drawn blue.
-    tree_root.leaves().forEach(leaf => {
-        tree_ctx.fillStyle = "blue";
-        tree_ctx.beginPath();
-        tree_ctx.arc(scale_x(leaf.x), scale_y(leaf.y), 5, 0, Math.PI * 2);
-        tree_ctx.fill();
-        tree_ctx.fillStyle = "black";
-        tree_ctx.font = '10px sans-serif';
-        tree_ctx.fillText(`${leaf.data.name} ${leaf.data.length.toPrecision(4)}`, scale_x(leaf.x) + 6, scale_y(leaf.y) + 2.5);
-    });
-
-    // The remainding nodes are grey.
-    tree_ctx.fillStyle = `rgba(128, 128, 128, .8)`;
-    tree_root.descendants().forEach(node => {
-        if (node.height > 0) {
-            tree_ctx.beginPath();
-            tree_ctx.arc(scale_x(node.x), scale_y(node.y), 5, 0, Math.PI * 2);
-            tree_ctx.fill();
-        }
-    });
-
-}
-
-/*
- * Create phylogram visualization. There is some redundancy between this and create_tree() in phylogram.js.
- */
-const draw_tree = function() {
-
-    let doc_width = document.getElementById("tree-plot").clientWidth;
-    let width = Math.floor((doc_width - (.15 * doc_width)) / 100) * 100;
-    let height = width;
-    let plot_div = 'tree-plot'
-    removeChildNodes(plot_div);
-
-    let tree_number = Number(document.getElementById("boottree-slider").value);
-    document.getElementById("boottree-number").textContent = tree_number;
-    let tree_data = newick_parse(boottree_data[tree_number - 1]);
-
-    let canvas = document.createElement('canvas');
-
-    [scale_x, scale_y, tree_root] = get_root(tree_data, height, width);
-
-    canvas.setAttribute('id', 'tree-canvas')
-    canvas.setAttribute("width", width);
-    canvas.setAttribute("height", height);
-
-    if (tree_number) {
-        document.getElementById(`${plot_div}`).append(htmlToElement(`<div><h3>Tree ${tree_number}</h3></div>`));
-    }
-
-    document.getElementById(`${plot_div}`).append(canvas);
-    let ctx = canvas.getContext('2d');
-
-    ctx.fillStyle = "white";
-    ctx.fillRect(0, 0, width, height);
-
-    ctx.lineWidth = 1.5;
-    selected_links = [];
-    tree_links = [];
-    tree_root.links().forEach(link => {
-        let scaled_link = {
-                "source": {
-                        "x": scale_x(link.source.x),
-                        "y": scale_y(link.source.y)
-                    },
-                "target": {
-                        "x": scale_x(link.target.x),
-                        "y": scale_y(link.target.y)
-                    }
-            }
-        tree_links.push({'link': link, 'scaled_coord': scaled_link});
-    });
-
-    // This function is similar to the mousemove event for the covariance network in this same file.
-    canvas.addEventListener("mousemove", function(e) {
-        let event_date = Date.now()
-        let canvas_rect = canvas.getBoundingClientRect();
-        let x = e.clientX- canvas_rect.left, y = e.clientY- canvas_rect.top;
-        let found_link = null;
-        for (const t of tree_links) {
-           let on_link = false;
-
-           create_empty_line(ctx, t.scaled_coord.source.x, t.scaled_coord.source.y, t.scaled_coord.source.x, t.scaled_coord.target.y);
-           if (ctx.isPointInStroke(x, y) && t.link.target.children !== undefined) {
-               on_link = true;
-           }
-
-           create_empty_line(ctx, t.scaled_coord.source.x, t.scaled_coord.target.y, t.scaled_coord.target.x, t.scaled_coord.target.y);
-           if (ctx.isPointInStroke(x, y) && t.link.target.children !== undefined) {
-               on_link = true;
-           }
-
-           if (on_link) {
-                let leaf_names = [];
-                for (const leaf of t.link.target.leaves()) {
-                    leaf_names.push(leaf.data.name);
-                }
-                let leaves_set = new Set(leaf_names);
-                for (const [bipartition_num, bipartition_leaves] of Object.entries(parsed_bipartition_taxa)) {
-                    let bipartition_set = new Set(bipartition_leaves);
-                    if (set_equality(leaves_set, bipartition_set)) {
-                        current_bipartition = bipartition_num;
-                    }
-                }
-                found_link = t;
-                break;
-           }
-        }
-        if (found_link !== null) {
-            if (current_link !== found_link) {
-                current_link = found_link;
-            }
-            redraw_full_cov_graph();
-            redraw_full_tree();
-            if (current_bipartition !== null) {
-                tooltip = {
-                    ctx: ctx,
-                    x: x,
-                    y: y,
-                    text: `Bipartition ${current_bipartition}`
-                };
-                draw_tooltip();
-            }
-        } else {
-            tooltip = null;
-            if (current_link !== null) {
-                current_link = null;
-                current_bipartition = null;
-                redraw_full_cov_graph();
-                redraw_full_tree();
-            }
-        }
-    });
-
-    // This function is similar to the mousemove event for the covariance network in this same file.
-    canvas.addEventListener("click", function(e) {
-        if (current_link != null) {
-            if (!selected_links.includes(current_link)){
-                if (e.shiftKey) {
-                    selected_links.push(current_link);
-                    if (current_bipartition != null) {
-                        selected_bipartitions.push(current_bipartition);
-                    }
-                } else {
-                    selected_links = [current_link];
-                    if (current_bipartition != null) {
-                        selected_bipartitions = [current_bipartition];
-                    }
-                }
-            } else {
-                selected_links = selected_links.filter(b => b != current_link);
-                if (current_bipartition != null) {
-                    selected_bipartitions = selected_bipartitions.filter(b => b != current_bipartition);
-                }
-            }
-        }
-    });
-
-    document.getElementById("boottree-slider").addEventListener("input", () => {
-        draw_tree();
-    });
-
-    redraw_full_tree();
-}
-
-/**
- * Draw phylogram and covariance network.
- */
-const draw_all = function() {
-    draw_tree();
-    draw_covariance();
-}
-
-/**
- * Initializes module for mapping covariance plot to phylogram
- *
- * @param {Object} init_obj Function for generating guid
- */
-const covariance_page_init = function (init_obj) {
-
-    // Function passed a guid function and creates a guid, which it uses for later events
-    let { guid_fn } = init_obj;
-    const my_guid = guid_fn();
-
-    addEventListener("BipartitionFiles", e => {
+    handle_file_event(e) {
         // User-selected file passed in event
         let cov_matrix_file_obj = e.detail.files.filter(obj => obj.name == e.detail.selected_file);
         // History item name for the covariance matrix file
         let history_item_string = cov_matrix_file_obj[0].name.match(/data [0-9]+$/)[0];
-
+    
         // Number of the history item used as input for the Covariance Matrix file
         let history_number = parseInt(history_item_string.match(/[0-9]+/));
-
+    
         // Find Bipartition Matrix file generated from the same history item
         let bip_matrix_regex = new RegExp(`Bipartition Matrix.*${history_item_string}$`);
         let bip_matrix_file_obj = e.detail.files.filter(obj => bip_matrix_regex.test(obj.name));
-
+    
         // Find Bipartition Counts file generated from the same history item
         let bip_counts_regex = new RegExp(`Bipartition Counts.*${history_item_string}$`);
         let bip_counts_file_obj= e.detail.files.filter(obj => bip_counts_regex.test(obj.name));
-
+    
         // Find Taxa IDs  file generated from the same history item
         let taxa_ids_regex = new RegExp(`Taxa IDs.*${history_item_string}$`);
         let taxa_ids_file_obj = e.detail.files.filter(obj => taxa_ids_regex.test(obj.name));
-
+    
         // Find the original input history item used to generate the above files
         let trees_file_obj = e.detail.files.filter(obj => obj.hid == history_number);
-
+    
         // Dispatch event requesting file contents
         dispatchEvent(build_event("FileContentsRequest", {
-            guid: my_guid,
+            guid: this.guid,
             files: [cov_matrix_file_obj.pop().dataset_id, bip_matrix_file_obj.pop().dataset_id, taxa_ids_file_obj.pop().dataset_id, bip_counts_file_obj.pop().dataset_id, trees_file_obj.pop().dataset_id]
         }));
-    });
+    }
 
-    //User has requested that CD groups be used in plotting.
-    addEventListener("UseCDGroupsTrue", e => {
-        if (e.detail.type === "Cova") {
-            parse_cd(e.detail.groups);
-        }
-    });
-    //User has requested that CD groups _not_ be used in plotting.
-    addEventListener("UseCDGroupsFalse", e => {
-        cd_groups = undefined;
-    });
-
-    // Event that parses file contents
-    addEventListener("FileContents", e => {
-        if (e.detail.guid === my_guid) {
-
-            // Clear graph_data structure
-            graph_data = {
-                "nodes": [],
-                "displayed_links": [],
-                "all_links": []
-            };
-
-            // Reset max covariance
-            max_covariance = 0;
-
+    handle_file_contents_event(e) {
+        if (e.detail.guid === this.guid) {
+    
+            let covariance_plot = new CovariancePlot('cov-plot', 'plot-controls, plot-metadata');
+            let phylogram_plot = new PhylogramPlot('tree-plot', 'plot-controls, plot-metadata');
+    
             // Parse files
             e.detail.contents.forEach(file => {
                 if (/^Covariance Matrix/.test(file.fileName)) {
                     let arr = file.data.split('\n');
-                    parse_covariance(clean_data(file.data));
+                    covariance_plot.parse_covariance(this.clean_data(file.data));
                 }
-
+    
                 if (/^Bipartition Matrix/.test(file.fileName)) {
-                    parse_bipartition_cov(clean_data(file.data));
+                    covariance_plot.parse_bipartition_cov(this.clean_data(file.data));
                 }
-
+    
                 if (/^Taxa IDs/.test(file.fileName)) {
-                    let arr = file.data.split('\n')
-                    arr.pop();
-                    arr.shift();
-                    arr.forEach(e => {
-                        taxa_array.push(e.split(',')[1].trim());
-                    });
+                    covariance_plot.parse_taxa_array(file.data);
                 }
-
+    
                 if (/^Bipartition Counts/.test(file.fileName)) {
-                    parsed_bipartition_taxa = parse_taxa_partitions(clean_data(file.data), taxa_array);
+                    covariance_plot.parse_taxa_partitions(this.clean_data(file.data));
                 }
-
+    
                 if (/cloudforest.trees/.test(file.fileExt)) {
-                    boottree_data = file.data.split(';');
+                    phylogram_plot.parse_boottree_data(file.data);
                 }
             });
-
+    
             // Create tree-plot div if it does not exist
             if (!document.getElementById("tree-plot")) {
                 document.getElementById("plot").append(htmlToElement(`<div id="tree-plot" style="vertical-align: top; width: 50%; margin: 0px; padding-right: 0px; font-size:0; border: 0px; display:inline-block; overflow: visible"/>`));
             }
-
+    
             // Create cov-plot div if it does not exist
             if (!document.getElementById("cov-plot")) {
                 document.getElementById("plot").append(htmlToElement(`<div id="cov-plot" style="width: 50%; margin: 0px; padding-left: 0px; border: 0px; font-size:0; display:inline-block; overflow: visible"/>`));
@@ -1031,18 +181,128 @@ const covariance_page_init = function (init_obj) {
             // Clear existing plot control and metadata and rebuild
             removeChildNodes("plot-controls");
             removeChildNodes("plot-metadata");
-            build_link_edit_ui();
 
-            // Draw covariance plot and phylogram
-            draw_all();
+            phylogram_plot.build_controls();
+            covariance_plot.build_controls();
+            this.build_publish_button();
+    
+            phylogram_plot.draw();
+            covariance_plot.draw();
         }
-    });
+    }
 
-    // Event for initial plot request
-    addEventListener("CovariancePageRequest", e => {
-        dispatchEvent(build_event("RequestBipartitionFile", {guid: my_guid, selected_file: e.detail.file_name}));
-    });
 
+    /**
+     * Initializes module for mapping covariance plot to phylogram
+     *
+     * @param {Object} init_obj Function for generating guid
+     */
+    init(init_obj) {
+        // Function passed a guid function and creates a guid, which it uses for later events
+        let { guid_fn } = init_obj;
+        this.guid = guid_fn();
+
+        let page = new CovariancePage();
+
+        // Event that parses available files
+        addEventListener("BipartitionFiles", page.handle_file_event);
+
+        // Event that parses file contents
+        addEventListener("FileContents", page.handle_file_contents_event);
+
+        // Event for initial plot request
+        addEventListener("CovariancePageRequest", e => {
+            dispatchEvent(build_event("RequestBipartitionFile", {guid: this.guid, selected_file: e.detail.file_name}));
+        });
+
+        //User has requested that CD groups be used in plotting.
+        addEventListener("UseCDGroupsTrue", e => {
+            if (e.detail.type === "Cova") {
+                parse_cd(e.detail.groups);
+            }
+        });
+        //User has requested that CD groups _not_ be used in plotting.
+        addEventListener("UseCDGroupsFalse", e => {
+            cd_groups = undefined;
+        });
+    }
 }
 
-export { covariance_page_init }
+export { CovariancePage }
+
+// DEV
+//// The phylogram link and covariance bipartition being highlighted due one or the other,
+//// and its associated member in the other plot.
+//let current_link = null;
+//let current_bipartition = null;
+//
+//// All links and bipartitions selected for highlighting.
+//let selected_links = [];
+//let selected_bipartitions = [];
+
+// List where each entry is a list of taxa representing the bipartition corresponding with that index.
+//let parsed_bipartition_taxa = undefined;
+
+/**
+ * Parses out communities and assigns corresponding colors
+ *
+ * @param {[]} groups Group data
+ */
+// DEV
+//const parse_cd = function (groups) {
+//    let d = {};
+//    let hsl_colors = Object.keys(groups).map((v, i) => {
+//        return css_colors[i];
+//    });
+//
+//    Object.keys(groups).forEach((k, idx) => {
+//        groups[k].forEach(bp => {
+//            d[bp] = { group: k, color: hsl_colors[idx] };
+//        });
+//    });
+//    cd_groups = d;
+//}
+
+
+/**
+ * Return a profile for the requested node, including
+ * link information.
+ * @param {*} node
+ */
+// DEV
+//const profile_node = function (node) {
+//    let r_val = {
+//        "id": node.id,
+//        "num_trees": node.num_trees
+//    };
+//    let pos_values = [];
+//    let neg_values = [];
+//    graph_data.all_links.forEach(l => {
+//        if (l.source === node.id || l.target === node.id) {
+//            if (l.value < 0) {
+//                neg_values.push(l.value);
+//            }
+//            if (l.value >= 0) {
+//                pos_values.push(l.value);
+//            }
+//        }
+//    });
+//    r_val["num_pos_cova"] = pos_values.length;// || NaN;
+//    r_val["num_neg_cova"] = neg_values.length;// || NaN;
+//    r_val["mean_pos_cova"] = d3.mean(pos_values);// || NaN;
+//    r_val["mean_neg_cova"] = d3.mean(neg_values) || NaN;
+//    r_val["max_neg_cova"] = -1 * d3.max(neg_values.map(v => Math.abs(v))) || NaN;
+//    r_val["max_pos_cova"] = d3.max(pos_values);// || NaN;
+//    return r_val;
+//}
+
+
+/**
+ * Check if bipartition is either moused over, or in selected bipartitions.
+ *
+ * @param {number} b Bipartition ID
+ */
+// DEV
+// const is_highlighted_bipartition = function(b) {
+//     return (b == current_bipartition || selected_bipartitions.includes(b));
+// }

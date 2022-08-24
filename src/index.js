@@ -38,17 +38,15 @@ const init_modules = function () {
         guid_fn: get_guid
     });
 
-    covariance_page_init({
-        guid_fn: get_guid
-    });
+    let covariance_page = new CovariancePage();
+    covariance_page.init({guid_fn: get_guid});
 
     community_detection_page_init({
         guid_fn: get_guid
     });
 
-    phylogram_page_init({
-        guid_fn: get_guid
-    });
+    let phylogram_page = new PhylogramPage();
+    phylogram_page.init({guid_fn: get_guid});
 
     affinity_chord_page_init({
         guid_fn: get_guid
