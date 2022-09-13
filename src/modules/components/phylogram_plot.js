@@ -4,16 +4,12 @@ import { create, select } from "d3-selection";
 import { drag } from "d3-drag";
 import { mean, max, ascending } from "d3-array";
 import { hierarchy, cluster, tree } from "d3-hierarchy";
-import { scalelinear, eas } from "d3-scale";
-
-import { roundedrect } from "../utilities/support_funcs";
-import { removechildnodes, cleanexistingplot, htmltoelement } from "../utilities/html_templates";
+import { scaleLinear, eas } from "d3-scale";
+import { removeChildNodes, cleanExistingPlot, htmlToElement } from "../utilities/html_templates";
 import { css_colors } from "../utilities/colors";
-import { build_event, set_equality, set_background } from "../utilities/support_funcs";
-import { parse_taxa_partitions } from "../components/bipartition_data.js";
-import { get_root } from "./phylogram_page.js";
-import { newick_parse } from "tree_data_parsing"
-import { CloudForestPlot } from "cloudforest_plot.js";
+import { build_event, set_equality, set_background } from "../utilities/support_funcs.js";
+import { newick_parse } from "./tree_data_parsing.js"
+import { CloudForestPlot } from "./cloudforest_plot.js";
 
 class PhylogramPlot extends CloudForestPlot {
 
@@ -22,6 +18,9 @@ class PhylogramPlot extends CloudForestPlot {
     static tree_number_element_id = 'boottree-number';
     // Default color for lines in phylogram.
     static default_link_style = `rgba(128, 128, 128, 1)`;
+
+    // Radius for tree nodes
+    static tree_node_r = 5;
 
     boottree_data = undefined;
     canvas = undefined;
@@ -46,8 +45,8 @@ class PhylogramPlot extends CloudForestPlot {
         let pcc = document.getElementById(this.controls);
         // Create slider for selecting tree to display
         pcc.append(htmlToElement(`
-        <div class="field"><div class="control"><label for="${this.slider_element_id}">Tree Number: <span id="${this.tree_number_element_id}">1</span></label>
-        <input type="range" id="${this.slider_element_id}" name="boottree"
+        <div class="field"><div class="control"><label for="${PhylogramPlot.slider_element_id}">Tree Number: <span id="${PhylogramPlot.tree_number_element_id}">1</span></label>
+        <input type="range" id="${PhylogramPlot.slider_element_id}" name="boottree"
         min="1" max="${this.boottree_data.length - 1}" step="1" value="1" style="width: 60em;">
             </div></div>`));
     }
@@ -59,15 +58,16 @@ class PhylogramPlot extends CloudForestPlot {
     draw_phylogram() {
         let ctx = this.canvas.getContext('2d');
         ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
-        set_background(this.canvas_plot_element_id);
+        set_background(PhylogramPlot.canvas_plot_element_id);
     
         // Draw highlighted links as purple
         this.tree_links.forEach(t => {
-            if (t == current_link || selected_links.includes(t)) {
-                this.draw_tree_link(ctx, t.scaled_coord.source.x, t.scaled_coord.source.y, t.scaled_coord.target.x, t.scaled_coord.target.y, 'purple', 3, 2);
-            } else {
+            // DEV
+            //if (t == current_link || selected_links.includes(t)) {
+            //    this.draw_tree_link(ctx, t.scaled_coord.source.x, t.scaled_coord.source.y, t.scaled_coord.target.x, t.scaled_coord.target.y, 'purple', 3, 2);
+            //} else {
                 this.draw_tree_link(ctx, t.scaled_coord.source.x, t.scaled_coord.source.y, t.scaled_coord.target.x, t.scaled_coord.target.y);
-            }
+            //}
         });
     
         // Leaves are drawn blue.
@@ -112,10 +112,10 @@ class PhylogramPlot extends CloudForestPlot {
         removeChildNodes(this.plot);
 
         // Get value of current tree
-        let tree_number = Number(document.getElementById(this.slider_element_id).value);
+        let tree_number = Number(document.getElementById(PhylogramPlot.slider_element_id).value);
 
         // Display current tree value in interface
-        document.getElementById(this.tree_number_element_id).textContent = tree_number;
+        document.getElementById(PhylogramPlot.tree_number_element_id).textContent = tree_number;
 
         // Get data for current tree
         let tree_data = newick_parse(this.boottree_data[tree_number - 1]);
@@ -124,10 +124,10 @@ class PhylogramPlot extends CloudForestPlot {
         this.canvas = document.createElement('canvas');
 
         // Get scaling values for drawing phylogram
-        [this.scale_x, this.scale_y, this.tree_root] = this.get_root(tree_data, height, width);
+        [this.scale_x, this.scale_y, this.tree_root] = PhylogramPlot.get_root(tree_data, height, width);
 
         // Set canvas attributes
-        this.canvas.setAttribute('id', this.canvas_plot_element_id)
+        this.canvas.setAttribute('id', PhylogramPlot.canvas_plot_element_id)
         this.canvas.setAttribute("width", width);
         this.canvas.setAttribute("height", height);
 
@@ -146,9 +146,8 @@ class PhylogramPlot extends CloudForestPlot {
 
         // Draw links
         ctx.lineWidth = 1.5;
-        selected_links = [];
         this.tree_links = [];
-        tree_root.links().forEach(link => {
+        this.tree_root.links().forEach(link => {
             let scaled_link = {
                     "source": {
                             "x": this.scale_x(link.source.x),
@@ -162,101 +161,22 @@ class PhylogramPlot extends CloudForestPlot {
             this.tree_links.push({'link': link, 'scaled_coord': scaled_link});
         });
 
+        // DEV
+        //selected_links = [];
+
         // This function is similar to the mousemove event for the covariance network in this same file.
         // Commented out at this point in development. This will need to be abstracted out of phylogram_plot.
         /*
-        canvas.addEventListener("mousemove", function(e) {
-            let event_date = Date.now()
-            let canvas_rect = canvas.getBoundingClientRect();
-            let x = e.clientX- canvas_rect.left, y = e.clientY- canvas_rect.top;
-            let found_link = null;
-            for (const t of tree_links) {
-               let on_link = false;
-
-               this.create_empty_line(ctx, t.scaled_coord.source.x, t.scaled_coord.source.y, t.scaled_coord.source.x, t.scaled_coord.target.y);
-               if (ctx.isPointInStroke(x, y) && t.link.target.children !== undefined) {
-                   on_link = true;
-               }
-
-               this.create_empty_line(ctx, t.scaled_coord.source.x, t.scaled_coord.target.y, t.scaled_coord.target.x, t.scaled_coord.target.y);
-               if (ctx.isPointInStroke(x, y) && t.link.target.children !== undefined) {
-                   on_link = true;
-               }
-
-               if (on_link) {
-                    let leaf_names = [];
-                    for (const leaf of t.link.target.leaves()) {
-                        leaf_names.push(leaf.data.name);
-                    }
-                    let leaves_set = new Set(leaf_names);
-                    for (const [bipartition_num, bipartition_leaves] of Object.entries(parsed_bipartition_taxa)) {
-                        let bipartition_set = new Set(bipartition_leaves);
-                        if (set_equality(leaves_set, bipartition_set)) {
-                            this.current_bipartition = bipartition_num;
-                        }
-                    }
-                    found_link = t;
-                    break;
-               }
-            }
-
-            if (found_link !== null) {
-                if (current_link !== found_link) {
-                    current_link = found_link;
-                }
-                redraw_full_cov_graph();
-                draw_phylogram();
-                if (this.current_bipartition !== null) {
-                    tooltip = {
-                        ctx: ctx,
-                        x: x,
-                        y: y,
-                        text: `Bipartition ${this.current_bipartition}`
-                    };
-                    draw_tooltip();
-                }
-            } else {
-                tooltip = null;
-                if (current_link !== null) {
-                    current_link = null;
-                    this.current_bipartition = null;
-                    redraw_full_cov_graph();
-                    draw_phylogram();
-                }
-            }
-        });
-
-        // This function is similar to the mousemove event for the covariance network in this same file.
-        canvas.addEventListener("click", function(e) {
-            if (current_link != null) {
-                if (!selected_links.includes(current_link)){
-                    if (e.shiftKey) {
-                        selected_links.push(current_link);
-                        if (this.current_bipartition != null) {
-                            selected_bipartitions.push(this.current_bipartition);
-                        }
-                    } else {
-                        selected_links = [current_link];
-                        if (this.current_bipartition != null) {
-                            selected_bipartitions = [this.current_bipartition];
-                        }
-                    }
-                } else {
-                    selected_links = selected_links.filter(b => b != current_link);
-                    if (this.current_bipartition != null) {
-                        selected_bipartitions = selected_bipartitions.filter(b => b != this.current_bipartition);
-                    }
-                }
-            }
-        });
         */
 
         // Add event handler for the tree number slide. Redraw the tree with draw_tree() each time it changes.
-        document.getElementById(this.slider_element_id).addEventListener("input", () => {
-            draw();
+        document.getElementById(PhylogramPlot.slider_element_id).addEventListener("input", () => {
+            this.draw();
         });
 
-        draw_phylogram(this.canvas);
+        this.draw_phylogram();
+        
+        return this.canvas;
     }
 
     /**
@@ -295,22 +215,22 @@ class PhylogramPlot extends CloudForestPlot {
         let adjusted_source_y = source_y;
         let adjusted_target_y = target_y;
         if (source_y < target_y) {
-            adjusted_source_y = source_y + tree_node_r;
+            adjusted_source_y = source_y + PhylogramPlot.tree_node_r;
         } else if (source_y > target_y) {
-            adjusted_source_y = source_y - tree_node_r;
+            adjusted_source_y = source_y - PhylogramPlot.tree_node_r;
         }
     
         let adjusted_source_x = source_x;
         let adjusted_target_x = target_x;
         if (source_x < target_x) {
-            adjusted_target_x = target_x - tree_node_r;
+            adjusted_target_x = target_x - PhylogramPlot.tree_node_r;
         } else if (source_x > target_x) {
-            adjusted_target_x = target_x + tree_node_r;
+            adjusted_target_x = target_x + PhylogramPlot.tree_node_r;
         }
     
         // Eventually create a draw queue. For now we just erase old lines.
         if (erase_width !== null) {
-            draw_single_line(ctx, source_x, source_y, target_x, target_y, 'white', erase_width);
+            this.draw_single_line(ctx, source_x, source_y, target_x, target_y, 'white', erase_width);
         }
     
         ctx.beginPath();
@@ -333,9 +253,9 @@ class PhylogramPlot extends CloudForestPlot {
      * @param {number} width Width of line
      * @param {number} erase_width Width of line drawn to erase an old line.
      */
-    draw_tree_link(ctx, source_x, source_y, target_x, target_y, style=this.default_link_style, width=1, erase_width=4) {
-        draw_single_line(ctx, source_x, source_y, source_x, target_y, style, width, erase_width);
-        draw_single_line(ctx, source_x, target_y, target_x, target_y, style, width, erase_width);
+    draw_tree_link(ctx, source_x, source_y, target_x, target_y, style=PhylogramPlot.default_link_style, width=1, erase_width=4) {
+        this.draw_single_line(ctx, source_x, source_y, source_x, target_y, style, width, erase_width);
+        this.draw_single_line(ctx, source_x, target_y, target_x, target_y, style, width, erase_width);
     }
 
     /**
@@ -427,21 +347,23 @@ class PhylogramPlot extends CloudForestPlot {
     static get_root(data, height, width) {
         let root = d3.hierarchy(data, d => d.branchset)
             .sort((a, b) => d3.ascending(b.data.length, a.data.length))
-        root_distance(root);
+        PhylogramPlot.root_distance(root);
         //Furthest leaf is as far from the root as possible
         let max_distance = Math.max(...root.leaves().map(l => l.root_distance));
     
         let scale_x = d3.scaleLinear()
             .domain([0, max_distance])
             .range([10, width - (.2 * width)]);
-        let scale_y = y_node_spacing(root, height, width);
+        let scale_y = PhylogramPlot.y_node_spacing(root, height, width);
     
         root.leaves().forEach(n => {
             n.x = n.root_distance;
         });
     
-        set_parent_y(root);
+        PhylogramPlot.set_parent_y(root);
         return [scale_x, scale_y, root];
     }
 
 }
+
+export { PhylogramPlot }

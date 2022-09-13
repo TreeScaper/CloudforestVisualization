@@ -9,40 +9,58 @@ import { scaleLinear, eas } from "d3-scale";
 import { roundedRect } from "../utilities/support_funcs";
 import { removeChildNodes, cleanExistingPlot, htmlToElement } from "../utilities/html_templates";
 import { css_colors } from "../utilities/colors";
-import { build_event } from "../utilities/support_funcs";
-import { parse_taxa_partitions } from "../components/bipartition_data.js";
-import { get_root } from "./phylogram_page.js";
-import { newick_parse } from "tree_data_parsing"
-import { CloudForestPlot } from "cloudforest_plot.js";
+import { build_event, set_background } from "../utilities/support_funcs";
+import { CloudForestPlot } from "./cloudforest_plot.js";
+
+const getEvent = () => event; // This is necessary when using webpack >> https://github.com/d3/d3-zoom/issues/32
+const d3 = Object.assign(
+    {
+        mean,
+        max,
+        select,
+        event,
+        getEvent,
+        drag,
+        hierarchy,
+        ascending,
+        scaleLinear,
+        create,
+        scaleQuantize,
+        forceSimulation,
+        forceCollide,
+        forceManyBody,
+        forceLink,
+        forceX,
+        forceY,
+        forceCenter
+    }
+);
+
 
 class GraphData {
-    "nodes": [],
+    "nodes" = [];
     // Only links that are displayed. Links with a covariance below a certain threshold
     // will not be in this list.
-    "displayed_links": [],
-    "all_links": []
+    "displayed_links" = [];
+    "all_links" = [];
 }
 
 class CovariancePlot extends CloudForestPlot {
 
     static canvas_plot_element_id = 'covariance-canvas';
 
-    // Radius for tree nodes
-    static tree_node_r = 5;
-    
     // Radius for covariance plot nodes
     static cov_node_r = 5;
     static highlight_cov_node_r = 7;
 
     max_covariance = 0;
     taxa_array = [];
-    part_taxa = {};
     canvas = undefined;
     link_scale = undefined;
     cd_groups = undefined;
 
     // Representation of covariance network
-    let filtered_adjacency_list = undefined;
+    filtered_adjacency_list = undefined;
 
     // Number of trees for phylogram
     num_trees = 0;
@@ -52,8 +70,8 @@ class CovariancePlot extends CloudForestPlot {
         this.graph_data = new GraphData();
 
         // Scale for calculating width of covariance network link on canvas.
-        link_scale = d3.scaleQuantize()
-                .domain([0, max_covariance])
+        this.link_scale = d3.scaleQuantize()
+                .domain([0, this.max_covariance])
                 .range([.5, 2, 5, 10]);
     }
 
@@ -76,7 +94,7 @@ class CovariancePlot extends CloudForestPlot {
                     }
                     this.graph_data.displayed_links.push(o);
                     this.graph_data.all_links.push(o);
-                    if (Math.abs((Number(val.trim()))) > max_covariance) {
+                    if (Math.abs((Number(val.trim()))) > this.max_covariance) {
                         this.max_covariance = Math.abs(Number(val.trim()));
                     }
                 }
@@ -161,8 +179,8 @@ class CovariancePlot extends CloudForestPlot {
             </div > `));
         document.getElementById("link-strength").addEventListener("input", event => {
             let thresh = Number(document.getElementById("link-strength").value);
-            update_links(thresh);
-            draw_covariance();
+            this.update_links(thresh);
+            this.draw_covariance();
         });
     }
 
@@ -171,7 +189,7 @@ class CovariancePlot extends CloudForestPlot {
      *
      * @param {Object} p Profiled node data
      */
-    build_metadata() {
+    build_metadata(p) {
         const elm = document.getElementById(this.metadata);
         //elm.classList.add("box");
         let e_string = `
@@ -188,20 +206,23 @@ class CovariancePlot extends CloudForestPlot {
         elm.innerHTML = e_string;
     }
 
+    // DEV
+    is_highlighted_bipartition(id) {
+        return false;
+    }
+
     /**
      * Draw a single node in covariance network.
      *
      * @param {Object} d Node object.
      */
-    drawNode(d) {
-        let canvas = document.getElementById("covariance-canvas");
-        let ctx = canvas.getContext('2d');
+    drawNode(d, ctx) {
         ctx.beginPath();
         ctx.moveTo(d.x, d.y);
-        let r = is_highlighted_bipartition(d.id) ? highlight_cov_node_r : cov_node_r;
+        let r = this.is_highlighted_bipartition(d.id) ? CovariancePlot.highlight_cov_node_r : CovariancePlot.cov_node_r;
         ctx.arc(d.x, d.y, r, 0, Math.PI * 2);
-        ctx.globalAlpha = set_node_alpha(d);
-        ctx.fillStyle = set_fillstyle(d);
+        ctx.globalAlpha = this.set_node_alpha(d);
+        ctx.fillStyle = this.set_fillstyle(d);
         ctx.fill();
     }
     
@@ -211,8 +232,8 @@ class CovariancePlot extends CloudForestPlot {
      *
      * @param {Object} l Link
      */
-    static set_link_alpha(l) {
-        let alpha = 1 - ((max_covariance - Math.abs(l.value)) / max_covariance);
+    set_link_alpha(l) {
+        let alpha = 1 - ((this.max_covariance - Math.abs(l.value)) / this.max_covariance);
         return alpha;
     }
     
@@ -221,13 +242,13 @@ class CovariancePlot extends CloudForestPlot {
      *
      * @param {Object} d Node
      */
-    static set_node_alpha(d) {
-        if (is_highlighted_bipartition(d.id)) {
+    set_node_alpha(d) {
+        if (this.is_highlighted_bipartition(d.id)) {
             return 1.0;
         }
         let alpha_pct = (d.num_trees / this.num_trees);
         if (alpha_pct < 0.1) { alpha_pct = 0.1 };
-        if (cd_groups) {
+        if (this.cd_groups) {
             return 1.0;
         } else {
             return alpha_pct;
@@ -239,7 +260,7 @@ class CovariancePlot extends CloudForestPlot {
      *
      * @param {Object} d Node object
      */
-    static set_fillstyle(d) {
+    set_fillstyle(d) {
     
         // Neon green if highlighted.
         // DEV
@@ -248,9 +269,9 @@ class CovariancePlot extends CloudForestPlot {
         //}
     
         // If we have corresponding CD data, use those colors.
-        if (cd_groups) {
+        if (this.cd_groups) {
             try {
-                let x = cd_groups[Number(d.id)].color;
+                let x = this.cd_groups[Number(d.id)].color;
                 return x;
             } catch (error) {
                 return "white";
@@ -275,8 +296,8 @@ class CovariancePlot extends CloudForestPlot {
             ctx.lineDashOffset = 1;
         }
         ctx.beginPath();
-        ctx.globalAlpha = set_link_alpha(l);
-        ctx.lineWidth = link_scale(Math.abs(l.value)) / 5;
+        ctx.globalAlpha = this.set_link_alpha(l);
+        ctx.lineWidth = this.link_scale(Math.abs(l.value)) / 5;
         ctx.moveTo(l.source.x, l.source.y);
         ctx.lineTo(l.target.x, l.target.y);
         ctx.stroke();
@@ -293,11 +314,11 @@ class CovariancePlot extends CloudForestPlot {
             ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
             set_background('covariance-canvas');
             ctx.globalAlpha = 1.0;
-            for (const l of graph_data.displayed_links) {
-                drawLink(l, ctx);
+            for (const l of this.graph_data.displayed_links) {
+                this.drawLink(l, ctx);
             }
-            for (const l of graph_data.nodes) {
-                drawNode(l, ctx);
+            for (const l of this.graph_data.nodes) {
+                this.drawNode(l, ctx);
             }
     }
 
@@ -305,12 +326,12 @@ class CovariancePlot extends CloudForestPlot {
      * Create an adjacency list from the covariance matrix.
      */
     build_matrix() {
-        filtered_adjacency_list = {}; //Matrix as adjacency list
-        graph_data.nodes.forEach(n => {
-            filtered_adjacency_list[n.id] = [];
+        this.filtered_adjacency_list = {}; //Matrix as adjacency list
+        this.graph_data.nodes.forEach(n => {
+            this.filtered_adjacency_list[n.id] = [];
         });
-        graph_data.displayed_links.forEach(l => {
-            filtered_adjacency_list[l.source.id].push({ id: l.target.id, covariance: l.value });
+        this.graph_data.displayed_links.forEach(l => {
+            this.filtered_adjacency_list[l.source.id].push({ id: l.target.id, covariance: l.value });
         });
     }
     
@@ -327,13 +348,13 @@ class CovariancePlot extends CloudForestPlot {
     update_links(link_threshold) {
         let link_strength_thresh = link_threshold / 100.0;
         let edited_links = [];
-        graph_data.all_links.forEach(obj => {
-            if (Math.abs(obj.value) >= (link_strength_thresh * max_covariance)) {
+        this.graph_data.all_links.forEach(obj => {
+            if (Math.abs(obj.value) >= (link_strength_thresh * this.max_covariance)) {
                 edited_links.push(obj);
             }
         });
-        graph_data.displayed_links = edited_links;
-        build_matrix();
+        this.graph_data.displayed_links = edited_links;
+        this.build_matrix();
     }
 
     draw() {
@@ -348,25 +369,27 @@ class CovariancePlot extends CloudForestPlot {
         this.canvas = document.createElement('canvas');
 
         // Set canvas attributes
-        canvas.setAttribute('id', canvas_plot_element_id)
-        canvas.setAttribute("width", width);
-        canvas.setAttribute("height", height);
+        this.canvas.setAttribute('id', this.canvas_plot_element_id)
+        this.canvas.setAttribute("width", width);
+        this.canvas.setAttribute("height", height);
 
         // Add canvas to document
-        document.getElementById(this.plot).append(canvas);
+        document.getElementById(this.plot).append(this.canvas);
 
-        let ctx = canvas.getContext('2d'),
+        let ctx = this.canvas.getContext('2d');
 
+        let plot_object = this;
         // Tick function that redraws the graph and tooltip
         let tick = function () {
-            draw_covariance(canvas);
-            if (tooltip !== null) {
-                draw_tooltip();
-            }
-        }
+            plot_object.draw_covariance();
+            // DEV
+            //if (tooltip !== null) {
+            //    this.draw_tooltip();
+            //}
+        };
 
         // d3 library that simulates forces acting between and on the graph nodes
-        let simulation = d3.forceSimulation(graph_data.nodes)
+        let simulation = d3.forceSimulation(this.graph_data.nodes)
             .force('center', d3.forceCenter(width / 2, height / 2))
             .force("x", d3.forceX(width / 2))
             .force("y", d3.forceY(height / 2))
@@ -381,108 +404,12 @@ class CovariancePlot extends CloudForestPlot {
 
         // Add links to simulation
         simulation.force("link")
-            .links(graph_data.all_links);
+            .links(this.graph_data.all_links);
 
         // This populates the displayed_links field with only links above a certain threshold.
-        update_links(50);
-
-        // Called when user moves their mouse over the canvas. This allows for the inspecting and selecting
-        // of specific bipartitions in the network.
-        // DEV Commented out at this stage of development
-        // canvas.addEventListener("mousemove", function(e) {
-
-        //     // Get coordinates of the canvas element in the browser page.
-        //     let canvas_rect = canvas.getBoundingClientRect();
-
-        //     // This represents the X and Y in relation to the canvas element.
-        //     let x = e.clientX - canvas_rect.left, y = e.clientY - canvas_rect.top;
-
-        //     // Will be set to a bipartition that is found to be under the user's mouse.
-        //     let found_bipartition = null;
-
-        //     // Iterate through each node.
-        //     for (const d of graph_data.nodes) {
-
-        //         // Find distance between user's mouse and center of the node.
-        //         let dist = Math.sqrt(Math.pow(x - d.x, 2) + Math.pow(y - d.y, 2));
-
-        //         // If that distance is less than the node radius, the user's mouse is found to be within the node drawing,
-        //         // Use the slightly larger highlighted radius for an extra margin in which the node becomes highlighted.
-        //         if (dist < highlight_cov_node_r) {
-
-        //             // Get the set of taxa representing the moused over bipartition.
-        //             let bipartition_set = new Set(parsed_bipartition_taxa[d.id]);
-
-        //             // Iterate through links in the phylogram
-        //             for (const t of tree_links) {
-
-        //                 // For each phylogram link, representing a bipartition, find the associated taxa.
-        //                 let leaf_names = [];
-        //                 for (const leaf of t.link.target.leaves()) {
-        //                     leaf_names.push(leaf.data.name);
-        //                 }
-        //                 let leaves_set = new Set(leaf_names);
-
-        //                 // If the taxa both from the covariance network bipartition (node), and the phylogram bipartition (link) are equal
-        //                 // they are the same bipartition. Select the found link as the current_link, which means it will be highlighted.
-        //                 if (set_equality(leaves_set, bipartition_set)) {
-        //                     current_link = t;
-        //                 }
-        //             }
-
-        //             // Node the bipartition we found under the mouse and break.
-        //             found_bipartition = d.id;
-        //             break;
-        //         }
-        //     }
-
-        //     // If we found a bipartition under the mouse, set the current_bipartition, redraw both phylogram and covariance network, and the tooltip.
-        //     if (found_bipartition !== null) {
-        //         if (current_bipartition !== found_bipartition) {
-        //             current_bipartition = found_bipartition;
-        //         }
-        //         draw_covariance();
-        //         draw_phylogram();
-        //         tooltip = {
-        //             ctx: ctx,
-        //             x: x,
-        //             y: y,
-        //             text: `Bipartition ${found_bipartition}`
-        //         };
-        //         draw_tooltip();
-
-        //     // If we found nothing, and there was in the previous mouseover event a bipartition under the mouse (the mouse is moving out of a node),
-        //     // clear tooltip, current link and bipartition, and redraw visualization.
-        //     } else {
-        //         tooltip = null;
-        //         if (current_bipartition !== null) {
-        //             current_link = null;
-        //             current_bipartition = null;
-        //             draw_covariance();
-        //             draw_phylogram();
-        //         }
-        //     }
-        // });
-
-        // // When a bipartition node is clicked, its added to the list of selected bipartitions and both it and its corresponding bipartition in phylogram (if it
-        // // exists) are highlighted until another node is selected. Holding shift allows for the selection, and deselecting, of multiple nodes.
-        // canvas.addEventListener("click", function(e) {
-        //     if (current_bipartition != null) {
-        //         if (!selected_bipartitions.includes(current_bipartition)){
-        //             if (e.shiftKey) {
-        //                 selected_bipartitions.push(current_bipartition);
-        //                 selected_links.push(current_link);
-        //             } else {
-        //                 selected_bipartitions = [current_bipartition];
-        //                 selected_links = [current_link];
-        //             }
-        //         } else {
-        //             selected_bipartitions = selected_bipartitions.filter(b => b != current_bipartition);
-        //             selected_links = selected_links.filter(b => b != current_link);
-        //         }
-        //     }
-        // });
-
+        this.update_links(50);
 
     }
 }
+
+export { CovariancePlot }

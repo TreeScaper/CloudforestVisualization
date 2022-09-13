@@ -1,36 +1,17 @@
 import { scalequantize } from "d3-scale";
-import { forcesimulation, forcecollide, forcemanybody, forcelink, forcex, forcey, forcecenter } from "d3-force";
 import { create, select } from "d3-selection";
 import { drag } from "d3-drag";
 import { mean, max, ascending } from "d3-array";
 import { hierarchy, cluster, tree } from "d3-hierarchy";
-import { scalelinear, eas } from "d3-scale";
+import { scaleLinear, eas } from "d3-scale";
 
 import { roundedrect } from "../utilities/support_funcs";
-import { removechildnodes, cleanexistingplot, htmltoelement } from "../utilities/html_templates";
+import { removeChildNodes, htmlToElement } from "../utilities/html_templates";
 import { css_colors } from "../utilities/colors";
 import { build_event } from "../utilities/support_funcs";
-import { parse_taxa_partitions } from "../components/bipartition_data.js";
-import { get_root } from "./phylogram_page.js";
-import { newick_parse } from "tree_data_parsing"
-
-const getEvent = () => event; // This is necessary when using webpack >> https://github.com/d3/d3-zoom/issues/32
-const d3 = Object.assign(
-    {
-        mean,
-        max,
-        select,
-        event,
-        getEvent,
-        scaleQuantize,
-        forceSimulation, forceCollide, forceManyBody, forceLink, forceX, forceY, forceCenter,
-        drag,
-        hierarchy,
-        ascending,
-        scaleLinear,
-        create
-    }
-);
+import { newick_parse } from "../components/tree_data_parsing"
+import { PhylogramPlot } from "../components/phylogram_plot.js"
+import { CovariancePlot } from "../components/covariance_plot.js"
 
 class CovariancePage {
 
@@ -80,7 +61,13 @@ class CovariancePage {
         return arr;
     }
 
-    build_publish_button() {
+    static build_publish_button() {
+        let pcc = document.getElementById('plot-controls');
+        pcc.append(htmlToElement(`<div class="field has-addons">
+        <div class="control">
+            <button id="publish-graph" class="button is-info">Publish Graph</button>
+        </div>`));
+
         // Downloads a PNG displaying both phylogram and covariance network side-by-side as they are shown.
         document.getElementById("publish-graph").addEventListener("click", () => {
             let combined_canvas = document.createElement('canvas');
@@ -99,11 +86,6 @@ class CovariancePage {
             download_link.download = 'covariance_plot.png';
             download_link.click();
         });
-
-        pcc.append(htmlToElement(`<div class="field has-addons">
-        <div class="control">
-            <button id="publish-graph" class="button is-info">Publish Graph</button>
-        </div>`));
 
     }
 
@@ -138,21 +120,207 @@ class CovariancePage {
         }));
     }
 
+    build_mouseover_action(covariance_canvas, phylogram_canvas) {
+
+        // Called when user moves their mouse over the canvas. This allows for the inspecting and selecting
+        // of specific bipartitions in the network.
+        // DEV Commented out at this stage of development
+        covariance_canvas.addEventListener("mousemove", function(e) {
+
+            // Get coordinates of the canvas element in the browser page.
+            let canvas_rect = covariance_canvas.getBoundingClientRect();
+
+            // This represents the X and Y in relation to the canvas element.
+            let x = e.clientX - canvas_rect.left, y = e.clientY - canvas_rect.top;
+
+            // Will be set to a bipartition that is found to be under the user's mouse.
+            let found_bipartition = null;
+
+            // Iterate through each node.
+            for (const d of graph_data.nodes) {
+
+                // Find distance between user's mouse and center of the node.
+                let dist = Math.sqrt(Math.pow(x - d.x, 2) + Math.pow(y - d.y, 2));
+
+                // If that distance is less than the node radius, the user's mouse is found to be within the node drawing,
+                // Use the slightly larger highlighted radius for an extra margin in which the node becomes highlighted.
+                //if (dist < highlight_cov_node_r) {
+                if (dist < highlight_cov_node_r) {
+
+                    // Get the set of taxa representing the moused over bipartition.
+                    let bipartition_set = new Set(parsed_bipartition_taxa[plot_element.id]);
+
+                    // Iterate through links in the phylogram
+                    for (const t of tree_links) {
+
+                        // For each phylogram link, representing a bipartition, find the associated taxa.
+                        let leaf_names = [];
+                        for (const leaf of t.link.target.leaves()) {
+                            leaf_names.push(leaf.data.name);
+                        }
+                        let leaves_set = new Set(leaf_names);
+
+                        // If the taxa both from the covariance network bipartition (node), and the phylogram bipartition (link) are equal
+                        // they are the same bipartition. Select the found link as the current_link, which means it will be highlighted.
+                        if (set_equality(leaves_set, bipartition_set)) {
+                            current_link = t;
+                        }
+                    }
+
+                    // Node the bipartition we found under the mouse and break.
+                    found_bipartition = d.id;
+                    break;
+                }
+            }
+
+            // If we found a bipartition under the mouse, set the current_bipartition, redraw both phylogram and covariance network, and the tooltip.
+            if (found_bipartition !== null) {
+                if (current_bipartition !== found_bipartition) {
+                    current_bipartition = found_bipartition;
+                }
+                draw_covariance();
+                draw_phylogram();
+                tooltip = {
+                    ctx: ctx,
+                    x: x,
+                    y: y,
+                    text: `Bipartition ${found_bipartition}`
+                };
+                draw_tooltip();
+
+            // If we found nothing, and there was in the previous mouseover event a bipartition under the mouse (the mouse is moving out of a node),
+            // clear tooltip, current link and bipartition, and redraw visualization.
+            } else {
+                tooltip = null;
+                if (current_bipartition !== null) {
+                    current_link = null;
+                    current_bipartition = null;
+                    draw_covariance();
+                    draw_phylogram();
+                }
+            }
+        });
+
+        // When a bipartition node is clicked, its added to the list of selected bipartitions and both it and its corresponding bipartition in phylogram (if it
+        // exists) are highlighted until another node is selected. Holding shift allows for the selection, and deselecting, of multiple nodes.
+        covariance_canvas.addEventListener("click", function(e) {
+            if (current_bipartition != null) {
+                if (!selected_bipartitions.includes(current_bipartition)){
+                    if (e.shiftKey) {
+                        selected_bipartitions.push(current_bipartition);
+                        selected_links.push(current_link);
+                    } else {
+                        selected_bipartitions = [current_bipartition];
+                        selected_links = [current_link];
+                    }
+                } else {
+                    selected_bipartitions = selected_bipartitions.filter(b => b != current_bipartition);
+                    selected_links = selected_links.filter(b => b != current_link);
+                }
+            }
+        });
+        
+        phylogram_canvasaddEventListener("mousemove", function(e) {
+            let event_date = Date.now()
+            let canvas_rect = phylogram_canvasgetBoundingClientRect();
+            let x = e.clientX- canvas_rect.left, y = e.clientY- canvas_rect.top;
+            let found_link = null;
+            for (const t of tree_links) {
+               let on_link = false;
+
+               this.create_empty_line(ctx, t.scaled_coord.source.x, t.scaled_coord.source.y, t.scaled_coord.source.x, t.scaled_coord.target.y);
+               if (ctx.isPointInStroke(x, y) && t.link.target.children !== undefined) {
+                   on_link = true;
+               }
+
+               this.create_empty_line(ctx, t.scaled_coord.source.x, t.scaled_coord.target.y, t.scaled_coord.target.x, t.scaled_coord.target.y);
+               if (ctx.isPointInStroke(x, y) && t.link.target.children !== undefined) {
+                   on_link = true;
+               }
+
+               if (on_link) {
+                    let leaf_names = [];
+                    for (const leaf of t.link.target.leaves()) {
+                        leaf_names.push(leaf.data.name);
+                    }
+                    let leaves_set = new Set(leaf_names);
+                    for (const [bipartition_num, bipartition_leaves] of Object.entries(parsed_bipartition_taxa)) {
+                        let bipartition_set = new Set(bipartition_leaves);
+                        if (set_equality(leaves_set, bipartition_set)) {
+                            this.current_bipartition = bipartition_num;
+                        }
+                    }
+                    found_link = t;
+                    break;
+               }
+            }
+
+            if (found_link !== null) {
+                if (current_link !== found_link) {
+                    current_link = found_link;
+                }
+                redraw_full_cov_graph();
+                draw_phylogram();
+                if (this.current_bipartition !== null) {
+                    tooltip = {
+                        ctx: ctx,
+                        x: x,
+                        y: y,
+                        text: `Bipartition ${this.current_bipartition}`
+                    };
+                    draw_tooltip();
+                }
+            } else {
+                tooltip = null;
+                if (current_link !== null) {
+                    current_link = null;
+                    this.current_bipartition = null;
+                    redraw_full_cov_graph();
+                    draw_phylogram();
+                }
+            }
+        });
+
+        // This function is similar to the mousemove event for the covariance network in this same file.
+        phylogram_canvasaddEventListener("click", function(e) {
+            if (current_link != null) {
+                if (!selected_links.includes(current_link)){
+                    if (e.shiftKey) {
+                        selected_links.push(current_link);
+                        if (this.current_bipartition != null) {
+                            selected_bipartitions.push(this.current_bipartition);
+                        }
+                    } else {
+                        selected_links = [current_link];
+                        if (this.current_bipartition != null) {
+                            selected_bipartitions = [this.current_bipartition];
+                        }
+                    }
+                } else {
+                    selected_links = selected_links.filter(b => b != current_link);
+                    if (this.current_bipartition != null) {
+                        selected_bipartitions = selected_bipartitions.filter(b => b != this.current_bipartition);
+                    }
+                }
+            }
+        });
+    }
+
     handle_file_contents_event(e) {
         if (e.detail.guid === this.guid) {
     
-            let covariance_plot = new CovariancePlot('cov-plot', 'plot-controls, plot-metadata');
-            let phylogram_plot = new PhylogramPlot('tree-plot', 'plot-controls, plot-metadata');
+            let covariance_plot = new CovariancePlot('cov-plot', 'plot-controls', 'plot-metadata');
+            let phylogram_plot = new PhylogramPlot('tree-plot', 'plot-controls', 'plot-metadata');
     
             // Parse files
             e.detail.contents.forEach(file => {
                 if (/^Covariance Matrix/.test(file.fileName)) {
                     let arr = file.data.split('\n');
-                    covariance_plot.parse_covariance(this.clean_data(file.data));
+                    covariance_plot.parse_covariance(CovariancePage.clean_data(file.data));
                 }
     
                 if (/^Bipartition Matrix/.test(file.fileName)) {
-                    covariance_plot.parse_bipartition_cov(this.clean_data(file.data));
+                    covariance_plot.parse_bipartition_cov(CovariancePage.clean_data(file.data));
                 }
     
                 if (/^Taxa IDs/.test(file.fileName)) {
@@ -160,7 +328,7 @@ class CovariancePage {
                 }
     
                 if (/^Bipartition Counts/.test(file.fileName)) {
-                    covariance_plot.parse_taxa_partitions(this.clean_data(file.data));
+                    covariance_plot.parse_taxa_partitions(CovariancePage.clean_data(file.data));
                 }
     
                 if (/cloudforest.trees/.test(file.fileExt)) {
@@ -184,10 +352,12 @@ class CovariancePage {
 
             phylogram_plot.build_controls();
             covariance_plot.build_controls();
-            this.build_publish_button();
+            CovariancePage.build_publish_button();
     
             phylogram_plot.draw();
             covariance_plot.draw();
+            // DEV
+            //build_mouseover_action();
         }
     }
 

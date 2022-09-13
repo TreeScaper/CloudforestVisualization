@@ -7,8 +7,10 @@ import { hierarchy, cluster, tree } from "d3-hierarchy";
 import { create, select } from "d3-selection";
 import { ascending } from "d3-array";
 import { scaleLinear, eas } from "d3-scale";
-import { htmlToElement } from "../utilities/html_templates";
+import { removeChildNodes, htmlToElement } from "../utilities/html_templates";
 import { build_event } from "../utilities/support_funcs";
+import { PhylogramPlot } from "../components/phylogram_plot.js"
+import { CovariancePlot } from "../components/covariance_plot.js"
 
 const d3 = Object.assign(
     {},
@@ -27,9 +29,9 @@ class PhylogramPage {
 
         addEventListener("TreeFileContents", e => {
             if (e.detail.guid === this.guid) {
-                e.detail.contents.forEach(item => {
+                e.detail.contents.forEach(file => {
 
-                    let phylogram_plot = new PhylogramPlot('tree-plot', 'plot-controls, plot-metadata');
+                    let phylogram_plot = new PhylogramPlot('tree-plot', 'plot-controls', 'plot-metadata');
 
                     // Create tree-plot div if it does not exist
                     if (!document.getElementById("tree-plot")) {
@@ -45,6 +47,7 @@ class PhylogramPage {
                     removeChildNodes("plot-controls");
                     removeChildNodes("plot-metadata");
 
+                    phylogram_plot.build_controls();
                     phylogram_plot.draw();
                 })
     

@@ -4,9 +4,9 @@ import { data_manager_init } from "./modules/data_manager";
 
 // Import primary plotting modules
 import { nldr_page_init } from "./modules/pages/nldr_page";
-import { covariance_page_init } from "./modules/pages/covariance_page";
+import { CovariancePage } from "./modules/pages/covariance_page";
 import { community_detection_page_init } from "./modules/pages/community_detection_page";
-import { phylogram_page_init } from "./modules/pages/phylogram_page";
+import { PhylogramPage } from "./modules/pages/phylogram_page";
 import { affinity_chord_page_init } from "./modules/pages/affinity_chord_page";
 
 import { page_mgr_init } from "./modules/page_manager";

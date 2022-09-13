@@ -64,6 +64,7 @@ const set_background = function(canvas_id) {
 }
 
 export {
+    set_background,
     set_equality,
     roundedRect,
     build_event
