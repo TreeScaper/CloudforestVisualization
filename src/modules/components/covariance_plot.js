@@ -62,11 +62,15 @@ class CovariancePlot extends CloudForestPlot {
     // Representation of covariance network
     filtered_adjacency_list = undefined;
 
+    selected_bipartitions = [];
+    current_bipartition = null;
+
     // Number of trees for phylogram
     num_trees = 0;
 
     constructor(plot, controls, metadata) {
         super(plot, controls, metadata);
+
         this.graph_data = new GraphData();
 
         // Scale for calculating width of covariance network link on canvas.
@@ -83,7 +87,7 @@ class CovariancePlot extends CloudForestPlot {
      */
     parse_covariance(m) {
         m.forEach((arr, idx) => {
-    
+
             //Removing superflous empty value at end of each array
             arr.filter(v => v.length > 1).forEach((val, i) => {
                 if (i != idx) {
@@ -117,7 +121,7 @@ class CovariancePlot extends CloudForestPlot {
             }
             b[bp_name].push(r[1]);
         });
-    
+
         Object.keys(b).forEach(k => {
             let o = {
                 "id": k,
@@ -180,7 +184,7 @@ class CovariancePlot extends CloudForestPlot {
         document.getElementById("link-strength").addEventListener("input", event => {
             let thresh = Number(document.getElementById("link-strength").value);
             this.update_links(thresh);
-            this.draw_covariance();
+            this.update();
         });
     }
 
@@ -206,9 +210,8 @@ class CovariancePlot extends CloudForestPlot {
         elm.innerHTML = e_string;
     }
 
-    // DEV
-    is_highlighted_bipartition(id) {
-        return false;
+    is_highlighted_bipartition = function(b) {
+        return (b == this.current_bipartition || this.selected_bipartitions.includes(b));
     }
 
     /**
@@ -225,8 +228,8 @@ class CovariancePlot extends CloudForestPlot {
         ctx.fillStyle = this.set_fillstyle(d);
         ctx.fill();
     }
-    
-    
+
+
     /**
      * Sets alpha for covariance network link in proportion to its relation to the maximum magnitude for all links.
      *
@@ -236,7 +239,7 @@ class CovariancePlot extends CloudForestPlot {
         let alpha = 1 - ((this.max_covariance - Math.abs(l.value)) / this.max_covariance);
         return alpha;
     }
-    
+
     /**
      * Sets alpha for covariance network node in proportion to the frequency of its occurence in the corresponding tree set.
      *
@@ -254,20 +257,19 @@ class CovariancePlot extends CloudForestPlot {
             return alpha_pct;
         }
     }
-    
+
     /**
      * Sets color for covariance network node.
      *
      * @param {Object} d Node object
      */
     set_fillstyle(d) {
-    
+
         // Neon green if highlighted.
-        // DEV
-        //if (is_highlighted_bipartition(d.id)) {
-        //    return "rgba(57, 255, 20, 1)";
-        //}
-    
+        if (this.is_highlighted_bipartition(d.id)) {
+            return "rgba(57, 255, 20, 1)";
+        }
+
         // If we have corresponding CD data, use those colors.
         if (this.cd_groups) {
             try {
@@ -308,7 +310,7 @@ class CovariancePlot extends CloudForestPlot {
      *
      * DEV renamed from redraw_full_cov_graph
      */
-    draw_covariance() {
+    update() {
             let ctx = this.canvas.getContext('2d');
             ctx.beginPath();
             ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
@@ -334,8 +336,8 @@ class CovariancePlot extends CloudForestPlot {
             this.filtered_adjacency_list[l.source.id].push({ id: l.target.id, covariance: l.value });
         });
     }
-    
-    
+
+
     /*
      * Populates graph_data.displayed_links by selecting only links above a certain threshold.
      * These are the links that are actually drawn on the visualization. The user may adjust this threshold
@@ -369,7 +371,7 @@ class CovariancePlot extends CloudForestPlot {
         this.canvas = document.createElement('canvas');
 
         // Set canvas attributes
-        this.canvas.setAttribute('id', this.canvas_plot_element_id)
+        this.canvas.setAttribute('id', CovariancePlot.canvas_plot_element_id)
         this.canvas.setAttribute("width", width);
         this.canvas.setAttribute("height", height);
 
@@ -381,7 +383,7 @@ class CovariancePlot extends CloudForestPlot {
         let plot_object = this;
         // Tick function that redraws the graph and tooltip
         let tick = function () {
-            plot_object.draw_covariance();
+            plot_object.update();
             // DEV
             //if (tooltip !== null) {
             //    this.draw_tooltip();
@@ -409,6 +411,7 @@ class CovariancePlot extends CloudForestPlot {
         // This populates the displayed_links field with only links above a certain threshold.
         this.update_links(50);
 
+        plot_object.update();
     }
 }
 
