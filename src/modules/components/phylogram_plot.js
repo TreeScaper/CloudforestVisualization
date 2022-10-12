@@ -414,7 +414,7 @@ class PhylogramPlot extends CloudForestPlot {
 
         let scale_x = d3.scaleLinear()
             .domain([0, max_distance])
-            .range([10, width - (.2 * width)]);
+            .range([5, width - (.3 * width)]);
         let scale_y = PhylogramPlot.y_node_spacing(root, height, width);
 
         root.leaves().forEach(n => {
