@@ -1,4 +1,4 @@
-import "./bulma.min.css";
+import "./app.css";
 
 import { data_manager_init } from "./modules/data_manager";
 

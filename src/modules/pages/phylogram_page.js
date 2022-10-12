@@ -29,14 +29,19 @@ class PhylogramPage {
 
         addEventListener("TreeFileContents", e => {
             if (e.detail.guid === this.guid) {
+
+                // DEV This code shouldn't be in a forEach, but it's
+                // always just one file.
                 e.detail.contents.forEach(file => {
 
-                    let phylogram_plot = new PhylogramPlot('tree-plot', 'plot-controls', 'plot-metadata');
-
-                    // Create tree-plot div if it does not exist
-                    if (!document.getElementById("tree-plot")) {
-                        document.getElementById("plot").append(htmlToElement(`<div id="tree-plot" style="vertical-align: top; width: 50%; margin: 0px; padding-right: 0px; font-size:0; border: 0px; display:inline-block; overflow: visible"/>`));
+                    let plot_element = document.getElementById('plot');
+                    while (plot_element.firstChild) {
+                        plot_element.removeChild(plot_element.firstChild);
                     }
+
+                    plot_element.append(htmlToElement(`<div id="tree-plot" style="vertical-align: top; width: 50%; margin: 0px; padding-right: 0px; font-size:0; border: 0px; display:inline-block; overflow: visible"/>`));
+
+                    let phylogram_plot = new PhylogramPlot('tree-plot', 'plot-controls', 'plot-metadata');
 
                     // DEV
                     //if (/consensus tree/i.test(item.fileName)) {
@@ -50,11 +55,11 @@ class PhylogramPage {
                     phylogram_plot.build_controls();
                     phylogram_plot.draw();
                 })
-    
+
             }
         });
         addEventListener("TreePageRequest", e => {
-            dispatchEvent(build_event("TreeFileContentsRequest", { guid: this.guid, files: [e.detail.file_id] }));
+            dispatchEvent(build_event("TreeFileContentsRequest", { guid: this.guid, files: Object.entries(e.detail.file_ids).map(entry => entry[1]) }));
         });
     }
 }

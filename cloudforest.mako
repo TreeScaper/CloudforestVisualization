@@ -9,7 +9,7 @@
 </head>
 
 <body style="display: none;">
-    <div class="section">
+    <div class="section pb-0">
         <div class="container">
             <nav class="navbar is-spaced is-light" role="navigation" aria-label="main navigation">
                 <div class="navbar-brand">
@@ -31,14 +31,14 @@
         </div>
     </div>
 
-    <div class="section">
+    <div class="section pt-0">
         <div class="container">
             <div class="tile is-ancestor">
                 <div class="tile is-parent">
                     <div class="tile is-child box">
-                        <h5>Visualization</h5>
+                        <h4>Visualization</h4>
                         <div class="tile is-vertical is-parent">
-                            <div class="control">
+                                <div class="control">
                                 <div class="select">
                                     <div id ="viz-interface">
                                         <select id="visualization-select" class="is-small" disabled>
@@ -46,25 +46,25 @@
                                         </select>
                                     </div>
                                 </div>
-                            </div>
+                                </div>
                         </div>
                     </div>
                     <div class="tile is-child box">
-                        <h5>Files</h5>
-                        <div class="tile is-vertical is-parent">
-                            <div class="control">
+                        <h4>Files</h4>
+                        <div id="file-select-menu">
+                            <div id="file-select-item">
                                 <div class="select">
-                                    <div id ="file-select-menu">
-                                        <select id="file-select" class="is-small" disabled>
-                                            <option value="">--Please choose a file--</option>
-                                        </select>
-                                    </div>
+                                    <select class="is-small" disabled>
+                                        <option value="">--Please choose a file--</option>
+                                    </select>
                                 </div>
                             </div>
                         </div>
                     </div>
                 </div>
             </div><!-- END menu ancestor tile -->
+
+            <button class="button is-primary" id="run-visualization-button">Run</button>
             
             <div class="tile is-ancestor">
                 <div class="tile is-vertical is-parent">

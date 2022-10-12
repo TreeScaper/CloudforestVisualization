@@ -2,7 +2,7 @@ import { scaleQuantize } from "d3-scale";
 import { forceSimulation, forceCollide, forceManyBody, forceLink, forceX, forceY, forceCenter } from "d3-force";
 import { create, select } from "d3-selection";
 import { drag } from "d3-drag";
-import { mean, max, ascending } from "d3-array";
+import { mean, max, ascending, extent } from "d3-array";
 import { hierarchy, cluster, tree } from "d3-hierarchy";
 import { scaleLinear, eas } from "d3-scale";
 
@@ -19,6 +19,7 @@ const d3 = Object.assign(
         max,
         select,
         event,
+        extent,
         getEvent,
         drag,
         hierarchy,
@@ -50,14 +51,19 @@ class CovariancePlot extends CloudForestPlot {
     static canvas_plot_element_id = 'covariance-canvas';
 
     // Radius for covariance plot nodes
-    static cov_node_r = 5;
-    static highlight_cov_node_r = 7;
+    static cov_node_r = 12;
+    static highlight_cov_node_r = 14;
+    static cov_node_charge_force = -30;
 
+    node_radius_scale = undefined;
     max_covariance = 0;
     taxa_array = [];
     canvas = undefined;
     link_scale = undefined;
     cd_groups = undefined;
+    maximum_magnitude = undefined;
+    scale = 1;
+    simulation = undefined;
 
     // Representation of covariance network
     filtered_adjacency_list = undefined;
@@ -77,6 +83,8 @@ class CovariancePlot extends CloudForestPlot {
         this.link_scale = d3.scaleQuantize()
                 .domain([0, this.max_covariance])
                 .range([.5, 2, 5, 10]);
+
+        this.C2S = require('canvas2svg');
     }
 
     /**
@@ -132,6 +140,10 @@ class CovariancePlot extends CloudForestPlot {
                 this.num_trees = b[k].length;
             }
         });
+
+         this.node_radius_scale = d3.scaleLinear()
+        .domain(d3.extent(this.graph_data.nodes, d => d.num_trees))
+        .range([CovariancePlot.cov_node_r / 1.8, CovariancePlot.cov_node_r]);
     }
 
     /**
@@ -174,18 +186,80 @@ class CovariancePlot extends CloudForestPlot {
 
     build_controls() {
         let pcc = document.getElementById(this.controls);
-        pcc.append(htmlToElement(`<div class="field has-addons">
-            <h4>Remove Links Below&nbsp;</h4>
-            <div class="control">
-                <input type="number" id="link-strength" min="1" max="100" value="50" size="4"></input>
-            </div >
-            <h4>% of Maximum Magnitude</h4>
-            </div > `));
-        document.getElementById("link-strength").addEventListener("input", event => {
+
+        let field_div = document.createElement('div');
+        field_div.setAttribute('class', 'field has-addons');
+
+        let label = document.createElement('label');
+        label.setAttribute('for', 'link-strength');
+        label.textContent = 'Remove Links Below X% of Maximum: ';
+
+        let control_div = document.createElement('div');
+        control_div.setAttribute('class', 'control');
+
+        let link_strength_input = document.createElement('input');
+        link_strength_input.setAttribute('type', 'number');
+        link_strength_input.setAttribute('id', 'link-strength');
+        link_strength_input.setAttribute('min', 1);
+        link_strength_input.setAttribute('max', 100);
+        link_strength_input.setAttribute('value', 50);
+        link_strength_input.setAttribute('size', 4);
+
+        // Create slider for selecting tree to display.
+        let slider_input = document.createElement('input');
+        slider_input.setAttribute('type', 'range');
+        slider_input.setAttribute('id', 'link-strength-slider');
+        slider_input.setAttribute('min', 1);
+        slider_input.setAttribute('max', 100);
+        slider_input.setAttribute('value', 50);
+        slider_input.setAttribute('size', 4);
+        slider_input.setAttribute('step', 1);
+        slider_input.setAttribute('name', 'link-strength');
+
+        let space_buffer = document.createTextNode('\u00A0\u00A0');
+
+        control_div.append(link_strength_input, space_buffer, slider_input);
+
+        field_div.append(label, control_div)
+
+        pcc.append(field_div);
+
+        link_strength_input.addEventListener("input", event => {
             let thresh = Number(document.getElementById("link-strength").value);
+            document.getElementById("link-strength-slider").value = thresh;
+
             this.update_links(thresh);
             this.update();
         });
+
+        slider_input.addEventListener("input", event => {
+            let thresh = Number(document.getElementById("link-strength-slider").value);
+            document.getElementById("link-strength").value = thresh;
+
+            this.update_links(thresh);
+            this.update();
+        });
+
+        this.canvas.addEventListener('wheel', event => {
+
+            // DEV Only if focused
+            event.preventDefault();
+
+            let new_scale = this.scale + event.deltaY * .001;
+            if (new_scale < .2) {
+                this.scale = .2;
+            } else if (new_scale > 5) {
+                this.scale = 5;
+            } else {
+                this.scale = new_scale;
+            }
+
+            this.simulation.force('collision', d3.forceCollide(CovariancePlot.cov_node_r*this.scale));
+            this.simulation.force("link", d3.forceLink()
+                .id(function (d) { return d.id; }).distance(this.scale*this.canvas_width / 2).strength(d => d.value < -1*this.max_covariance*.01 ? this.scale*weight_scale(d.value) : 0));
+        });
+
+        this.update();
     }
 
     /**
@@ -221,12 +295,17 @@ class CovariancePlot extends CloudForestPlot {
      */
     drawNode(d, ctx) {
         ctx.beginPath();
-        ctx.moveTo(d.x, d.y);
-        let r = this.is_highlighted_bipartition(d.id) ? CovariancePlot.highlight_cov_node_r : CovariancePlot.cov_node_r;
+        //ctx.moveTo(d.x, d.y);
+        let default_r = this.scale*this.node_radius_scale(d.num_trees);
+        let r = this.is_highlighted_bipartition(d.id) ? default_r * 1.2 : default_r;
         ctx.arc(d.x, d.y, r, 0, Math.PI * 2);
         ctx.globalAlpha = this.set_node_alpha(d);
         ctx.fillStyle = this.set_fillstyle(d);
+        ctx.strokeStyle = 'black';
         ctx.fill();
+        ctx.globalAlpha = 1;
+        ctx.lineWidth = 1;
+        ctx.stroke();
     }
 
 
@@ -249,7 +328,7 @@ class CovariancePlot extends CloudForestPlot {
         if (this.is_highlighted_bipartition(d.id)) {
             return 1.0;
         }
-        let alpha_pct = (d.num_trees / this.num_trees);
+        let alpha_pct = .25 + .5*(d.num_trees / this.num_trees);
         if (alpha_pct < 0.1) { alpha_pct = 0.1 };
         if (this.cd_groups) {
             return 1.0;
@@ -314,13 +393,24 @@ class CovariancePlot extends CloudForestPlot {
             let ctx = this.canvas.getContext('2d');
             ctx.beginPath();
             ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
-            set_background('covariance-canvas');
+            set_background(ctx, this.canvas.width, this.canvas.height);
             ctx.globalAlpha = 1.0;
+
+
+            // Create brand new dummy_ctx
+            this.dummy_ctx = C2S(this.canvas.width, this.canvas.height);
+            this.dummy_ctx.beginPath();
+            this.dummy_ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
+            set_background(this.dummy_ctx, this.canvas.width, this.canvas.height);
+            this.dummy_ctx.globalAlpha = 1.0;
+
             for (const l of this.graph_data.displayed_links) {
                 this.drawLink(l, ctx);
+                this.drawLink(l, this.dummy_ctx);
             }
             for (const l of this.graph_data.nodes) {
                 this.drawNode(l, ctx);
+                this.drawNode(l, this.dummy_ctx);
             }
     }
 
@@ -364,7 +454,8 @@ class CovariancePlot extends CloudForestPlot {
         removeChildNodes(this.plot);
 
         let doc_width = document.getElementById(this.plot).clientWidth;
-        let width = Math.floor((doc_width - (.15 * doc_width)) / 100) * 100;
+        //let width = Math.floor((doc_width - (.02 * doc_width)) / 100) * 100;
+        let width = doc_width;
         let height = width;
 
         // Create new canvas
@@ -378,35 +469,78 @@ class CovariancePlot extends CloudForestPlot {
         // Add canvas to document
         document.getElementById(this.plot).append(this.canvas);
 
+        // Create dummy canvas context
+        let C2S = require('canvas2svg');
+        this.dummy_ctx = C2S(width, height);
+
         let ctx = this.canvas.getContext('2d');
 
         let plot_object = this;
         // Tick function that redraws the graph and tooltip
         let tick = function () {
+            // Create bounds
+            for (const d of plot_object.graph_data.nodes) {
+                let radius = plot_object.scale * CovariancePlot.cov_node_r;
+                d.x = Math.max(radius, Math.min(width - radius, d.x));
+                d.y = Math.max(radius, Math.min(height- radius, d.y));
+            }
             plot_object.update();
-            // DEV
-            //if (tooltip !== null) {
-            //    this.draw_tooltip();
-            //}
         };
 
+         let weight_scale = d3.scaleLinear()
+        .domain(d3.extent(this.graph_data.all_links, d => d.value))
+        .range([1.5, 0]);
+
         // d3 library that simulates forces acting between and on the graph nodes
-        let simulation = d3.forceSimulation(this.graph_data.nodes)
-            .force('center', d3.forceCenter(width / 2, height / 2))
-            .force("x", d3.forceX(width / 2))
-            .force("y", d3.forceY(height / 2))
-            .force("charge", d3.forceManyBody().strength(-20))
+        this.simulation = d3.forceSimulation(this.graph_data.nodes)
+            .force('center', d3.forceCenter(width / 2, height / 2).strength(1))
+            .force('collision', d3.forceCollide(CovariancePlot.cov_node_r))
+            .force("gravity", d3.forceManyBody().strength(2))
             .force("link", d3.forceLink()
-                .id(function (d) { return d.id; }).distance(width / 3));
+                .id(function (d) { return d.id; }).distance(width / 2).strength(d => d.value < -1*this.max_covariance*.01 ? weight_scale(d.value) : 0));
 
         // Assign our function to the simulation tick
-        simulation.on("tick", () => {
+        this.simulation.on("tick", () => {
             tick();
         });
 
         // Add links to simulation
-        simulation.force("link")
+        this.simulation.force("link")
             .links(this.graph_data.all_links);
+
+        let subject = undefined;
+
+        let dragstarted = function () {
+            if (!d3.getEvent().active) this.simulation.alphaTarget(0.3).restart();
+            subject = this.simulation.find(d3.getEvent().offsetX, d3.getEvent().offsetY);
+            subject.fx = subject.x;
+            subject.fy = subject.y;
+        }.bind(this);
+
+        let dragged = function () {
+            //subject = simulation.find(d3.getEvent().offsetX, d3.getEvent().offsetY);
+            subject.fx = d3.getEvent().offsetX;
+            subject.fy = d3.getEvent().offsetY;
+        }.bind(this);
+
+        let dragended = async function () {
+            // DEV Why is setting the subject initially not working?
+            subject = this.simulation.find(d3.getEvent().offsetX, d3.getEvent().offsetY);
+            if (!d3.getEvent().active) this.simulation.alphaTarget(0);
+            subject.fx = null;
+            subject.fy = null;
+            //simulation.stop();
+            //await new Promise(r => setTimeout(r, 1000));
+            //simulation.restart();
+        }.bind(this);
+
+        // DEV Figure out drag
+        d3.select(this.canvas)
+            .call(d3.drag()
+                .container(this.canvas)
+                .on("start", dragstarted)
+                .on("drag", dragged)
+                .on("end", dragended));
 
         // This populates the displayed_links field with only links above a certain threshold.
         this.update_links(50);

@@ -189,7 +189,7 @@ const parse_galaxy_history = function (href, history_id) {
 const file_identifiers = function () {
     let r_val = [];
     file_objects.forEach(f_obj => {
-        r_val.push({ name: f_obj.name, id: f_obj.dataset_id, extension: f_obj.extension });
+        r_val.push({ name: f_obj.name, id: f_obj.dataset_id, extension: f_obj.extension, hid: f_obj.hid });
     });
     return r_val;
 };

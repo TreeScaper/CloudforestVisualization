@@ -51,16 +51,11 @@ const set_equality = function(a, b) {
  *
  * @param {string} canvas_id ID of the canvas element
  */
-const set_background = function(canvas_id) {
-    let canvas = document.getElementById(canvas_id);
-    let ctx = undefined;
-    if (canvas != null) {
-        ctx = canvas.getContext('2d');
-        //ctx.globalCompositeOperation = 'destination-over'
-        ctx.fillStyle = "white";
-        ctx.globalAlpha = 1.0;
-        ctx.fillRect(0, 0, canvas.width, canvas.height);
-    }
+const set_background = function(ctx, width, height) {
+    //ctx.globalCompositeOperation = 'destination-over'
+    ctx.fillStyle = "white";
+    ctx.globalAlpha = 1.0;
+    ctx.fillRect(0, 0, width, height);
 }
 
 export {

@@ -1,5 +1,28 @@
+@import "https://cdn.jsdelivr.net/npm/bulma@0.9.4/css/bulma.min.css";
+
 .hidden {
     display: none;
+}
+
+.file-select-label {
+    float: left;
+}
+
+.file-select-div {
+    float: right;
+}
+
+
+li {
+    padding-left: 10px;
+    list-style-type: circle;
+    list-style-position: inside;
+}
+
+/* Make this more specific to the file-select table */
+td {
+  padding-left: 20px;
+  padding-right: 20px;
 }
 
 div.tooltip {	
@@ -22,4 +45,12 @@ div.tooltip {
 #dim-scatter-plot {
     display: inline-block;
     vertical-align: top;
+}
+
+#boottree-slider {
+    width: 60em;
+}
+
+#bipartition-list {
+    margin-top: 20px;
 }

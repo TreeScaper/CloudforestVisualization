@@ -14,10 +14,11 @@ import { CloudForestPlot } from "./cloudforest_plot.js";
 class PhylogramPlot extends CloudForestPlot {
 
     static slider_element_id = 'boottree-slider';
+    static tree_num_element_id = 'boottree-number';
     static canvas_plot_element_id = 'tree-canvas';
-    static tree_number_element_id = 'boottree-number';
     // Default color for lines in phylogram.
-    static default_link_style = `rgba(128, 128, 128, 1)`;
+    static default_link_style = 'rgba(128, 128, 128, 1)';
+    static highlight_link_style = 'rgba(57, 255, 20, 1)';
 
     // Radius for tree nodes
     static tree_node_r = 5;
@@ -26,6 +27,7 @@ class PhylogramPlot extends CloudForestPlot {
     canvas = undefined;
     scale_x = undefined;
     scale_y = undefined;
+    tree_number = 1;
 
     // Links in phylogram
     tree_links = [];
@@ -44,7 +46,9 @@ class PhylogramPlot extends CloudForestPlot {
         let doc_width = document.getElementById(this.plot).clientWidth;
 
         // Create a square canvas with fractional width and height
-        let width = Math.floor((doc_width - (.15 * doc_width)) / 100) * 100;
+        let width = doc_width;
+        //let width = Math.floor((doc_width - (.02 * doc_width)) / 100) * 100;
+        //let width = Math.floor((doc_width - (.15 * doc_width)) / 100) * 100;
         let height = width;
 
         // Create new canvas
@@ -54,6 +58,10 @@ class PhylogramPlot extends CloudForestPlot {
         this.canvas.setAttribute('id', PhylogramPlot.canvas_plot_element_id)
         this.canvas.setAttribute("width", width);
         this.canvas.setAttribute("height", height);
+
+        // Create dummy canvas context
+        let C2S = require('canvas2svg');
+        this.dummy_ctx = C2S(width, height);
     }
 
     parse_boottree_data(d) {
@@ -62,12 +70,58 @@ class PhylogramPlot extends CloudForestPlot {
 
     build_controls() {
         let pcc = document.getElementById(this.controls);
-        // Create slider for selecting tree to display
-        pcc.append(htmlToElement(`
-        <div class="field"><div class="control"><label for="${PhylogramPlot.slider_element_id}">Tree Number: <span id="${PhylogramPlot.tree_number_element_id}">1</span></label>
-        <input type="range" id="${PhylogramPlot.slider_element_id}" name="boottree"
-        min="1" max="${this.boottree_data.length - 1}" step="1" value="1" style="width: 60em;">
-            </div></div>`));
+
+        // Create slider for selecting tree to display.
+        let slider_input = document.createElement('input');
+        slider_input.setAttribute('type', 'range');
+        slider_input.setAttribute('id', PhylogramPlot.slider_element_id);
+        slider_input.setAttribute('min', 1);
+        slider_input.setAttribute('max', this.boottree_data.length - 1);
+        slider_input.setAttribute('value', 1);
+        slider_input.setAttribute('size', 4);
+        slider_input.setAttribute('step', 1);
+        slider_input.setAttribute('name', 'boottree');
+
+        // Create corresponding number input.
+        let tree_number_input = document.createElement('input');
+        tree_number_input.setAttribute('type', 'number');
+        tree_number_input.setAttribute('id', PhylogramPlot.tree_num_element_id);
+        tree_number_input.setAttribute('min', 1);
+        tree_number_input.setAttribute('max', this.boottree_data.length - 1);
+        tree_number_input.setAttribute('value', 1);
+        tree_number_input.setAttribute('size', 4);
+
+        // <label for="${PhylogramPlot.slider_element_id}">Tree Number: <span id="${PhylogramPlot.tree_number_element_id}">1</span></label>
+        let label = document.createElement('label');
+        label.setAttribute('for', PhylogramPlot.tree_num_element_id);
+        label.textContent = 'Tree Number:';
+
+        let space_buffer = document.createTextNode('\u00A0\u00A0');
+
+        let control_div = document.createElement('div');
+        control_div.setAttribute('class', 'control');
+        control_div.append(label, tree_number_input, space_buffer, slider_input);
+
+        let field_div = document.createElement('div');
+        field_div.setAttribute('class', 'field');
+        field_div.append(control_div);
+
+        pcc.append(field_div);
+
+        // Add event handler for the tree number slide. Redraw the tree with draw_tree() each time it changes.
+        document.getElementById(PhylogramPlot.slider_element_id).addEventListener("input", () => {
+            this.tree_number = Number(document.getElementById(PhylogramPlot.slider_element_id).value);
+            document.getElementById(PhylogramPlot.tree_num_element_id).value = this.tree_number;
+
+            this.draw();
+        });
+
+        document.getElementById(PhylogramPlot.tree_num_element_id).addEventListener("input", () => {
+            this.tree_number = Number(document.getElementById(PhylogramPlot.tree_num_element_id).value);
+            document.getElementById(PhylogramPlot.slider_element_id).value = this.tree_number;
+
+            this.draw();
+        });
     }
 
 
@@ -77,38 +131,33 @@ class PhylogramPlot extends CloudForestPlot {
     update() {
         let ctx = this.canvas.getContext('2d');
         ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
-        set_background(PhylogramPlot.canvas_plot_element_id);
+        set_background(ctx, this.canvas.width, this.canvas.height);
+
+        this.dummy_ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
+        set_background(this.dummy_ctx, this.canvas.width, this.canvas.height);
 
         // Draw highlighted links as purple
         this.tree_links.forEach(t => {
             if (t == this.current_link || this.selected_links.includes(t)) {
-                this.draw_tree_link(ctx, t.scaled_coord.source.x, t.scaled_coord.source.y, t.scaled_coord.target.x, t.scaled_coord.target.y, 'purple', 3, 2);
+                this.draw_tree_link(ctx, t.scaled_coord.source.x, t.scaled_coord.source.y, t.scaled_coord.target.x, t.scaled_coord.target.y, PhylogramPlot.highlight_link_style, 4, 2);
+                this.draw_tree_link(this.dummy_ctx, t.scaled_coord.source.x, t.scaled_coord.source.y, t.scaled_coord.target.x, t.scaled_coord.target.y, PhylogramPlot.highlight_link_style, 4, 2);
+
             } else {
                 this.draw_tree_link(ctx, t.scaled_coord.source.x, t.scaled_coord.source.y, t.scaled_coord.target.x, t.scaled_coord.target.y);
+                this.draw_tree_link(this.dummy_ctx, t.scaled_coord.source.x, t.scaled_coord.source.y, t.scaled_coord.target.x, t.scaled_coord.target.y);
             }
         });
 
         // Leaves are drawn blue.
         this.tree_root.leaves().forEach(leaf => {
-            ctx.fillStyle = "blue";
-            ctx.beginPath();
-            ctx.arc(this.scale_x(leaf.x), this.scale_y(leaf.y), 5, 0, Math.PI * 2);
-            ctx.fill();
-            ctx.fillStyle = "black";
-            ctx.font = '10px sans-serif';
-            ctx.fillText(`${leaf.data.name} ${leaf.data.length.toPrecision(4)}`, this.scale_x(leaf.x) + 6, this.scale_y(leaf.y) + 2.5);
+            this.draw_node(ctx, leaf, true);
+            this.draw_node(this.dummy_ctx, leaf, true);
         });
 
-        // Left off here - keep going through this function.. from draw() on down call stack.
-
         // The remainding nodes are grey.
-        ctx.fillStyle = `rgba(128, 128, 128, .8)`;
         this.tree_root.descendants().forEach(node => {
-            if (node.height > 0) {
-                ctx.beginPath();
-                ctx.arc(this.scale_x(node.x), this.scale_y(node.y), 5, 0, Math.PI * 2);
-                ctx.fill();
-            }
+            this.draw_node(ctx, node);
+            this.draw_node(this.dummy_ctx, node);
         });
     }
 
@@ -117,15 +166,11 @@ class PhylogramPlot extends CloudForestPlot {
      * Create a fresh phylogram visualization. There is some redundancy between this and create_tree() in phylogram.js.
      */
     draw() {
-
-        // Get value of current tree
-        let tree_number = Number(document.getElementById(PhylogramPlot.slider_element_id).value);
-
-        // Display current tree value in interface
-        document.getElementById(PhylogramPlot.tree_number_element_id).textContent = tree_number;
+        // Remove child-nodes of cov-plot and recreate canvas as child
+        removeChildNodes(this.plot);
 
         // Get data for current tree
-        let tree_data = newick_parse(this.boottree_data[tree_number - 1]);
+        let tree_data = newick_parse(this.boottree_data[this.tree_number - 1]);
 
         let height = this.canvas.height;
         let width = this.canvas.width;
@@ -134,8 +179,8 @@ class PhylogramPlot extends CloudForestPlot {
         [this.scale_x, this.scale_y, this.tree_root] = PhylogramPlot.get_root(tree_data, height, width);
 
         // Create title with tree number
-        if (tree_number) {
-            document.getElementById(this.plot).append(htmlToElement(`<div><h3>Tree ${tree_number}</h3></div>`));
+        if (this.tree_number) {
+            document.getElementById(this.plot).append(htmlToElement(`<div><h3>Tree ${this.tree_number}</h3></div>`));
         }
 
         // Add canvas to document
@@ -145,9 +190,14 @@ class PhylogramPlot extends CloudForestPlot {
         let ctx = this.canvas.getContext('2d');
         ctx.fillStyle = "white";
         ctx.fillRect(0, 0, width, height);
+        ctx.lineWidth = 1.5;
+
+        // Dummy context is used for downloading SVG plots. Eventually will be consolidated.
+        this.dummy_ctx.fillStyle = "white";
+        this.dummy_ctx.fillRect(0, 0, width, height);
+        this.dummy_ctx.lineWidth = 1.5;
 
         // Draw links
-        ctx.lineWidth = 1.5;
         this.tree_links = [];
         this.tree_root.links().forEach(link => {
             let scaled_link = {
@@ -165,19 +215,29 @@ class PhylogramPlot extends CloudForestPlot {
 
         this.selected_links = [];
 
-        // This function is similar to the mousemove event for the covariance network in this same file.
-        // Commented out at this point in development. This will need to be abstracted out of phylogram_plot.
-        /*
-        */
-
-        // Add event handler for the tree number slide. Redraw the tree with draw_tree() each time it changes.
-        document.getElementById(PhylogramPlot.slider_element_id).addEventListener("input", () => {
-            this.draw();
-        });
-
         this.update();
 
         return this.canvas;
+    }
+
+    // DEV document
+    draw_node(ctx, node, is_leaf=false) {
+        if (is_leaf) {
+            ctx.fillStyle = "blue";
+            ctx.beginPath();
+            ctx.arc(this.scale_x(node.x), this.scale_y(node.y), 5, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.fillStyle = "black";
+            ctx.font = '10px sans-serif';
+            ctx.fillText(`${node.data.name} ${node.data.length.toPrecision(4)}`, this.scale_x(node.x) + 6, this.scale_y(node.y) + 2.5);
+        } else {
+            ctx.fillStyle = `rgba(128, 128, 128, .8)`;
+            if (node.height > 0) {
+                ctx.beginPath();
+                ctx.arc(this.scale_x(node.x), this.scale_y(node.y), 5, 0, Math.PI * 2);
+                ctx.fill();
+            }
+        }
     }
 
     /**

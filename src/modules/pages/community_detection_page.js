@@ -446,6 +446,38 @@ const plot_community_detection = function() {
     draw_graph(lambda_data);
 }
 
+const determine_default_cd_files = function(files) {
+    // Find which history item plateau file points to.
+    let plateau_file_regex = /CD Plateaus/i
+    let plateau_file_obj = files.filter(obj => plateau_file_regex.test(obj.name))[0];
+
+    if (plateau_file_obj == undefined) {
+        return undefined;
+    }
+
+    let plateau_history_item_string = plateau_file_obj.name.match(/data [0-9]+$/)[0];
+    let plateau_target_history_number = parseInt(plateau_history_item_string.match(/[0-9]+/));
+
+    // Find which history item the result of the above block points to.
+    let plateau_target_file_obj = files.filter(obj => obj.hid == plateau_target_history_number);
+    let plateau_target_history_item_string = plateau_target_file_obj[0].name.match(/data [0-9]+$/)[0];
+    let nldr_target_history_number = parseInt(plateau_target_history_item_string.match(/[0-9]+/));
+
+    // Find NLDR results pointing to the same history item as the above.
+    let nldr_regex = new RegExp(`NLDR Coordinates.*${nldr_target_history_number}$`);
+    let nldr_coordinate_file_obj = files.filter(obj => nldr_regex.test(obj.name))[0];
+
+    // Find CD Results pointing to same history item as Plateau file.
+    let cd_results_regex = new RegExp(`CD Results.*${plateau_target_history_number}$`);
+    let cd_results_file_obj = files.filter(obj => cd_results_regex.test(obj.name))[0];
+
+    return {
+        'plateaus': plateau_file_obj,
+        'nldr_coordinate_file': nldr_coordinate_file_obj,
+        'cd_results': cd_results_file_obj
+    }
+}
+
 
 /*
  * Initializes events for community detection plotting.
@@ -475,39 +507,12 @@ const community_detection_page_init = function (init_obj) {
         }
     });
 
-    addEventListener("CDFiles", e => {      
-        if (plateau_file) {
-            plot_community_detection();
-        } else {    
-            // Find which history item plateau file points to.
-            let plateau_file_obj = e.detail.files.filter(obj => obj.name == e.detail.selected_file);
-            let plateau_history_item_string = plateau_file_obj[0].name.match(/data [0-9]+$/)[0];
-            let plateau_target_history_number = parseInt(plateau_history_item_string.match(/[0-9]+/));
-
-            // Find which history item the result of the above block points to.
-            let plateau_target_file_obj = e.detail.files.filter(obj => obj.hid == plateau_target_history_number);
-            let plateau_target_history_item_string = plateau_target_file_obj[0].name.match(/data [0-9]+$/)[0];
-            let nldr_target_history_number = parseInt(plateau_target_history_item_string.match(/[0-9]+/));
-
-            // Find NLDR results pointing to the same history item as the above.
-            let nldr_regex = new RegExp(`NLDR Coordinates.*${nldr_target_history_number}$`);
-            let nldr_coordinate_file_obj = e.detail.files.filter(obj => nldr_regex.test(obj.name));
-
-            // Find CD Results pointing to same history item as Plateau file.
-            let cd_results_regex = new RegExp(`CD Results.*${plateau_target_history_number}$`);
-            let cd_results_file_obj = e.detail.files.filter(obj => cd_results_regex.test(obj.name));
-            
-            dispatchEvent(build_event("FileContentsRequest", {
-                guid: my_guid,
-                // Grab the latest of each filetype
-                files: [plateau_file_obj.pop().dataset_id, cd_results_file_obj.pop().dataset_id, nldr_coordinate_file_obj.pop().dataset_id]
-            }));
-        }
-    });
-
     addEventListener("CDPageRequest", e => {
-        dispatchEvent(build_event("CDFilesRequest", {guid: my_guid, selected_file: e.detail.file_name}));
+        dispatchEvent(build_event("FileContentsRequest", {
+            guid: my_guid,
+            files: Object.keys(e.detail.file_ids).map(k => e.detail.file_ids[k])
+        }));
     });
 }
 
-export { community_detection_page_init }
+export { community_detection_page_init, determine_default_cd_files }

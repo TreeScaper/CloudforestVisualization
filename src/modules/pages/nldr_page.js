@@ -110,7 +110,8 @@ const nldr_page_init = function (init_obj) {
     addEventListener("NLDRPageRequest", e => {
         dispatchEvent(build_event("FileContentsRequest", {
             guid: my_guid,
-            files: [e.detail.file_id]
+            // DEV make this more obvious
+            files: Object.entries(e.detail.file_ids).map(entry => entry[1])
         }));
     });
 
