@@ -244,6 +244,7 @@ class CovariancePage {
 
                     // Get the set of taxa representing the moused over bipartition.
                     let bipartition_set = new Set(this.parsed_bipartition_taxa[d.id]);
+                    let matching_link = null;
 
                     // Iterate through links in the phylogram
                     for (const t of phylogram_plot.tree_links) {
@@ -258,10 +259,14 @@ class CovariancePage {
                         // If the taxa both from the covariance network bipartition (node), and the phylogram bipartition (link) are equal
                         // they are the same bipartition. Select the found link as the phylogram_plot.current_link, which means it will be highlighted.
                         if (set_equality(leaves_set, bipartition_set)) {
-                            phylogram_plot.current_link = t;
+                            matching_link = t;
                         }
                     }
-
+                    if (matching_link !== null) {
+                        phylogram_plot.current_link = matching_link.bipartition_id;
+                    } else {
+                        phylogram_plot.current_link = null;
+                    }
                     // Node the bipartition we found under the mouse and break.
                     found_bipartition = d.id;
                     break;
@@ -376,8 +381,8 @@ class CovariancePage {
                 this.active_link = found_link;
 
                 // DEV Is this necessary anymore?
-                if (phylogram_plot.current_link !== found_link) {
-                    phylogram_plot.current_link = found_link;
+                if (phylogram_plot.current_link !== found_link.bipartition_id) {
+                    phylogram_plot.current_link = found_link.bipartition_id;
                 }
                 // DEV why this instead of draw()?
                 covariance_plot.update();
@@ -474,6 +479,8 @@ class CovariancePage {
             // Clear existing plot control and metadata and rebuild
             removeChildNodes("plot-controls");
             removeChildNodes("plot-metadata");
+
+            phylogram_plot.parsed_bipartition_taxa = this.parsed_bipartition_taxa;
 
             phylogram_plot.draw();
             covariance_plot.draw();

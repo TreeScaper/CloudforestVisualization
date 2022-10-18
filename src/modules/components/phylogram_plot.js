@@ -124,6 +124,36 @@ class PhylogramPlot extends CloudForestPlot {
         });
     }
 
+    create_covariance_map() {
+        if (this.parsed_bipartition_taxa === undefined) {
+            return;
+        }
+
+        let bipartition_taxa = structuredClone(this.parsed_bipartition_taxa);
+
+        // Iterate through links in the phylogram
+        for (const t of this.tree_links) {
+            for (const [k, v] of Object.entries(bipartition_taxa)) {
+                let bipartition_set = new Set(bipartition_taxa[k]);
+
+                // For each phylogram link, representing a bipartition, find the associated taxa.
+                let leaf_names = [];
+                for (const leaf of t.link.target.leaves()) {
+                    leaf_names.push(leaf.data.name);
+                }
+                let leaves_set = new Set(leaf_names);
+
+                // If the taxa both from the covariance network bipartition (node), and the phylogram bipartition (link) are equal
+                // they are the same bipartition. Select the found link as the phylogram_plot.current_link, which means it will be highlighted.
+                if (set_equality(leaves_set, bipartition_set)) {
+                    t.bipartition_id = k;
+                    //delete bipartition_taxa[k];
+                    break;
+                }
+            }
+        }
+    }
+
 
     /**
      * Redraws phylogram on existing tree-canvas element.
@@ -138,7 +168,7 @@ class PhylogramPlot extends CloudForestPlot {
 
         // Draw highlighted links as purple
         this.tree_links.forEach(t => {
-            if (t == this.current_link || this.selected_links.includes(t)) {
+            if (t.bipartition_id !== undefined && t.bipartition_id == this.current_link || this.selected_links.includes(t.bipartition_id)) {
                 this.draw_tree_link(ctx, t.scaled_coord.source.x, t.scaled_coord.source.y, t.scaled_coord.target.x, t.scaled_coord.target.y, PhylogramPlot.highlight_link_style, 4, 2);
                 this.draw_tree_link(this.dummy_ctx, t.scaled_coord.source.x, t.scaled_coord.source.y, t.scaled_coord.target.x, t.scaled_coord.target.y, PhylogramPlot.highlight_link_style, 4, 2);
 
@@ -213,7 +243,7 @@ class PhylogramPlot extends CloudForestPlot {
             this.tree_links.push({'link': link, 'scaled_coord': scaled_link});
         });
 
-        this.selected_links = [];
+        this.create_covariance_map();
 
         this.update();
 
