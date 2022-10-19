@@ -192,7 +192,7 @@ class CovariancePlot extends CloudForestPlot {
 
         let label = document.createElement('label');
         label.setAttribute('for', 'link-strength');
-        label.textContent = 'Remove Links Below X% of Maximum: ';
+        label.textContent = 'Remove links below X% of maximum: ';
 
         let control_div = document.createElement('div');
         control_div.setAttribute('class', 'control');

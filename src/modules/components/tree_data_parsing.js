@@ -7,7 +7,7 @@
 * https://github.com/jasondavies/newick.js
 * 
 */
-let newick_parse = function (s, translate_table = {}) {
+let newick_parse = function (s, normalize = false, translate_table = {}) {
     var ancestors = [];
     var tree = {};
     var tokens = s.split(/\s*(;|\(|\)|,|:)\s*/);
@@ -39,7 +39,11 @@ let newick_parse = function (s, translate_table = {}) {
                         tree.name = token;
                     }
                 } else if (x == ':') {
-                    tree.length = parseFloat(token);
+                    if (!normalize) {
+                        tree.length = parseFloat(token);
+                    } else {
+                        tree.length = 1;
+                    }
                 }
         }
     }
@@ -86,7 +90,7 @@ let nexus_parse = function (s) {
             tree_table.push(l.substr(l.indexOf('('), l.indexOf(';')));
         }
     });
-    let np = tree_table.map(v => newick_parse(v, translate_table));
+    let np = tree_table.map(v => newick_parse(v, false, translate_table));
     return np;
 };
 

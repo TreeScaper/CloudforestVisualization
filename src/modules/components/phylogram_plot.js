@@ -28,6 +28,7 @@ class PhylogramPlot extends CloudForestPlot {
     scale_x = undefined;
     scale_y = undefined;
     tree_number = 1;
+    normalized = false;
 
     // Links in phylogram
     tree_links = [];
@@ -94,7 +95,7 @@ class PhylogramPlot extends CloudForestPlot {
         // <label for="${PhylogramPlot.slider_element_id}">Tree Number: <span id="${PhylogramPlot.tree_number_element_id}">1</span></label>
         let label = document.createElement('label');
         label.setAttribute('for', PhylogramPlot.tree_num_element_id);
-        label.textContent = 'Tree Number:';
+        label.textContent = 'Tree number:';
 
         let space_buffer = document.createTextNode('\u00A0\u00A0');
 
@@ -122,6 +123,23 @@ class PhylogramPlot extends CloudForestPlot {
 
             this.draw();
         });
+
+        let branch_norm_label = document.createElement('label');
+        branch_norm_label.setAttribute('class', 'checkbox');
+
+        let branch_norm_checkbox = document.createElement('input');
+        branch_norm_checkbox.setAttribute('id', 'branch-norm-checkbox');
+        branch_norm_checkbox.setAttribute('type', 'checkbox');
+        branch_norm_label.append(branch_norm_checkbox);
+
+        let label_text = document.createTextNode(' Normalize branch lengths');
+        branch_norm_label.append(label_text);
+
+        branch_norm_checkbox.addEventListener('change', (e) => {
+            this.normalized = event.currentTarget.checked;
+            this.draw();
+        });
+        pcc.append(branch_norm_label);
     }
 
     create_covariance_map() {
@@ -183,12 +201,6 @@ class PhylogramPlot extends CloudForestPlot {
             this.draw_node(ctx, leaf, true);
             this.draw_node(this.dummy_ctx, leaf, true);
         });
-
-        // The remainding nodes are grey.
-        this.tree_root.descendants().forEach(node => {
-            this.draw_node(ctx, node);
-            this.draw_node(this.dummy_ctx, node);
-        });
     }
 
 
@@ -200,7 +212,7 @@ class PhylogramPlot extends CloudForestPlot {
         removeChildNodes(this.plot);
 
         // Get data for current tree
-        let tree_data = newick_parse(this.boottree_data[this.tree_number - 1]);
+        let tree_data = newick_parse(this.boottree_data[this.tree_number - 1], this.normalized);
 
         let height = this.canvas.height;
         let width = this.canvas.width;
@@ -259,7 +271,13 @@ class PhylogramPlot extends CloudForestPlot {
             ctx.fill();
             ctx.fillStyle = "black";
             ctx.font = '10px sans-serif';
-            ctx.fillText(`${node.data.name} ${node.data.length.toPrecision(4)}`, this.scale_x(node.x) + 6, this.scale_y(node.y) + 2.5);
+
+            if (this.normalized == true) {
+                ctx.fillText(`${node.data.name}`, this.scale_x(node.x) + 6, this.scale_y(node.y) + 2.5);
+            } else {
+                ctx.fillText(`${node.data.name} ${node.data.length.toPrecision(4)}`, this.scale_x(node.x) + 6, this.scale_y(node.y) + 2.5);
+            }
+
         } else {
             ctx.fillStyle = `rgba(128, 128, 128, .8)`;
             if (node.height > 0) {
@@ -301,32 +319,14 @@ class PhylogramPlot extends CloudForestPlot {
      * @param {number} erase_width Width of line drawn to erase an old line.
      */
     draw_single_line(ctx, source_x, source_y, target_x, target_y, style, width, erase_width=null) {
-
-        // Account for node radius
-        let adjusted_source_y = source_y;
-        let adjusted_target_y = target_y;
-        if (source_y < target_y) {
-            adjusted_source_y = source_y + PhylogramPlot.tree_node_r;
-        } else if (source_y > target_y) {
-            adjusted_source_y = source_y - PhylogramPlot.tree_node_r;
-        }
-
-        let adjusted_source_x = source_x;
-        let adjusted_target_x = target_x;
-        if (source_x < target_x) {
-            adjusted_target_x = target_x - PhylogramPlot.tree_node_r;
-        } else if (source_x > target_x) {
-            adjusted_target_x = target_x + PhylogramPlot.tree_node_r;
-        }
-
         // Eventually create a draw queue. For now we just erase old lines.
         if (erase_width !== null) {
             this.draw_single_line(ctx, source_x, source_y, target_x, target_y, 'white', erase_width);
         }
 
         ctx.beginPath();
-        ctx.moveTo(adjusted_source_x, adjusted_source_y);
-        ctx.lineTo(adjusted_target_x, adjusted_target_y);
+        ctx.moveTo(source_x, source_y);
+        ctx.lineTo(target_x, target_y);
         ctx.lineWidth = width;
         ctx.strokeStyle = style;
         ctx.stroke();
