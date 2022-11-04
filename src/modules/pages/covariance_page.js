@@ -254,38 +254,12 @@ class CovariancePage {
 
                 // If that distance is less than the node radius, the user's mouse is found to be within the node drawing,
                 // Use the slightly larger highlighted radius for an extra margin in which the node becomes highlighted.
-                //if (dist < highlight_cov_node_r) {
                 if (dist < CovariancePlot.highlight_cov_node_r) {
 
                     this.cov_mouse_active_x = d.x;
                     this.cov_mouse_active_y = d.y;
 
-                    // Get the set of taxa representing the moused over bipartition.
-                    let bipartition_set = new Set(this.parsed_bipartition_taxa[d.id]);
-                    let matching_link = null;
-
-                    // Iterate through links in the phylogram
-                    for (const t of phylogram_plot.tree_links) {
-
-                        // For each phylogram link, representing a bipartition, find the associated taxa.
-                        let leaf_names = [];
-                        for (const leaf of t.link.target.leaves()) {
-                            leaf_names.push(leaf.data.name);
-                        }
-                        let leaves_set = new Set(leaf_names);
-
-                        // If the taxa both from the covariance network bipartition (node), and the phylogram bipartition (link) are equal
-                        // they are the same bipartition. Select the found link as the phylogram_plot.current_link, which means it will be highlighted.
-                        if (set_equality(leaves_set, bipartition_set)) {
-                            matching_link = t;
-                        }
-                    }
-                    if (matching_link !== null) {
-                        phylogram_plot.current_link = matching_link.bipartition_id;
-                    } else {
-                        phylogram_plot.current_link = null;
-                    }
-                    // Node the bipartition we found under the mouse and break.
+                    // Note the bipartition we found under the mouse and break.
                     found_bipartition = d.id;
                     break;
                 }
@@ -295,6 +269,7 @@ class CovariancePage {
             if (found_bipartition !== null) {
                 if (covariance_plot.current_bipartition !== found_bipartition) {
                     covariance_plot.current_bipartition = found_bipartition;
+                    phylogram_plot.current_bipartition = found_bipartition;
                 }
                 covariance_plot.update();
                 phylogram_plot.update();
@@ -309,7 +284,7 @@ class CovariancePage {
             // clear tooltip, current link and bipartition, and redraw visualization.
             } else {
                 if (covariance_plot.current_bipartition !== null) {
-                    phylogram_plot.current_link = null;
+                    phylogram_plot.current_bipartition = null;
                     covariance_plot.current_bipartition = null;
                     covariance_plot.update();
                     phylogram_plot.update();
@@ -324,14 +299,14 @@ class CovariancePage {
                 if (!covariance_plot.selected_bipartitions.includes(covariance_plot.current_bipartition)){
                     if (e.shiftKey) {
                         covariance_plot.selected_bipartitions.push(covariance_plot.current_bipartition);
-                        phylogram_plot.selected_links.push(phylogram_plot.current_link);
+                        phylogram_plot.selected_bipartitions.push(phylogram_plot.current_bipartiton);
                     } else {
                         covariance_plot.selected_bipartitions = [covariance_plot.current_bipartition];
-                        phylogram_plot.selected_links = [phylogram_plot.current_link];
+                        phylogram_plot.selected_bipartitions = [phylogram_plot.current_bipartition];
                     }
                 } else {
                     covariance_plot.selected_bipartitions = covariance_plot.selected_bipartitions.filter(b => b != covariance_plot.current_bipartition);
-                    phylogram_plot.selected_links = phylogram_plot.selected_links.filter(b => b != phylogram_plot.current_link);
+                    phylogram_plot.selected_bipartitions = phylogram_plot.selected_bipartitions.filter(b => b != phylogram_plot.current_bipartition);
                 }
             redraw_info_pane();
             }
@@ -378,17 +353,6 @@ class CovariancePage {
                 let on_link = check_if_over_link(ctx, x, y, t);
 
                 if (on_link) {
-                    let leaf_names = [];
-                    for (const leaf of t.link.target.leaves()) {
-                        leaf_names.push(leaf.data.name);
-                    }
-                    let leaves_set = new Set(leaf_names);
-                    for (const [bipartition_num, bipartition_leaves] of Object.entries(this.parsed_bipartition_taxa)) {
-                        let bipartition_set = new Set(bipartition_leaves);
-                        if (set_equality(leaves_set, bipartition_set)) {
-                            covariance_plot.current_bipartition = bipartition_num;
-                        }
-                    }
                     found_link = t;
                     break;
                 }
@@ -399,9 +363,9 @@ class CovariancePage {
                 this.active_link = found_link;
 
                 // DEV Is this necessary anymore?
-                if (phylogram_plot.current_link !== found_link.bipartition_id) {
-                    phylogram_plot.current_link = found_link.bipartition_id;
-                }
+                phylogram_plot.current_bipartition = found_link.bipartition_id;
+                covariance_plot.current_bipartition = found_link.bipartition_id;
+
                 // DEV why this instead of draw()?
                 covariance_plot.update();
                 phylogram_plot.update();
@@ -414,8 +378,8 @@ class CovariancePage {
                     });
                 }
             } else {
-                if (phylogram_plot.current_link !== null) {
-                    phylogram_plot.current_link = null;
+                if (phylogram_plot.current_bipartition !== null) {
+                    phylogram_plot.current_bipartition = null;
                     covariance_plot.current_bipartition = null;
                     // DEV why this instead of draw()?
                     covariance_plot.update();
@@ -426,21 +390,21 @@ class CovariancePage {
 
         // This function is similar to the mousemove event for the covariance network in this same file.
         phylogram_plot.canvas.addEventListener("click", function(e) {
-            if (phylogram_plot.current_link != null) {
-                if (!phylogram_plot.selected_links.includes(phylogram_plot.current_link)){
+            if (phylogram_plot.current_bipartition != null) {
+                if (!phylogram_plot.selected_bipartitions.includes(phylogram_plot.current_bipartition)){
                     if (e.shiftKey) {
-                        phylogram_plot.selected_links.push(phylogram_plot.current_link);
+                        phylogram_plot.selected_bipartitions.push(phylogram_plot.current_bipartition);
                         if (covariance_plot.current_bipartition != null) {
                             covariance_plot.selected_bipartitions.push(covariance_plot.current_bipartition);
                         }
                     } else {
-                        phylogram_plot.selected_links = [phylogram_plot.current_link];
+                        phylogram_plot.selected_bipartitions = [phylogram_plot.current_bipartition];
                         if (covariance_plot.current_bipartition != null) {
                             covariance_plot.selected_bipartitions = [covariance_plot.current_bipartition];
                         }
                     }
                 } else {
-                    phylogram_plot.selected_links = phylogram_plot.selected_links.filter(b => b != phylogram_plot.current_link);
+                    phylogram_plot.selected_bipartitions = phylogram_plot.selected_bipartitions.filter(b => b != phylogram_plot.current_bipartition);
                     if (covariance_plot.current_bipartition != null) {
                         covariance_plot.selected_bipartitions = covariance_plot.selected_bipartitions.filter(b => b != covariance_plot.current_bipartition);
                     }
@@ -556,11 +520,11 @@ export { CovariancePage }
 // DEV
 //// The phylogram link and covariance bipartition being highlighted due one or the other,
 //// and its associated member in the other plot.
-//let phylogram_plot.current_link = null;
+//let phylogram_plot.current_bipartition = null;
 //let covariance_plot.current_bipartition = null;
 //
 //// All links and bipartitions selected for highlighting.
-//let phylogram_plot.selected_links = [];
+//let phylogram_plot.selected_bipartitions = [];
 //let covariance_plot.selected_bipartitions = [];
 
 // List where each entry is a list of taxa representing the bipartition corresponding with that index.

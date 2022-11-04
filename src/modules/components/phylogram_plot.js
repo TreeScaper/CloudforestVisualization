@@ -34,8 +34,8 @@ class PhylogramPlot extends CloudForestPlot {
     tree_links = [];
 
     // DEV Should these be moved back to covariance_page.js?
-    selected_links = [];
-    current_link = null;
+    selected_bipartitions = [];
+    current_bipartitions = null;
 
     // Phylogram root
     tree_root = undefined;
@@ -192,7 +192,7 @@ class PhylogramPlot extends CloudForestPlot {
 
         // Draw highlighted links as purple
         this.tree_links.forEach(t => {
-            if (t.bipartition_id !== undefined && t.bipartition_id == this.current_link || this.selected_links.includes(t.bipartition_id)) {
+            if (t.bipartition_id !== undefined && t.bipartition_id == this.current_bipartition || this.selected_bipartitions.includes(t.bipartition_id)) {
                 this.draw_tree_link(ctx, t.scaled_coord.source.x, t.scaled_coord.source.y, t.scaled_coord.target.x, t.scaled_coord.target.y, PhylogramPlot.highlight_link_style, 4, 2);
                 this.draw_tree_link(this.dummy_ctx, t.scaled_coord.source.x, t.scaled_coord.source.y, t.scaled_coord.target.x, t.scaled_coord.target.y, PhylogramPlot.highlight_link_style, 4, 2);
 
