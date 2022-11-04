@@ -55,7 +55,7 @@ let newick_parse = function (s, normalize = false, translate_table = {}) {
  * 
  * @param {String} s 
  */
-let nexus_parse = function (s) {
+let nexus_parse = function (s, normalize = false) {
     if (s.search(/NEXUS/) === -1) {
         throw ('Parameter is not a Nexus string.');
     }
@@ -90,7 +90,7 @@ let nexus_parse = function (s) {
             tree_table.push(l.substr(l.indexOf('('), l.indexOf(';')));
         }
     });
-    let np = tree_table.map(v => newick_parse(v, false, translate_table));
+    let np = tree_table.map(v => newick_parse(v, normalize, translate_table));
     return np;
 };
 

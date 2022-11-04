@@ -190,7 +190,7 @@ const populate_visualizations = function (files) {
                 let default_file = undefined;
                 let default_option = document.createElement('option');
 
-                if (default_files != undefined) {
+                if (default_files != undefined && default_files[set_item.name] != undefined) {
                     default_file = default_files[set_item.name];
                     default_option.setAttribute('class', 'file-list-option');
                     default_option.setAttribute('data_id', default_file.id);
@@ -199,6 +199,11 @@ const populate_visualizations = function (files) {
                 } else {
                     default_option.setAttribute('value', '');
                     default_option.textContent = '--Please choose a file--';
+                }
+
+                if (set_item.files.length === 0) {
+                    default_option.textContent = 'No dataset available'
+                    file_select.setAttribute('disabled', '');
                 }
 
                 file_select.append(default_option);

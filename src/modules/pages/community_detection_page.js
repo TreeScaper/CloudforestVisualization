@@ -448,7 +448,7 @@ const plot_community_detection = function() {
 
 const determine_default_cd_files = function(files) {
     // Find which history item plateau file points to.
-    let plateau_file_regex = /CD Plateaus/i
+    let plateau_file_regex = /CD Plateaus/i;
     let plateau_file_obj = files.filter(obj => plateau_file_regex.test(obj.name))[0];
 
     if (plateau_file_obj == undefined) {
@@ -459,9 +459,17 @@ const determine_default_cd_files = function(files) {
     let plateau_target_history_number = parseInt(plateau_history_item_string.match(/[0-9]+/));
 
     // Find which history item the result of the above block points to.
-    let plateau_target_file_obj = files.filter(obj => obj.hid == plateau_target_history_number);
-    let plateau_target_history_item_string = plateau_target_file_obj[0].name.match(/data [0-9]+$/)[0];
-    let nldr_target_history_number = parseInt(plateau_target_history_item_string.match(/[0-9]+/));
+    let plateau_target_file_obj = files.filter(obj => obj.hid == plateau_target_history_number)[0];
+    let covariance_matrix_file_regex = /Covariance Matrix/i;
+
+    // If community detection was run on covariance network, NLDR would be run on the same input.
+    let nldr_target_history_number = null;
+    if (covariance_matrix_file_regex.test(plateau_target_file_obj.name)) {
+        nldr_target_history_number = plateau_target_history_number;
+    } else {
+        let plateau_target_history_item_string = plateau_target_file_obj.name.match(/data [0-9]+$/)[0];
+        nldr_target_history_number = parseInt(plateau_target_history_item_string.match(/[0-9]+/));
+    }
 
     // Find NLDR results pointing to the same history item as the above.
     let nldr_regex = new RegExp(`NLDR Coordinates.*${nldr_target_history_number}$`);

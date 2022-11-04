@@ -8,7 +8,7 @@ import { scaleLinear, eas } from "d3-scale";
 import { removeChildNodes, cleanExistingPlot, htmlToElement } from "../utilities/html_templates";
 import { css_colors } from "../utilities/colors";
 import { build_event, set_equality, set_background } from "../utilities/support_funcs.js";
-import { newick_parse } from "./tree_data_parsing.js"
+import { newick_parse, nexus_parse } from "./tree_data_parsing.js"
 import { CloudForestPlot } from "./cloudforest_plot.js";
 
 class PhylogramPlot extends CloudForestPlot {
@@ -66,7 +66,13 @@ class PhylogramPlot extends CloudForestPlot {
     }
 
     parse_boottree_data(d) {
-        this.boottree_data = d.split(';');
+        if (d.substring(0,6) === '#NEXUS') {
+            this.boottree_data = nexus_parse(d);
+            this.boottree_data_norm = nexus_parse(d, true);
+        } else {
+            this.boottree_data = d.split(';').map(l => newick_parse(l))
+            this.boottree_data_norm = d.split(';').map(l => newick_parse(l, true))
+        }
     }
 
     build_controls() {
@@ -204,6 +210,7 @@ class PhylogramPlot extends CloudForestPlot {
     }
 
 
+
     /*
      * Create a fresh phylogram visualization. There is some redundancy between this and create_tree() in phylogram.js.
      */
@@ -212,7 +219,12 @@ class PhylogramPlot extends CloudForestPlot {
         removeChildNodes(this.plot);
 
         // Get data for current tree
-        let tree_data = newick_parse(this.boottree_data[this.tree_number - 1], this.normalized);
+        let tree_data = null;
+        if (this.normalized) {
+            tree_data = this.boottree_data_norm[this.tree_number - 1]
+        } else {
+            tree_data = this.boottree_data[this.tree_number - 1]
+        }
 
         let height = this.canvas.height;
         let width = this.canvas.width;

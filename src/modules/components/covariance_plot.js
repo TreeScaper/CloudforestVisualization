@@ -74,10 +74,12 @@ class CovariancePlot extends CloudForestPlot {
     // Number of trees for phylogram
     num_trees = 0;
 
-    constructor(plot, controls, metadata) {
+    constructor(plot, controls, metadata, cd_groups) {
         super(plot, controls, metadata);
 
         this.graph_data = new GraphData();
+
+        this.cd_groups = cd_groups;
 
         // Scale for calculating width of covariance network link on canvas.
         this.link_scale = d3.scaleQuantize()

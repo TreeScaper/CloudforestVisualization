@@ -22,6 +22,9 @@ class CovariancePage {
     cov_mouse_active_y = null;
     active_link = null;
     phylogram_mouseover_active = false;
+    cd_groups = undefined;
+    covariance_plot = null;
+    phylogram_plot = null;
 
     constructor() {}
 
@@ -63,6 +66,22 @@ class CovariancePage {
             }
         });
         return arr;
+    }
+
+    static parse_cd(groups) {
+        let d = {};
+        Object.keys(groups).forEach(k => {
+            let group = groups[k];
+            let node = k;
+            let color = null;
+            if (group >= css_colors.length) {
+                color = 'grey'
+            } else {
+                color = css_colors[group];
+            }
+            d[node] = { group: group, color: color };
+        });
+        return d;
     }
 
     build_controls(phylogram_plot, covariance_plot) {
@@ -179,15 +198,14 @@ class CovariancePage {
         }
     }
 
-    // DEV handle guids
     request_file_contents(files, guid) {
         dispatchEvent(build_event("FileContentsRequest", {
-            guid: this.guid,
+            guid: guid,
             files: Object.keys(files).map(k => files[k])
         }));
     }
 
-    build_mouseover_action(covariance_plot, phylogram_plot) {
+    build_mouseover_action(phylogram_plot, covariance_plot) {
 
         let redraw_info_pane = function() {
             let bipartition_list = document.getElementById('bipartition-list');
@@ -446,33 +464,33 @@ class CovariancePage {
             // DEV remove htmlToElement
             plot_element.append(htmlToElement(`<div id="cov-plot" style="width: 50%; margin: 0px; padding-left: 0px; border: 0px; font-size:0; display:inline-block; overflow: visible"/>`));
 
-            let covariance_plot = new CovariancePlot('cov-plot', 'plot-controls', 'plot-metadata');
-            let phylogram_plot = new PhylogramPlot('tree-plot', 'plot-controls', 'plot-metadata');
+            this.covariance_plot = new CovariancePlot('cov-plot', 'plot-controls', 'plot-metadata', this.cd_groups);
+            this.phylogram_plot = new PhylogramPlot('tree-plot', 'plot-controls', 'plot-metadata');
 
             // Parse files
             e.detail.contents.forEach(file => {
                 if (/^Covariance Matrix/.test(file.fileName)) {
                     let arr = file.data.split('\n');
-                    covariance_plot.parse_covariance(CovariancePage.clean_data(file.data));
+                    this.covariance_plot.parse_covariance(CovariancePage.clean_data(file.data));
                 }
 
                 if (/^Bipartition Matrix/.test(file.fileName)) {
-                    covariance_plot.parse_bipartition_cov(CovariancePage.clean_data(file.data));
+                    this.covariance_plot.parse_bipartition_cov(CovariancePage.clean_data(file.data));
                 }
 
                 if (/^Taxa IDs/.test(file.fileName)) {
-                    covariance_plot.parse_taxa_array(file.data);
+                    this.covariance_plot.parse_taxa_array(file.data);
                 }
 
                 if (/cloudforest.trees/.test(file.fileExt)) {
-                     phylogram_plot.parse_boottree_data(file.data);
+                     this.phylogram_plot.parse_boottree_data(file.data);
                 }
             });
 
             // Bipartition Counts must be parsed after the Taxa IDs
             e.detail.contents.forEach(file => {
                 if (/^Bipartition Counts/.test(file.fileName)) {
-                    this.parsed_bipartition_taxa = covariance_plot.parse_taxa_partitions(CovariancePage.clean_data(file.data));
+                    this.parsed_bipartition_taxa = this.covariance_plot.parse_taxa_partitions(CovariancePage.clean_data(file.data));
                 }
             });
 
@@ -480,17 +498,18 @@ class CovariancePage {
             removeChildNodes("plot-controls");
             removeChildNodes("plot-metadata");
 
-            phylogram_plot.parsed_bipartition_taxa = this.parsed_bipartition_taxa;
+            this.phylogram_plot.parsed_bipartition_taxa = this.parsed_bipartition_taxa;
 
-            phylogram_plot.draw();
-            covariance_plot.draw();
+            this.phylogram_plot.draw();
+            this.covariance_plot.draw();
 
-            this.build_controls(phylogram_plot, covariance_plot);
-            phylogram_plot.build_controls();
-            covariance_plot.build_controls();
+            // DEV don't pass
+            this.build_controls(this.phylogram_plot, this.covariance_plot);
+            this.phylogram_plot.build_controls();
+            this.covariance_plot.build_controls();
 
-            // DEV
-            this.build_mouseover_action(covariance_plot, phylogram_plot);
+            // DEV don't pass
+            this.build_mouseover_action(this.phylogram_plot, this.covariance_plot);
         }
     }
 
@@ -514,15 +533,21 @@ class CovariancePage {
         });
 
         //User has requested that CD groups be used in plotting.
-        addEventListener("UseCDGroupsTrue", e => {
-            if (e.detail.type === "Cova") {
-                parse_cd(e.detail.groups);
+        addEventListener("CDByBipartition", (e => {
+            if (this.covariance_plot !== null) {
+                this.covariance_plot.cd_groups = CovariancePage.parse_cd(e.detail.groups);
+                this.cd_groups = this.covariance_plot.cd_groups;
+            } else {
+                this.cd_groups = CovariancePage.parse_cd(e.detail.groups);
             }
-        });
+        }).bind(this));
         //User has requested that CD groups _not_ be used in plotting.
-        addEventListener("UseCDGroupsFalse", e => {
-            cd_groups = undefined;
-        });
+        addEventListener("RemoveCDPlotting", (e => {
+            if (this.covariance_plot !== null) {
+                this.covariance_plot.cd_groups = undefined;
+            }
+            this.cd_groups = undefined;
+        }).bind(this));
     }
 }
 
@@ -547,19 +572,6 @@ export { CovariancePage }
  * @param {[]} groups Group data
  */
 // DEV
-//const parse_cd = function (groups) {
-//    let d = {};
-//    let hsl_colors = Object.keys(groups).map((v, i) => {
-//        return css_colors[i];
-//    });
-//
-//    Object.keys(groups).forEach((k, idx) => {
-//        groups[k].forEach(bp => {
-//            d[bp] = { group: k, color: hsl_colors[idx] };
-//        });
-//    });
-//    cd_groups = d;
-//}
 
 
 /**
