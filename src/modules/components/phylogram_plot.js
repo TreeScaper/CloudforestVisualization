@@ -27,6 +27,7 @@ class PhylogramPlot extends CloudForestPlot {
     canvas = undefined;
     scale_x = undefined;
     scale_y = undefined;
+    trees = []
     tree_number = 1;
     normalized = false;
 
@@ -35,7 +36,7 @@ class PhylogramPlot extends CloudForestPlot {
 
     // DEV Should these be moved back to covariance_page.js?
     selected_bipartitions = [];
-    current_bipartitions = null;
+    //current_bipartitions = null;
 
     // Phylogram root
     tree_root = undefined;
@@ -72,6 +73,36 @@ class PhylogramPlot extends CloudForestPlot {
         } else {
             this.boottree_data = d.split(';').map(l => newick_parse(l))
             this.boottree_data_norm = d.split(';').map(l => newick_parse(l, true))
+            // wagnerr: will there always be a terminating semi-colon?
+            if (Object.keys(this.boottree_data[this.boottree_data.length-1]).length == 0) {
+                this.boottree_data.pop();
+                this.boottree_data_norm.pop();
+            }
+        }
+    }
+
+    find_next_tree() {
+        if (this.selected_bipartitions.length == 0) {
+            return;
+        }
+        //console.log(this.bipartition_map);
+        for (let tree_index = this.tree_number; tree_index != this.tree_number - 1; tree_index = (tree_index + 1) % this.boottree_data.length) {
+            //tree_index = (tree_index + this.tree_number + 1) % this.boottree_data.length;
+            let has_all_bipartitions = true;
+            for (const b of this.selected_bipartitions) {
+                //console.log(tree_index, this.bipartition_map[tree_index].includes(b));
+                if (!this.bipartition_map[tree_index].includes(b)) {
+                    has_all_bipartitions = false;
+                    break;
+                }
+            }
+            if (has_all_bipartitions) {
+                this.tree_number = tree_index + 1;
+                document.getElementById(PhylogramPlot.tree_num_element_id).value = this.tree_number;
+                document.getElementById(PhylogramPlot.slider_element_id).value = this.tree_number;
+                this.draw();
+                return;
+            }
         }
     }
 
@@ -146,17 +177,46 @@ class PhylogramPlot extends CloudForestPlot {
             this.draw();
         });
         pcc.append(branch_norm_label);
+
+        pcc.append(htmlToElement(`<div class="field has-addons">
+        <div class="control">
+            <button id="next-tree" class="button is-info">Next tree with selected bipartitions</button>
+        </div>`));
+        document.getElementById("next-tree").addEventListener("click", () => {
+            this.find_next_tree();
+        });
+
     }
 
-    create_covariance_map() {
+    //update_tree_list() {
+
+    //}
+
+    add_current_bipartition(shift_selected) {
+        if (shift_selected) {
+            this.selected_bipartitions.push(this.current_bipartition);
+        } else {
+            this.selected_bipartitions = [this.current_bipartition];
+        }
+        //update_tree_list();
+    }
+
+    remove_current_bipartition() {
+        this.selected_bipartitions = this.selected_bipartitions.filter(b => b != this.current_bipartition);
+        //update_tree_list();
+    }
+
+    create_bipartition_map(tree_links) {
         if (this.parsed_bipartition_taxa === undefined) {
             return;
         }
 
         let bipartition_taxa = structuredClone(this.parsed_bipartition_taxa);
+        this.bipartition_map.push([]);
 
         // Iterate through links in the phylogram
-        for (const t of this.tree_links) {
+        for (const t of tree_links) {
+
             for (const [k, v] of Object.entries(bipartition_taxa)) {
                 let bipartition_set = new Set(bipartition_taxa[k]);
 
@@ -171,6 +231,8 @@ class PhylogramPlot extends CloudForestPlot {
                 // they are the same bipartition. Select the found link as the phylogram_plot.current_link, which means it will be highlighted.
                 if (set_equality(leaves_set, bipartition_set)) {
                     t.bipartition_id = k;
+                    this.bipartition_map[this.bipartition_map.length - 1].push(k);
+
                     //delete bipartition_taxa[k];
                     break;
                 }
@@ -210,6 +272,40 @@ class PhylogramPlot extends CloudForestPlot {
     }
 
 
+    build_links(tree_data) {
+        // Get scaling values for drawing phylogram
+        let [scale_x, scale_y, tree_root] = PhylogramPlot.get_root(tree_data, this.canvas.height, this.canvas.width);
+
+        // Draw links
+        let tree_links = [];
+        tree_root.links().forEach(link => {
+            let scaled_link = {
+                "source": {
+                    "x": scale_x(link.source.x),
+                    "y": scale_y(link.source.y)
+                },
+                "target": {
+                    "x": scale_x(link.target.x),
+                    "y": scale_y(link.target.y)
+                }
+            }
+            tree_links.push({'link': link, 'scaled_coord': scaled_link});
+        });
+        this.create_bipartition_map(tree_links);
+
+        return {tree_links, tree_root, scale_x, scale_y};
+    }
+
+    build_trees() {
+        this.bipartition_map = [];
+        // for tree_number in numbers
+        for (let tree_number = 0; tree_number < this.boottree_data.length; tree_number++) {
+            let tree_data = this.boottree_data[tree_number];
+            //console.log('tree_data', tree_data);
+            let link_data = this.build_links(tree_data);
+            this.trees.push(link_data);
+        }
+    }
 
     /*
      * Create a fresh phylogram visualization. There is some redundancy between this and create_tree() in phylogram.js.
@@ -226,12 +322,6 @@ class PhylogramPlot extends CloudForestPlot {
             tree_data = this.boottree_data[this.tree_number - 1]
         }
 
-        let height = this.canvas.height;
-        let width = this.canvas.width;
-
-        // Get scaling values for drawing phylogram
-        [this.scale_x, this.scale_y, this.tree_root] = PhylogramPlot.get_root(tree_data, height, width);
-
         // Create title with tree number
         if (this.tree_number) {
             document.getElementById(this.plot).append(htmlToElement(`<div><h3>Tree ${this.tree_number}</h3></div>`));
@@ -243,31 +333,22 @@ class PhylogramPlot extends CloudForestPlot {
         // Get canvas context and fill entirely white
         let ctx = this.canvas.getContext('2d');
         ctx.fillStyle = "white";
-        ctx.fillRect(0, 0, width, height);
+        ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
         ctx.lineWidth = 1.5;
 
         // Dummy context is used for downloading SVG plots. Eventually will be consolidated.
         this.dummy_ctx.fillStyle = "white";
-        this.dummy_ctx.fillRect(0, 0, width, height);
+        this.dummy_ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
         this.dummy_ctx.lineWidth = 1.5;
 
         // Draw links
-        this.tree_links = [];
-        this.tree_root.links().forEach(link => {
-            let scaled_link = {
-                    "source": {
-                            "x": this.scale_x(link.source.x),
-                            "y": this.scale_y(link.source.y)
-                        },
-                    "target": {
-                            "x": this.scale_x(link.target.x),
-                            "y": this.scale_y(link.target.y)
-                        }
-                }
-            this.tree_links.push({'link': link, 'scaled_coord': scaled_link});
-        });
+        //let link_data = build_links(tree_data);
+        let link_data = this.trees[this.tree_number - 1];
+        this.tree_root = link_data.tree_root;
+        this.tree_links = link_data.tree_links;
+        this.scale_x = link_data.scale_x;
+        this.scale_y = link_data.scale_y;
 
-        this.create_covariance_map();
 
         this.update();
 

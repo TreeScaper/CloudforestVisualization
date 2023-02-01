@@ -53,6 +53,7 @@ class PhylogramPage {
                     removeChildNodes("plot-metadata");
 
                     phylogram_plot.build_controls();
+                    phylogram_plot.build_trees();
                     phylogram_plot.draw();
                 })
 

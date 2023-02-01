@@ -186,6 +186,18 @@ class CovariancePlot extends CloudForestPlot {
         return part_taxa;
     }
 
+    add_current_bipartition(shift_selected) {
+        if (shift_selected) {
+            this.selected_bipartitions.push(this.current_bipartition);
+        } else {
+            this.selected_bipartitions = [this.current_bipartition];
+        }
+    }
+
+    remove_current_bipartition() {
+        this.selected_bipartitions = this.selected_bipartitions.filter(b => b != this.current_bipartition);
+    }
+
     build_controls() {
         let pcc = document.getElementById(this.controls);
 

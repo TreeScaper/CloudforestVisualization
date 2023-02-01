@@ -297,16 +297,11 @@ class CovariancePage {
         covariance_plot.canvas.addEventListener("click", function(e) {
             if (covariance_plot.current_bipartition != null) {
                 if (!covariance_plot.selected_bipartitions.includes(covariance_plot.current_bipartition)){
-                    if (e.shiftKey) {
-                        covariance_plot.selected_bipartitions.push(covariance_plot.current_bipartition);
-                        phylogram_plot.selected_bipartitions.push(phylogram_plot.current_bipartiton);
-                    } else {
-                        covariance_plot.selected_bipartitions = [covariance_plot.current_bipartition];
-                        phylogram_plot.selected_bipartitions = [phylogram_plot.current_bipartition];
-                    }
+                    covariance_plot.add_current_bipartition(e.shiftKey);
+                    phylogram_plot.add_current_bipartition(e.shiftKey);
                 } else {
-                    covariance_plot.selected_bipartitions = covariance_plot.selected_bipartitions.filter(b => b != covariance_plot.current_bipartition);
-                    phylogram_plot.selected_bipartitions = phylogram_plot.selected_bipartitions.filter(b => b != phylogram_plot.current_bipartition);
+                    covariance_plot.remove_current_bipartition();
+                    phylogram_plot.remove_current_bipartition();
                 }
             redraw_info_pane();
             }
@@ -392,21 +387,14 @@ class CovariancePage {
         phylogram_plot.canvas.addEventListener("click", function(e) {
             if (phylogram_plot.current_bipartition != null) {
                 if (!phylogram_plot.selected_bipartitions.includes(phylogram_plot.current_bipartition)){
-                    if (e.shiftKey) {
-                        phylogram_plot.selected_bipartitions.push(phylogram_plot.current_bipartition);
-                        if (covariance_plot.current_bipartition != null) {
-                            covariance_plot.selected_bipartitions.push(covariance_plot.current_bipartition);
-                        }
-                    } else {
-                        phylogram_plot.selected_bipartitions = [phylogram_plot.current_bipartition];
-                        if (covariance_plot.current_bipartition != null) {
-                            covariance_plot.selected_bipartitions = [covariance_plot.current_bipartition];
-                        }
+                    phylogram_plot.add_current_bipartition(e.shiftKey);
+                    if (covariance_plot.current_bipartition != null) {
+                        covariance_plot.add_current_bipartition(e.shiftKey);
                     }
                 } else {
-                    phylogram_plot.selected_bipartitions = phylogram_plot.selected_bipartitions.filter(b => b != phylogram_plot.current_bipartition);
+                    phylogram_plot.remove_current_bipartition();
                     if (covariance_plot.current_bipartition != null) {
-                        covariance_plot.selected_bipartitions = covariance_plot.selected_bipartitions.filter(b => b != covariance_plot.current_bipartition);
+                        covariance_plot.remove_current_bipartition();
                     }
                 }
             redraw_info_pane();
@@ -464,6 +452,7 @@ class CovariancePage {
 
             this.phylogram_plot.parsed_bipartition_taxa = this.parsed_bipartition_taxa;
 
+            this.phylogram_plot.build_trees();
             this.phylogram_plot.draw();
             this.covariance_plot.draw();
 
