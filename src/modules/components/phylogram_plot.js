@@ -114,7 +114,7 @@ class PhylogramPlot extends CloudForestPlot {
         slider_input.setAttribute('type', 'range');
         slider_input.setAttribute('id', PhylogramPlot.slider_element_id);
         slider_input.setAttribute('min', 1);
-        slider_input.setAttribute('max', this.boottree_data.length - 1);
+        slider_input.setAttribute('max', this.boottree_data.length);
         slider_input.setAttribute('value', 1);
         slider_input.setAttribute('size', 4);
         slider_input.setAttribute('step', 1);
@@ -125,7 +125,7 @@ class PhylogramPlot extends CloudForestPlot {
         tree_number_input.setAttribute('type', 'number');
         tree_number_input.setAttribute('id', PhylogramPlot.tree_num_element_id);
         tree_number_input.setAttribute('min', 1);
-        tree_number_input.setAttribute('max', this.boottree_data.length - 1);
+        tree_number_input.setAttribute('max', this.boottree_data.length);
         tree_number_input.setAttribute('value', 1);
         tree_number_input.setAttribute('size', 4);
 
