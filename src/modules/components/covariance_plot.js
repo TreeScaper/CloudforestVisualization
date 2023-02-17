@@ -175,7 +175,7 @@ class CovariancePlot extends CloudForestPlot {
         let part_taxa = {};
         m.forEach(line => {
             let arr = line[0].split(' ');
-            let bp = Number(arr[0]) + 1;
+            let bp = Number(arr[0]);
             part_taxa[bp] = [];
             arr[1].trim().split("").forEach((e, idx) => {
                 if (e === "1") {
