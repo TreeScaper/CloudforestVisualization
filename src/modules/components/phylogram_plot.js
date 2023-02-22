@@ -86,7 +86,11 @@ class PhylogramPlot extends CloudForestPlot {
             return;
         }
         //console.log(this.bipartition_map);
-        for (let tree_index = this.tree_number; tree_index != this.tree_number - 1; tree_index = (tree_index + 1) % this.boottree_data.length) {
+        for (let tree_index = this.tree_number; tree_index != this.tree_number - 1; tree_index++) {
+
+            // Wrap to beginning of tree array
+            tree_index = tree_index % this.boottree_data.length;
+
             //tree_index = (tree_index + this.tree_number + 1) % this.boottree_data.length;
             let has_all_bipartitions = true;
             for (const b of this.selected_bipartitions) {
