@@ -217,15 +217,15 @@ class PhylogramPlot extends CloudForestPlot {
         // Iterate through links in the phylogram
         for (const t of tree_links) {
 
+            // For each phylogram link, representing a bipartition, find the associated taxa.
+            let leaf_names = [];
+            for (const leaf of t.link.target.leaves()) {
+                leaf_names.push(leaf.data.name);
+            }
+            let leaves_set = new Set(leaf_names);
+
             for (const [k, v] of Object.entries(bipartition_taxa)) {
                 let bipartition_set = new Set(bipartition_taxa[k]);
-
-                // For each phylogram link, representing a bipartition, find the associated taxa.
-                let leaf_names = [];
-                for (const leaf of t.link.target.leaves()) {
-                    leaf_names.push(leaf.data.name);
-                }
-                let leaves_set = new Set(leaf_names);
 
                 // If the taxa both from the covariance network bipartition (node), and the phylogram bipartition (link) are equal
                 // they are the same bipartition. Select the found link as the phylogram_plot.current_link, which means it will be highlighted.
