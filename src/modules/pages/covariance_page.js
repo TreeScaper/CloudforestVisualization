@@ -451,6 +451,15 @@ class CovariancePage {
             removeChildNodes("plot-metadata");
 
             this.phylogram_plot.parsed_bipartition_taxa = this.parsed_bipartition_taxa;
+            this.phylogram_plot.taxa_array = this.covariance_plot.taxa_array;
+
+            // Create complementary representation of bipartitions
+            this.phylogram_plot.unique_taxa_complements = {};
+            for (const [k, bipartition_set] of Object.entries(this.parsed_bipartition_taxa)) {
+                let complement = this.phylogram_plot.taxa_array.filter(t => !bipartition_set.includes(t));
+                let complement_set = new Set(complement);
+                this.phylogram_plot.unique_taxa_complements[k] = complement;
+            }
 
             this.phylogram_plot.build_trees();
             this.phylogram_plot.draw();

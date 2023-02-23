@@ -215,11 +215,16 @@ class PhylogramPlot extends CloudForestPlot {
             return;
         }
 
-        let bipartition_taxa = structuredClone(this.parsed_bipartition_taxa);
         this.bipartition_map.push([]);
+
 
         // Iterate through links in the phylogram
         for (const t of tree_links) {
+
+            // Not considered a bipartition if there is one leaf.
+            if (t.link.target.children === undefined) {
+                continue;
+            }
 
             // For each phylogram link, representing a bipartition, find the associated taxa.
             let leaf_names = [];
@@ -228,17 +233,38 @@ class PhylogramPlot extends CloudForestPlot {
             }
             let leaves_set = new Set(leaf_names);
 
-            for (const [k, v] of Object.entries(bipartition_taxa)) {
-                let bipartition_set = new Set(bipartition_taxa[k]);
+            let match_found = false;
+
+            for (const [k, bipartition] of Object.entries(this.parsed_bipartition_taxa)) {
+                let bipartition_set = new Set(bipartition);
 
                 // If the taxa both from the covariance network bipartition (node), and the phylogram bipartition (link) are equal
                 // they are the same bipartition. Select the found link as the phylogram_plot.current_link, which means it will be highlighted.
                 if (set_equality(leaves_set, bipartition_set)) {
                     t.bipartition_id = k;
                     this.bipartition_map[this.bipartition_map.length - 1].push(k);
+                    match_found = true;
 
-                    //delete bipartition_taxa[k];
+                    //delete this.parsed_bipartition_taxa[k];
                     break;
+                }
+            }
+
+            // Check complements
+            if (!match_found) {
+
+                for (const [k, bipartition_complement] of Object.entries(this.unique_taxa_complements)) {
+                    let bipartition_set_complement = new Set(bipartition_complement);
+
+                    // If the taxa both from the covariance network bipartition (node), and the phylogram bipartition (link) are equal
+                    // they are the same bipartition. Select the found link as the phylogram_plot.current_link, which means it will be highlighted.
+                    if (set_equality(leaves_set, bipartition_set_complement)) {
+                        t.bipartition_id = k;
+                        this.bipartition_map[this.bipartition_map.length - 1].push(k);
+
+                        //delete this.parsed_bipartition_taxa[k];
+                        break;
+                    }
                 }
             }
         }
