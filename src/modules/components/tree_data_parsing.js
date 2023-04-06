@@ -32,21 +32,25 @@ let newick_parse = function (s, normalize = false, translate_table = {}) {
                 break;
             default:
                 var x = tokens[i - 1];
-                if (x == ')' || x == '(' || x == ',') {
-                    if (translate_table[token] != null) {
-                        tree.name = translate_table[token];
-                    } else {
-                        tree.name = token;
-                    }
-                } else if (x == ':') {
+                if (x == ':') {
                     if (!normalize) {
                         tree.length = parseFloat(token);
                     } else {
                         tree.length = 1;
                     }
+                } else if (x == ')' || x == '(' || x == ',') {
+                    if (translate_table[token] != null) {
+                        tree.name = translate_table[token];
+                    } else {
+                        tree.name = token;
+                    }
+                    if (tree.length === undefined) {
+                        tree.length = 1;
+                    }
                 }
         }
     }
+
     return tree;
 };
 
