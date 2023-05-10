@@ -8,7 +8,7 @@ import { scaleLinear, eas } from "d3-scale";
 import { removeChildNodes, cleanExistingPlot, htmlToElement } from "../utilities/html_templates";
 import { css_colors } from "../utilities/colors";
 import { build_event, set_equality, set_background } from "../utilities/support_funcs.js";
-import { newick_parse, nexus_parse } from "./tree_data_parsing.js"
+import { newick_parse, nexus_parse, length_schemes } from "./tree_data_parsing.js"
 import { CloudForestPlot } from "./cloudforest_plot.js";
 
 class PhylogramPlot extends CloudForestPlot {
@@ -23,11 +23,12 @@ class PhylogramPlot extends CloudForestPlot {
     // Radius for tree nodes
     static tree_node_r = 5;
 
-    boottree_data = undefined;
+    boottree_data = {};
     canvas = undefined;
     scale_x = undefined;
     scale_y = undefined;
-    trees = []
+    length_scheme = 'raw';
+    trees = {}
     tree_number = 1;
     normalized = false;
 
@@ -68,15 +69,19 @@ class PhylogramPlot extends CloudForestPlot {
 
     parse_boottree_data(d) {
         if (d.substring(0,6) === '#NEXUS') {
-            this.boottree_data = nexus_parse(d);
-            this.boottree_data_norm = nexus_parse(d, true);
+            this.boottree_data.raw = nexus_parse(d, 'raw');
+            this.boottree_data.normalized = nexus_parse(d, 'normalized');
+            this.boottree_data.normalized_rtt = nexus_parse(d, 'normalized_rtt');
         } else {
-            this.boottree_data = d.split(';').map(l => newick_parse(l))
-            this.boottree_data_norm = d.split(';').map(l => newick_parse(l, true))
+            this.boottree_data.raw = d.split(';').map(l => newick_parse(l));
+            this.boottree_data.normalized = d.split(';').map(l => newick_parse(l, 'normalized'))
+            this.boottree_data.normalized_rtt = d.split(';').map(l => newick_parse(l, 'normalized_rtt'))
+
             // wagnerr: will there always be a terminating semi-colon?
-            if (Object.keys(this.boottree_data[this.boottree_data.length-1]).length == 0) {
-                this.boottree_data.pop();
-                this.boottree_data_norm.pop();
+            if (this.boottree_data.raw[this.boottree_data.raw.length-1].length === undefined) {
+                this.boottree_data.raw.pop();
+                this.boottree_data.normalized.pop();
+                this.boottree_data.normalized_rtt.pop();
             }
         }
     }
@@ -118,7 +123,7 @@ class PhylogramPlot extends CloudForestPlot {
         slider_input.setAttribute('type', 'range');
         slider_input.setAttribute('id', PhylogramPlot.slider_element_id);
         slider_input.setAttribute('min', 1);
-        slider_input.setAttribute('max', this.boottree_data.length);
+        slider_input.setAttribute('max', this.boottree_data.raw.length);
         slider_input.setAttribute('value', 1);
         slider_input.setAttribute('size', 4);
         slider_input.setAttribute('step', 1);
@@ -129,7 +134,7 @@ class PhylogramPlot extends CloudForestPlot {
         tree_number_input.setAttribute('type', 'number');
         tree_number_input.setAttribute('id', PhylogramPlot.tree_num_element_id);
         tree_number_input.setAttribute('min', 1);
-        tree_number_input.setAttribute('max', this.boottree_data.length);
+        tree_number_input.setAttribute('max', this.boottree_data.raw.length);
         tree_number_input.setAttribute('value', 1);
         tree_number_input.setAttribute('size', 4);
 
@@ -165,22 +170,32 @@ class PhylogramPlot extends CloudForestPlot {
             this.draw();
         });
 
-        let branch_norm_label = document.createElement('label');
-        branch_norm_label.setAttribute('class', 'checkbox');
+        let branch_length_select = document.createElement('div');
+        branch_length_select.setAttribute('class', 'select');
 
-        let branch_norm_checkbox = document.createElement('input');
-        branch_norm_checkbox.setAttribute('id', 'branch-norm-checkbox');
-        branch_norm_checkbox.setAttribute('type', 'checkbox');
-        branch_norm_label.append(branch_norm_checkbox);
+        let length_select = document.createElement('select');
+        length_select.setAttribute('class', 'is-small');
+        length_select.setAttribute('id', 'length-select');
 
-        let label_text = document.createTextNode(' Normalize branch lengths');
-        branch_norm_label.append(label_text);
+        for (const s of length_schemes) {
+            let option = document.createElement('option');
+            option.setAttribute('class', 'file-list-option');
+            option.setAttribute('scheme_name', s.name);
+            option.textContent = s.description;
+            length_select.append(option);
+        }
 
-        branch_norm_checkbox.addEventListener('change', (e) => {
-            this.normalized = event.currentTarget.checked;
+        length_select.addEventListener("input", (e) => {
+            this.length_scheme = e.currentTarget.options[e.currentTarget.selectedIndex].getAttribute('scheme_name');
             this.draw();
         });
-        pcc.append(branch_norm_label);
+
+        branch_length_select.append(length_select);
+
+        let label_text = document.createTextNode('Branch length scheme');
+        branch_length_select.append(label_text);
+
+        pcc.append(branch_length_select);
 
         pcc.append(htmlToElement(`<div class="field has-addons">
         <div class="control">
@@ -329,11 +344,14 @@ class PhylogramPlot extends CloudForestPlot {
     build_trees() {
         this.bipartition_map = [];
         // for tree_number in numbers
-        for (let tree_number = 0; tree_number < this.boottree_data.length; tree_number++) {
-            let tree_data = this.boottree_data[tree_number];
-            //console.log('tree_data', tree_data);
-            let link_data = this.build_links(tree_data);
-            this.trees.push(link_data);
+        for (const s of length_schemes) {
+            console.log(s);
+            this.trees[s.name] = [];
+            for (let tree_number = 0; tree_number < this.boottree_data.raw.length; tree_number++) {
+                let tree_data = this.boottree_data[s.name][tree_number];
+                let link_data = this.build_links(tree_data);
+                this.trees[s.name].push(link_data);
+            }
         }
     }
 
@@ -346,11 +364,7 @@ class PhylogramPlot extends CloudForestPlot {
 
         // Get data for current tree
         let tree_data = null;
-        if (this.normalized) {
-            tree_data = this.boottree_data_norm[this.tree_number - 1]
-        } else {
-            tree_data = this.boottree_data[this.tree_number - 1]
-        }
+        tree_data = this.boottree_data[this.length_scheme][this.tree_number - 1];
 
         // Create title with tree number
         if (this.tree_number) {
@@ -373,7 +387,7 @@ class PhylogramPlot extends CloudForestPlot {
 
         // Draw links
         //let link_data = build_links(tree_data);
-        let link_data = this.trees[this.tree_number - 1];
+        let link_data = this.trees[this.length_scheme][this.tree_number - 1];
         this.tree_root = link_data.tree_root;
         this.tree_links = link_data.tree_links;
         this.scale_x = link_data.scale_x;
@@ -395,10 +409,10 @@ class PhylogramPlot extends CloudForestPlot {
             ctx.fillStyle = "black";
             ctx.font = '10px sans-serif';
 
-            if (this.normalized == true) {
-                ctx.fillText(`${node.data.name}`, this.scale_x(node.x) + 6, this.scale_y(node.y) + 2.5);
-            } else {
+            if (this.length_scheme == 'raw') {
                 ctx.fillText(`${node.data.name} ${node.data.length.toPrecision(4)}`, this.scale_x(node.x) + 6, this.scale_y(node.y) + 2.5);
+            } else {
+                ctx.fillText(`${node.data.name}`, this.scale_x(node.x) + 6, this.scale_y(node.y) + 2.5);
             }
 
         } else {

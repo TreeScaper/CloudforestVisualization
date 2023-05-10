@@ -7,37 +7,77 @@
 * https://github.com/jasondavies/newick.js
 * 
 */
-let newick_parse = function (s, normalize = false, translate_table = {}) {
+
+const length_schemes = [
+    {name: 'raw', description: 'Raw dataset lengths'},
+    {name: 'normalized', description: 'Branch lengths normalized'},
+    {name: 'normalized_rtt', description: 'Root-to-tip distance normalized'},
+];
+
+let newick_parse = function (s, length_scheme='raw', translate_table = {}) {
     var ancestors = [];
-    var tree = {};
+    var tree = {max_child_depth: 0};
+    let max_depth = 0;
+    let current_depth = 0;
     var tokens = s.split(/\s*(;|\(|\)|,|:)\s*/);
+
+    // Find maximum depth first, because it is needed to assign lengths
+    if (length_scheme == 'normalized_rtt') {
+        for (const token of tokens) {
+            switch (token) {
+                case '(': // new branchset
+                    current_depth++;
+                    if (current_depth > max_depth) {
+                        max_depth = current_depth;
+                    }
+                    break;
+                case ')':
+                    current_depth--;
+                    break;
+                default:
+                    break;
+            }
+        }
+    }
+
     for (var i = 0; i < tokens.length; i++) {
         var token = tokens[i];
         switch (token) {
             case '(': // new branchset
                 var subtree = {};
+                subtree.max_child_depth = 0;
                 tree.branchset = [subtree];
                 ancestors.push(tree);
+                current_depth++;
                 tree = subtree;
                 break;
             case ',': // another branch
                 var subtree = {};
+                subtree.max_child_depth = 0;
                 ancestors[ancestors.length - 1].branchset.push(subtree);
                 tree = subtree;
                 break;
             case ')': // optional name next
+                var subtree_max_depth = tree.max_child_depth;
                 tree = ancestors.pop();
+                tree.max_child_depth = Math.max(...tree.branchset.map((subtree) => subtree.max_child_depth)) + 1;
+
+                // In this case, we set the lengths of subling branches as relative to each other.
+                if (length_scheme === 'normalized_rtt') {
+                    for (const subtree of tree.branchset) {
+                        subtree.length = (tree.max_child_depth - subtree.max_child_depth) / max_depth;
+                    }
+                }
+
+                //console.log(tree, subtree);
+                current_depth--;
                 break;
             case ':': // optional length next
                 break;
             default:
                 var x = tokens[i - 1];
-                if (x == ':') {
-                    if (!normalize) {
-                        tree.length = parseFloat(token);
-                    } else {
-                        tree.length = 1;
-                    }
+                if (x == ':' && length_scheme == 'raw') {
+                    tree.length = parseFloat(token);
                 } else if (x == ')' || x == '(' || x == ',') {
                     if (translate_table[token] != null) {
                         tree.name = translate_table[token];
@@ -59,7 +99,7 @@ let newick_parse = function (s, normalize = false, translate_table = {}) {
  * 
  * @param {String} s 
  */
-let nexus_parse = function (s, normalize = false) {
+let nexus_parse = function (s, length_scheme='raw') {
     if (s.search(/NEXUS/) === -1) {
         throw ('Parameter is not a Nexus string.');
     }
@@ -94,13 +134,8 @@ let nexus_parse = function (s, normalize = false) {
             tree_table.push(l.substr(l.indexOf('('), l.indexOf(';')));
         }
     });
-    let np = tree_table.map(v => newick_parse(v, normalize, translate_table));
+    let np = tree_table.map(v => newick_parse(v, length_scheme, translate_table));
     return np;
 };
 
-let boottrees_parse = function (s) {
-    let newick_objs = s.map(v => newick_parse(v[0]));
-    return newick_objs;
-};
-
-export { newick_parse, nexus_parse, boottrees_parse }
+export { newick_parse, nexus_parse, length_schemes}

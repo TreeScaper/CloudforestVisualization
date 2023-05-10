@@ -9,7 +9,6 @@ import { roundedrect, set_equality } from "../utilities/support_funcs";
 import { removeChildNodes, htmlToElement } from "../utilities/html_templates";
 import { css_colors } from "../utilities/colors";
 import { build_event } from "../utilities/support_funcs";
-import { newick_parse } from "../components/tree_data_parsing"
 import { PhylogramPlot } from "../components/phylogram_plot.js"
 import { CovariancePlot } from "../components/covariance_plot.js"
 

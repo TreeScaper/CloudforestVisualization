@@ -38,7 +38,7 @@
                     <div class="tile is-child box">
                         <h4>Visualization</h4>
                         <div class="tile is-vertical is-parent">
-                                <div class="control">
+                            <div class="control">
                                 <div class="select">
                                     <div id ="viz-interface">
                                         <select id="visualization-select" class="is-small" disabled>
@@ -46,18 +46,16 @@
                                         </select>
                                     </div>
                                 </div>
-                                </div>
+                            </div>
                         </div>
                     </div>
                     <div class="tile is-child box">
                         <h4>Files</h4>
                         <div id="file-select-menu">
-                            <div id="file-select-item">
-                                <div class="select">
-                                    <select class="is-small" disabled>
-                                        <option value="">--Please choose a file--</option>
-                                    </select>
-                                </div>
+                            <div class="select">
+                                <select class="is-small" disabled>
+                                    <option value="">--Please choose a file--</option>
+                                </select>
                             </div>
                         </div>
                     </div>
