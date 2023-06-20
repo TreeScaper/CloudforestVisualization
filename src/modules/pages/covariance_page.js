@@ -14,6 +14,18 @@ import { CovariancePlot } from "../components/covariance_plot.js"
 
 class CovariancePage {
 
+    static bipartition_color_table = [
+                        'rgba(249, 49, 0, 1)',
+                        'rgba(59, 14, 158, 1)',
+                        'rgba(229, 133, 100, 1)',
+                        'rgba(79, 209, 50, 1)',
+                        'rgba(255, 234, 81, 1)',
+                        'rgba(131, 32, 188, 1)',
+                        'rgba(239, 40, 196, 1)',
+                        'rgba(61, 255, 242, 1)',
+                        'rgba(57, 255, 20, 1)'
+                        ];
+
     // Hovering tooltip for both phylogram and covariance plot
     guid = undefined;
     parsed_bipartition_taxa = undefined;
@@ -417,6 +429,9 @@ class CovariancePage {
 
             this.covariance_plot = new CovariancePlot('cov-plot', 'plot-controls', 'plot-metadata', this.cd_groups);
             this.phylogram_plot = new PhylogramPlot('tree-plot', 'plot-controls', 'plot-metadata');
+
+            this.covariance_plot.bipartition_color_table = CovariancePage.bipartition_color_table;
+            this.phylogram_plot.bipartition_color_table = CovariancePage.bipartition_color_table;
 
             // Parse files
             e.detail.contents.forEach(file => {

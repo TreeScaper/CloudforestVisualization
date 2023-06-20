@@ -18,7 +18,6 @@ class PhylogramPlot extends CloudForestPlot {
     static canvas_plot_element_id = 'tree-canvas';
     // Default color for lines in phylogram.
     static default_link_style = 'rgba(128, 128, 128, 1)';
-    static highlight_link_style = 'rgba(57, 255, 20, 1)';
 
     // Radius for tree nodes
     static tree_node_r = 5;
@@ -94,7 +93,7 @@ class PhylogramPlot extends CloudForestPlot {
         for (let tree_index = this.tree_number; tree_index != this.tree_number - 1; tree_index++) {
 
             // Wrap to beginning of tree array
-            tree_index = tree_index % this.boottree_data.length;
+            tree_index = tree_index % this.boottree_data.raw.length;
 
             //tree_index = (tree_index + this.tree_number + 1) % this.boottree_data.length;
             let has_all_bipartitions = true;
@@ -285,7 +284,6 @@ class PhylogramPlot extends CloudForestPlot {
         }
     }
 
-
     /**
      * Redraws phylogram on existing tree-canvas element.
      */
@@ -297,11 +295,28 @@ class PhylogramPlot extends CloudForestPlot {
         this.dummy_ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
         set_background(this.dummy_ctx, this.canvas.width, this.canvas.height);
 
-        // Draw highlighted links as purple
+        let get_latest_color = function(table, i) {
+            if (i >= this.bipartition_color_table.length) {
+                return this.bipartition_color_table[this.bipartition_color_table.length - 1];
+            } else {
+                return this.bipartition_color_table[i];
+            }
+        }.bind(this);
+
         this.tree_links.forEach(t => {
             if (t.bipartition_id !== undefined && t.bipartition_id == this.current_bipartition || this.selected_bipartitions.includes(t.bipartition_id)) {
-                this.draw_tree_link(ctx, t.scaled_coord.source.x, t.scaled_coord.source.y, t.scaled_coord.target.x, t.scaled_coord.target.y, PhylogramPlot.highlight_link_style, 4, 2);
-                this.draw_tree_link(this.dummy_ctx, t.scaled_coord.source.x, t.scaled_coord.source.y, t.scaled_coord.target.x, t.scaled_coord.target.y, PhylogramPlot.highlight_link_style, 4, 2);
+                let highlight_link_style = undefined;
+
+                let max_index = this.bipartition_color_table.length - 1;
+                let selected_bipartition_index = this.selected_bipartitions.indexOf(t.bipartition_id);
+                if (selected_bipartition_index != -1) {
+                    highlight_link_style = this.bipartition_color_table[Math.min(selected_bipartition_index, max_index)];
+                } else {
+                    highlight_link_style = this.bipartition_color_table[Math.min(this.selected_bipartitions.length, max_index)];
+                }
+
+                this.draw_tree_link(ctx, t.scaled_coord.source.x, t.scaled_coord.source.y, t.scaled_coord.target.x, t.scaled_coord.target.y, highlight_link_style, 4, 2);
+                this.draw_tree_link(this.dummy_ctx, t.scaled_coord.source.x, t.scaled_coord.source.y, t.scaled_coord.target.x, t.scaled_coord.target.y, highlight_link_style, 4, 2);
 
             } else {
                 this.draw_tree_link(ctx, t.scaled_coord.source.x, t.scaled_coord.source.y, t.scaled_coord.target.x, t.scaled_coord.target.y);

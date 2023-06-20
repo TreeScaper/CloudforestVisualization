@@ -360,7 +360,16 @@ class CovariancePlot extends CloudForestPlot {
 
         // Neon green if highlighted.
         if (this.is_highlighted_bipartition(d.id)) {
-            return "rgba(57, 255, 20, 1)";
+            let highlight_style = undefined;
+
+            let max_index = this.bipartition_color_table.length - 1;
+            let selected_bipartition_index = this.selected_bipartitions.indexOf(d.id);
+            if (selected_bipartition_index != -1) {
+                highlight_style = this.bipartition_color_table[Math.min(selected_bipartition_index, max_index)];
+            } else {
+                highlight_style = this.bipartition_color_table[Math.min(this.selected_bipartitions.length, max_index)];
+            }
+            return highlight_style;
         }
 
         // If we have corresponding CD data, use those colors.
