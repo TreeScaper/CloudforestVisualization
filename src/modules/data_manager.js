@@ -91,9 +91,9 @@ const fetch_decode = (f_obj) => {
 }
 
 
-const send_file_contents = async (obj, event = "FileContents") => {
+const get_file_contents = async (files, callback) => {
     let funcs = [];
-    obj.files.forEach(file_id => {
+    files.forEach(file_id => {
         const g_f_obj = file_objects.filter(fo => fo.dataset_id === file_id);
         funcs.push(fetch_decode(g_f_obj[0]));
     });
@@ -101,10 +101,8 @@ const send_file_contents = async (obj, event = "FileContents") => {
     for (const f of funcs) {
         file_contents.push(await f());
     }
-    dispatchEvent(build_event(event, {
-        guid: obj.guid,
-        contents: file_contents
-    }));
+
+    callback(file_contents);
 }
 
 /**
@@ -230,80 +228,12 @@ const galaxy_upload = function (data, file_name) {
         });
 }
 
-const set_event_listeners = function () {
-
-    addEventListener("PublishData", e => {
-        galaxy_upload(e.detail.data, e.detail.file_name);
-    });
-
-    addEventListener("AvailableFilesRequest", e => {
-        const request_guid = e.detail.guid;
-        dispatchEvent(build_event("AvailableFiles", {
-            guid: request_guid,
-            files: file_identifiers()
-        }));
-    });
-
-    addEventListener("FileContentsRequest", e => {
-        send_file_contents({
-            guid: e.detail.guid,
-            files: e.detail.files
-        });
-    });
-
-    //a consensus tree file will be named: Consensus Tree
-    //a bootstrapped tree file will, generally, contain the *.boottrees.* in the name.
-    addEventListener("TreeFileContentsRequest", e => {
-        let tree_files = [];
-
-        e.detail.files.forEach(f => {
-            file_objects.forEach(fo => {
-                if (f === fo.dataset_id) {
-                    tree_files.push(f);
-                }
-            });
-        });
-        send_file_contents({
-            guid: e.detail.guid,
-            files: tree_files
-        }, "TreeFileContents");
-    });
-
-    addEventListener("BootstrappedTrees", e => {
-        let tree_files = [];
-        file_objects.forEach(fo => {
-            if (RegExp(/cloudforest\.trees/).test(fo.extension)) {
-                tree_files.push(fo.dataset_id);
-                send_file_contents({
-                    guid: e.detail.guid,
-                    files: tree_files
-                }, "BootstrappedTreeData");
-            }
-        });
-    });
-
-    addEventListener("RequestBipartitionFile", e => {
-        dispatchEvent(build_event("BipartitionFiles", { files: bipartition_files, selected_file: e.detail.selected_file}));
-    });
-
-    addEventListener("NDLRCoordinateFilesRequest", e => {
-        dispatchEvent(build_event("NLDRCoordinateFiles", { files: nldr_coordinate_files }));
-    });
-
-    addEventListener("CDFilesRequest", e => {
-        dispatchEvent(build_event("CDFiles", { files: community_detection_files, selected_file: e.detail.selected_file}));
-    });
-
-    addEventListener("AffinityFilesRequest", e => {
-        dispatchEvent(build_event("AffinityFiles", { files: affinity_matrix_files }));
-    });
-
+const available_files_request = function () {
+    return file_identifiers();
 }
 
 const data_manager_init = function (init_obj) {
     let { conf_elem_id } = init_obj;
-    
-    set_event_listeners();
 
     const config_elem = document.getElementById(conf_elem_id);
     href = config_elem.getAttribute("href")
@@ -311,4 +241,8 @@ const data_manager_init = function (init_obj) {
     parse_galaxy_history(href, history_id);
 }
 
-export { data_manager_init }
+export {
+    data_manager_init,
+    available_files_request,
+    get_file_contents
+}

@@ -18,6 +18,7 @@ import {
     subtree_every_nth
 } from '../components/nldr_plotting_core.js';
 import { build_event } from "../utilities/support_funcs";
+import { get_file_contents } from "../data_manager";
 
 let coordinate_data = undefined;
 let subtree_by_index_string = undefined;
@@ -66,9 +67,7 @@ const build_subtree_menu = function(dimension) {
     });
 }
 
-const nldr_page_init = function (init_obj) {
-    let { guid_fn } = init_obj;
-    const my_guid = guid_fn();
+const nldr_page_init = function () {
 
     //User has requested that CD groups be used in plotting.
     //Transform cd groups into string and place in the existing Subset Trees by Index text box.
@@ -97,24 +96,15 @@ const nldr_page_init = function (init_obj) {
         subtree_by_index_string = undefined;
     });
 
-    addEventListener("FileContents", e => {
-        if (e.detail.guid === my_guid) {
-            coordinate_data = nldr_clean_data(e.detail.contents);
+    addEventListener("NLDRPageRequest", e => {
+        get_file_contents(Object.entries(e.detail.file_ids).map(entry => entry[1]), (contents) => {
+            coordinate_data = nldr_clean_data(contents);
             let plot_dimension = coordinate_data[Object.keys(coordinate_data)[0]][0].length;
             cleanExistingPlot();
             build_subtree_menu(plot_dimension);
             plot_dimensions(plot_dimension, coordinate_data[Object.keys(coordinate_data)[0]]);
-        }
+        });
     });
-
-    addEventListener("NLDRPageRequest", e => {
-        dispatchEvent(build_event("FileContentsRequest", {
-            guid: my_guid,
-            // DEV make this more obvious
-            files: Object.entries(e.detail.file_ids).map(entry => entry[1])
-        }));
-    });
-
 }
 
 export {

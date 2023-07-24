@@ -3,6 +3,9 @@ import { htmlToElement } from "./utilities/html_templates";
 import { build_event } from "./utilities/support_funcs";
 import { CovariancePage } from "./pages/covariance_page.js"
 import { determine_default_cd_files } from "./pages/community_detection_page.js";
+import { available_files_request } from "./data_manager";
+
+let current_visualization = undefined;
 
 let select_objs = {
     "nldr-select": {
@@ -131,6 +134,13 @@ const populate_visualizations = function (files) {
         te.append(htmlToElement(s));
     })
 
+    let run_button = document.getElementById('run-visualization-button');
+    run_button.addEventListener("click", e => {
+        dispatchEvent(build_event(select_objs[current_visualization].event, {
+            file_ids: get_selected_file_ids()
+        }));
+    });
+
     te.addEventListener("change", e => {
 
         let file_select_menu = document.getElementById('file-select-menu');
@@ -141,15 +151,8 @@ const populate_visualizations = function (files) {
 
         if (e.target.selectedIndex > 0) {
 
-            let visualization_key = e.target.children[e.target.selectedIndex].getAttribute('visualization-key');
-            let select_obj = select_objs[visualization_key];
-
-            let run_button = document.getElementById('run-visualization-button');
-            run_button.addEventListener("click", e => {
-                dispatchEvent(build_event(select_objs[visualization_key].event, {
-                    file_ids: get_selected_file_ids()
-                }));
-            });
+            current_visualization = e.target.children[e.target.selectedIndex].getAttribute('visualization-key');
+            let select_obj = select_objs[current_visualization];
 
             let default_files = undefined;
             if ('default_file_function' in select_obj) {
@@ -260,12 +263,10 @@ const page_mgr_init = function (init_obj) {
     const { guid_fn } = init_obj;
     const my_guid = guid_fn();
 
-    addEventListener("AvailableFiles", e => {
-        process_available_files(e.detail.files);
-        populate_visualizations(e.detail.files);
-    });
+    let available_files = available_files_request();
 
-    dispatchEvent(build_event("AvailableFilesRequest", { guid: my_guid }));
+    process_available_files(available_files);
+    populate_visualizations(available_files);
 }
 
 export { page_mgr_init }

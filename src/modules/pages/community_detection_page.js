@@ -3,6 +3,7 @@ import * as Plotly2D from 'plotly.js-basic-dist';
 import * as Plotly3D from 'plotly.js-gl3d-dist';
 import { htmlToElement, cleanExistingPlot, removeChildNodes } from "../utilities/html_templates";
 import { build_event } from "../utilities/support_funcs";
+import { get_file_contents } from "../data_manager";
 import {
     nldr_clean_data,
     plot_dimensions,
@@ -455,7 +456,7 @@ const determine_default_cd_files = function(files) {
         return undefined;
     }
 
-    let plateau_history_item_string = plateau_file_obj.name.match(/data [0-9]+$/)[0];
+    let plateau_history_item_string = plateau_file_obj.name.match(/data [0-9]+/)[0];
     let plateau_target_history_number = parseInt(plateau_history_item_string.match(/[0-9]+/));
 
     // Find which history item the result of the above block points to.
@@ -467,7 +468,7 @@ const determine_default_cd_files = function(files) {
     if (covariance_matrix_file_regex.test(plateau_target_file_obj.name)) {
         nldr_target_history_number = plateau_target_history_number;
     } else {
-        let plateau_target_history_item_string = plateau_target_file_obj.name.match(/data [0-9]+$/)[0];
+        let plateau_target_history_item_string = plateau_target_file_obj.name.match(/data [0-9]+/)[0];
         nldr_target_history_number = parseInt(plateau_target_history_item_string.match(/[0-9]+/));
     }
 
@@ -490,36 +491,28 @@ const determine_default_cd_files = function(files) {
 /*
  * Initializes events for community detection plotting.
  */
-const community_detection_page_init = function (init_obj) {
-    let { guid_fn } = init_obj;
-    const my_guid = guid_fn();
+const community_detection_page_init = function () {
 
-    addEventListener("FileContents", e => {
-        if (e.detail.guid === my_guid) {
-
-            e.detail.contents.forEach(entry => {
-                if (RegExp(/CD Plateaus/i).test(entry.fileName)) {
-                    plateau_file = entry;
-                }
-                if (RegExp(/CD with NLDR Coordinates/i).test(entry.fileName)) {
-                    cd_with_coordinates_file = entry;
-                }
-                if (RegExp(/CD Results/i).test(entry.fileName)) {
-                    cd_results_file = entry;
-                }
-                if (RegExp(/NLDR Coordinates/i).test(entry.fileName)) {
-                    nldr_coordinate_file = entry;
-                }
-            });
-            plot_community_detection();
-        }
-    });
+    let file_contents_callback = (contents) => {
+        contents.forEach(entry => {
+            if (RegExp(/CD Plateaus/i).test(entry.fileName)) {
+                plateau_file = entry;
+            }
+            if (RegExp(/CD with NLDR Coordinates/i).test(entry.fileName)) {
+                cd_with_coordinates_file = entry;
+            }
+            if (RegExp(/CD Results/i).test(entry.fileName)) {
+                cd_results_file = entry;
+            }
+            if (RegExp(/NLDR Coordinates/i).test(entry.fileName)) {
+                nldr_coordinate_file = entry;
+            }
+        });
+        plot_community_detection();
+    };
 
     addEventListener("CDPageRequest", e => {
-        dispatchEvent(build_event("FileContentsRequest", {
-            guid: my_guid,
-            files: Object.keys(e.detail.file_ids).map(k => e.detail.file_ids[k])
-        }));
+        get_file_contents(Object.keys(e.detail.file_ids).map(k => e.detail.file_ids[k]), file_contents_callback);
     });
 }
 

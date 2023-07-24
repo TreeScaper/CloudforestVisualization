@@ -11,6 +11,7 @@ import { css_colors } from "../utilities/colors";
 import { build_event } from "../utilities/support_funcs";
 import { PhylogramPlot } from "../components/phylogram_plot.js"
 import { CovariancePlot } from "../components/covariance_plot.js"
+import { get_file_contents } from "../data_manager";
 
 class CovariancePage {
 
@@ -27,7 +28,6 @@ class CovariancePage {
                         ];
 
     // Hovering tooltip for both phylogram and covariance plot
-    guid = undefined;
     parsed_bipartition_taxa = undefined;
     cov_mouse_active_x = null;
     cov_mouse_active_y = null;
@@ -180,7 +180,7 @@ class CovariancePage {
         }
 
         // History item name for the covariance matrix file
-        let history_item_string = covariance_matrix_file_obj.name.match(/data [0-9]+$/)[0];
+        let history_item_string = covariance_matrix_file_obj.name.match(/data [0-9]+/)[0];
 
         // Number of the history item used as input for the Covariance Matrix file
         let history_number = parseInt(history_item_string.match(/[0-9]+/));
@@ -207,13 +207,6 @@ class CovariancePage {
             'taxa_ids': taxa_ids_file_obj,
             'tree_file': trees_file_obj
         }
-    }
-
-    request_file_contents(files, guid) {
-        dispatchEvent(build_event("FileContentsRequest", {
-            guid: guid,
-            files: Object.keys(files).map(k => files[k])
-        }));
     }
 
     build_mouseover_action(phylogram_plot, covariance_plot) {
@@ -413,99 +406,88 @@ class CovariancePage {
         }.bind(this));
     }
 
-    handle_file_contents_event(e) {
-        if (e.detail.guid === this.guid) {
-
-            let plot_element = document.getElementById('plot');
-            while (plot_element.firstChild) {
-                plot_element.removeChild(plot_element.firstChild);
-            }
-
-            // DEV remove htmlToElement
-            plot_element.append(htmlToElement(`<div id="tree-plot" style="vertical-align: top; width: 50%; margin: 0px; padding-right: 0px; font-size:0; border: 0px; display:inline-block; overflow: visible"/>`));
-
-            // DEV remove htmlToElement
-            plot_element.append(htmlToElement(`<div id="cov-plot" style="width: 50%; margin: 0px; padding-left: 0px; border: 0px; font-size:0; display:inline-block; overflow: visible"/>`));
-
-            this.covariance_plot = new CovariancePlot('cov-plot', 'plot-controls', 'plot-metadata', this.cd_groups);
-            this.phylogram_plot = new PhylogramPlot('tree-plot', 'plot-controls', 'plot-metadata');
-
-            this.covariance_plot.bipartition_color_table = CovariancePage.bipartition_color_table;
-            this.phylogram_plot.bipartition_color_table = CovariancePage.bipartition_color_table;
-
-            // Parse files
-            e.detail.contents.forEach(file => {
-                if (/^Covariance Matrix/.test(file.fileName)) {
-                    let arr = file.data.split('\n');
-                    this.covariance_plot.parse_covariance(CovariancePage.clean_data(file.data));
-                }
-
-                if (/^Bipartition Matrix/.test(file.fileName)) {
-                    this.covariance_plot.parse_bipartition_cov(CovariancePage.clean_data(file.data));
-                }
-
-                if (/^Taxa IDs/.test(file.fileName)) {
-                    this.covariance_plot.parse_taxa_array(file.data);
-                }
-
-                if (/cloudforest.trees/.test(file.fileExt)) {
-                     this.phylogram_plot.parse_boottree_data(file.data);
-                }
-            });
-
-            // Bipartition Counts must be parsed after the Taxa IDs
-            e.detail.contents.forEach(file => {
-                if (/^Bipartition Counts/.test(file.fileName)) {
-                    this.parsed_bipartition_taxa = this.covariance_plot.parse_taxa_partitions(CovariancePage.clean_data(file.data));
-                }
-            });
-
-            // Clear existing plot control and metadata and rebuild
-            removeChildNodes("plot-controls");
-            removeChildNodes("plot-metadata");
-
-            this.phylogram_plot.parsed_bipartition_taxa = this.parsed_bipartition_taxa;
-            this.phylogram_plot.taxa_array = this.covariance_plot.taxa_array;
-
-            // Create complementary representation of bipartitions
-            this.phylogram_plot.unique_taxa_complements = {};
-            for (const [k, bipartition_set] of Object.entries(this.parsed_bipartition_taxa)) {
-                let complement = this.phylogram_plot.taxa_array.filter(t => !bipartition_set.includes(t));
-                let complement_set = new Set(complement);
-                this.phylogram_plot.unique_taxa_complements[k] = complement;
-            }
-
-            this.phylogram_plot.build_trees();
-            this.phylogram_plot.draw();
-            this.covariance_plot.draw();
-
-            // DEV don't pass
-            this.build_controls(this.phylogram_plot, this.covariance_plot);
-            this.phylogram_plot.build_controls();
-            this.covariance_plot.build_controls();
-
-            // DEV don't pass
-            this.build_mouseover_action(this.phylogram_plot, this.covariance_plot);
+    file_contents_callback(contents) {
+        let plot_element = document.getElementById('plot');
+        while (plot_element.firstChild) {
+            plot_element.removeChild(plot_element.firstChild);
         }
+
+        // DEV remove htmlToElement
+        plot_element.append(htmlToElement(`<div id="tree-plot" style="vertical-align: top; width: 50%; margin: 0px; padding-right: 0px; font-size:0; border: 0px; display:inline-block; overflow: visible"/>`));
+
+        // DEV remove htmlToElement
+        plot_element.append(htmlToElement(`<div id="cov-plot" style="width: 50%; margin: 0px; padding-left: 0px; border: 0px; font-size:0; display:inline-block; overflow: visible"/>`));
+
+        this.covariance_plot = new CovariancePlot('cov-plot', 'plot-controls', 'plot-metadata', this.cd_groups);
+        this.phylogram_plot = new PhylogramPlot('tree-plot', 'plot-controls', 'plot-metadata');
+
+        this.covariance_plot.bipartition_color_table = CovariancePage.bipartition_color_table;
+        this.phylogram_plot.bipartition_color_table = CovariancePage.bipartition_color_table;
+
+        // Parse files
+        contents.forEach(file => {
+            if (/^Covariance Matrix/.test(file.fileName)) {
+                let arr = file.data.split('\n');
+                this.covariance_plot.parse_covariance(CovariancePage.clean_data(file.data));
+            }
+
+            if (/^Bipartition Matrix/.test(file.fileName)) {
+                this.covariance_plot.parse_bipartition_cov(CovariancePage.clean_data(file.data));
+            }
+
+            if (/^Taxa IDs/.test(file.fileName)) {
+                this.covariance_plot.parse_taxa_array(file.data);
+            }
+
+            if (/cloudforest.trees/.test(file.fileExt)) {
+                this.phylogram_plot.parse_boottree_data(file.data);
+            }
+        });
+
+        // Bipartition Counts must be parsed after the Taxa IDs
+        contents.forEach(file => {
+            if (/^Bipartition Counts/.test(file.fileName)) {
+                this.parsed_bipartition_taxa = this.covariance_plot.parse_taxa_partitions(CovariancePage.clean_data(file.data));
+            }
+        });
+
+        // Clear existing plot control and metadata and rebuild
+        removeChildNodes("plot-controls");
+        removeChildNodes("plot-metadata");
+
+        this.phylogram_plot.parsed_bipartition_taxa = this.parsed_bipartition_taxa;
+        this.phylogram_plot.taxa_array = this.covariance_plot.taxa_array;
+
+        // Create complementary representation of bipartitions
+        this.phylogram_plot.unique_taxa_complements = {};
+        for (const [k, bipartition_set] of Object.entries(this.parsed_bipartition_taxa)) {
+            let complement = this.phylogram_plot.taxa_array.filter(t => !bipartition_set.includes(t));
+            let complement_set = new Set(complement);
+            this.phylogram_plot.unique_taxa_complements[k] = complement;
+        }
+
+        this.phylogram_plot.build_trees();
+        this.phylogram_plot.draw();
+        this.covariance_plot.draw();
+
+        // DEV don't pass
+        this.build_controls(this.phylogram_plot, this.covariance_plot);
+        this.phylogram_plot.build_controls();
+        this.covariance_plot.build_controls();
+
+        // DEV don't pass
+        this.build_mouseover_action(this.phylogram_plot, this.covariance_plot);
     }
 
 
     /**
      * Initializes module for mapping covariance plot to phylogram
-     *
-     * @param {Object} init_obj Function for generating guid
      */
-    init(init_obj) {
-        // Function passed a guid function and creates a guid, which it uses for later events
-        let { guid_fn } = init_obj;
-        this.guid = guid_fn();
-
-        // Event that parses file contents
-        addEventListener("FileContents", this.handle_file_contents_event.bind(this));
+    init() {
 
         // Event for initial plot request
         addEventListener("CovariancePageRequest", e => {
-            this.request_file_contents(e.detail.file_ids, this.guid);
+            get_file_contents(Object.keys(e.detail.file_ids).map(k => e.detail.file_ids[k]), this.file_contents_callback.bind(this));
         });
 
         //User has requested that CD groups be used in plotting.
@@ -517,6 +499,7 @@ class CovariancePage {
                 this.cd_groups = CovariancePage.parse_cd(e.detail.groups);
             }
         }).bind(this));
+
         //User has requested that CD groups _not_ be used in plotting.
         addEventListener("RemoveCDPlotting", (e => {
             if (this.covariance_plot !== null) {

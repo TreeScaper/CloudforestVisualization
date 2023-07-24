@@ -6,6 +6,7 @@ import { drag } from "d3-drag";
 import { htmlToElement, cleanExistingPlot } from '../utilities/html_templates';
 import { isNull } from "plotly.js-gl2d-dist";
 import { build_event } from "../utilities/support_funcs";
+import { get_file_contents } from "../data_manager";
 
 let score_array = undefined;
 let event_buld_fn = undefined;
@@ -285,26 +286,15 @@ const clean_data = function(data) {
     return arr;
 }
 
-const affinity_page_init = function (init_obj) {
-    let { guid_fn} = init_obj;
-    const my_guid = guid_fn();
-
-    addEventListener("FileContents", e => {
-        if (e.detail.guid === my_guid) {
-
-            parsed_data = parse_affinity_matrix(clean_data(e.detail.contents[0].data));
-            score_array = [...score_set].sort((a, b) => a - b); //low to high unique affinity scores
-            build_dom();
-            filter_links(parsed_data, score_array[score_array.length - 1]);
-        }
-    });
-
+const affinity_page_init = function () {
     addEventListener("TreePageRequest", e => {
-//        if (FILE_NAME_REGEXP.test(e.detail.file_name)) {
-            dispatchEvent(build_event("FileContentsRequest", { guid: my_guid, files: [e.detail.file_id] }));
- //       }
+        get_file_contents([e.detail.file_id], (file_contents) => {
+                parsed_data = parse_affinity_matrix(clean_data(file_contents[0].data));
+                score_array = [...score_set].sort((a, b) => a - b); //low to high unique affinity scores
+                build_dom();
+                filter_links(parsed_data, score_array[score_array.length - 1]);
+        });
     });
-
 }
 
 export { affinity_page_init }

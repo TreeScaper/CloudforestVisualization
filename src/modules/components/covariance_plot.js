@@ -3,13 +3,11 @@ import { forceSimulation, forceCollide, forceManyBody, forceLink, forceX, forceY
 import { create, select } from "d3-selection";
 import { drag } from "d3-drag";
 import { mean, max, ascending, extent } from "d3-array";
-import { hierarchy, cluster, tree } from "d3-hierarchy";
-import { scaleLinear, eas } from "d3-scale";
+import { hierarchy } from "d3-hierarchy";
+import { scaleLinear } from "d3-scale";
 
-import { roundedRect } from "../utilities/support_funcs";
-import { removeChildNodes, cleanExistingPlot, htmlToElement } from "../utilities/html_templates";
-import { css_colors } from "../utilities/colors";
-import { build_event, set_background } from "../utilities/support_funcs";
+import { removeChildNodes } from "../utilities/html_templates";
+import { set_background } from "../utilities/support_funcs";
 import { CloudForestPlot } from "./cloudforest_plot.js";
 
 const getEvent = () => event; // This is necessary when using webpack >> https://github.com/d3/d3-zoom/issues/32

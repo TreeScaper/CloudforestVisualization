@@ -6,6 +6,7 @@ import { drag } from "d3-drag";
 import { htmlToElement, cleanExistingPlot } from '../utilities/html_templates';
 import { isNull } from "plotly.js-gl2d-dist";
 import { build_event } from "../utilities/support_funcs";
+import { get_file_contents } from "../data_manager";
 
 // Percentile threshold for affinity value
 const threshold = .001;
@@ -531,12 +532,10 @@ const chord_plot = function (matrix) {
 /*
  * Initialize event listeners.
  */
-const affinity_chord_page_init = function (init_obj) {
-    let { guid_fn} = init_obj;
-    const my_guid = guid_fn();
+const affinity_chord_page_init = function () {
 
-    addEventListener("FileContents", e => {
-        e.detail.contents.forEach(entry => {
+    let file_contents_callback = (contents) => {
+        contents.forEach(entry => {
             if (RegExp(/CD Results/i).test(entry.fileName)) {
                 cd_data = entry;
             }
@@ -544,70 +543,59 @@ const affinity_chord_page_init = function (init_obj) {
                 affinity_data = entry;
             }
         });
-        if (e.detail.guid === my_guid) {
 
-            // Clean and parse community detection data
-            let cd_data_parsed = parse_cd_results(clean_data(cd_data.data));
+        // Clean and parse community detection data
+        let cd_data_parsed = parse_cd_results(clean_data(cd_data.data));
 
-            // Choosing communities from arbitrary lambda value
-            let cd_clusters = parse_clusters_from_cd(cd_data_parsed['community_maps'][38]);
+        // Choosing communities from arbitrary lambda value
+        let cd_clusters = parse_clusters_from_cd(cd_data_parsed['community_maps'][38]);
 
-            // Parse affinity matrix
-            let [matrix, score_array, parsed_data] = parse_affinity_matrix(clean_data(affinity_data.data));
-            // Run clustering
-            let [fnodes,flinks] = filter_links(parsed_data, score_array[score_array.length - 50]);
+        // Parse affinity matrix
+        let [matrix, score_array, parsed_data] = parse_affinity_matrix(clean_data(affinity_data.data));
+        // Run clustering
+        let [fnodes, flinks] = filter_links(parsed_data, score_array[score_array.length - 50]);
 
-            // Find the number of clusters in the output cluster data
-            let nclusters = 0;
-            for (let i = 0; i < fnodes.length; i++) {
-                let cnum = parseInt(fnodes[i].group);
-                if (cnum > nclusters) {
-                    nclusters = cnum;
-                }
+        // Find the number of clusters in the output cluster data
+        let nclusters = 0;
+        for (let i = 0; i < fnodes.length; i++) {
+            let cnum = parseInt(fnodes[i].group);
+            if (cnum > nclusters) {
+                nclusters = cnum;
             }
-
-            // Reorganize clusters. Each element represents a cluster, and contains
-            // the member nodes of that cluster.
-            let clusters = [];
-            for (let i = 0; i < nclusters; i++) {
-                let in_nodes = [];
-                for (let k = 0; k < fnodes.length; k++) {
-                        if (fnodes[k].group == i + 1) {
-                                in_nodes.push(fnodes[k].id);
-                        }
-                }
-                clusters.push(in_nodes);
-            }
-
-            // Get maximum and minimum scores. Useful for normalizing matrix.
-            let max_score = score_array.filter(d => !isNaN(d)).at(-1);
-            let min_score = score_array.filter(d => d > threshold)[0];
-
-            // Normalize affinity matrix
-            normalize_matrix(matrix, min_score, max_score);
-
-
-            //let cluster_mat = create_cluster_network(clusters);
-
-            // Create the matrix of cluster affinities for d3.
-            // WAGNERR zero diagonal of this matrix
-            let cluster_mat = create_cluster_network(cd_clusters, matrix, mean_affinity_function);
-            chord_plot(cluster_mat);
-
         }
-    });
 
-    addEventListener("AffinityFiles", e => {
-        let affinity_matrix_obj = e.detail.files.filter(obj => RegExp(/Affinity Matrix/i).test(obj.name));
-        let cd_results_file_obj = e.detail.files.filter(obj => RegExp(/CD Results/i).test(obj.name));
-        // WAGNERR: Add regex.
-        //if (FILE_NAME_REGEXP.test(e.detail.file_name)) {
-            dispatchEvent(build_event("FileContentsRequest", { guid: my_guid, files: [affinity_matrix_obj[0].id, cd_results_file_obj[0].id] }));
-        //}
-    });
+        // Reorganize clusters. Each element represents a cluster, and contains
+        // the member nodes of that cluster.
+        let clusters = [];
+        for (let i = 0; i < nclusters; i++) {
+            let in_nodes = [];
+            for (let k = 0; k < fnodes.length; k++) {
+                if (fnodes[k].group == i + 1) {
+                    in_nodes.push(fnodes[k].id);
+                }
+            }
+            clusters.push(in_nodes);
+        }
+
+        // Get maximum and minimum scores. Useful for normalizing matrix.
+        let max_score = score_array.filter(d => !isNaN(d)).at(-1);
+        let min_score = score_array.filter(d => d > threshold)[0];
+
+        // Normalize affinity matrix
+        normalize_matrix(matrix, min_score, max_score);
+
+
+        //let cluster_mat = create_cluster_network(clusters);
+
+        // Create the matrix of cluster affinities for d3.
+        // WAGNERR zero diagonal of this matrix
+        let cluster_mat = create_cluster_network(cd_clusters, matrix, mean_affinity_function);
+        chord_plot(cluster_mat);
+
+    };
 
     addEventListener("AffinityPageRequest", e => {
-        dispatchEvent(build_event("AffinityFilesRequest", {guid: my_guid}));
+        get_file_contents(Object.keys(e.detail.file_ids).map(k => e.detail.file_ids[k]), file_contents_callback);
     });
 }
 
