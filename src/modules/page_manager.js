@@ -198,7 +198,7 @@ const populate_visualizations = function (files) {
                     default_option.setAttribute('class', 'file-list-option');
                     default_option.setAttribute('data_id', default_file.id);
                     default_option.setAttribute('data_name', default_file.name);
-                    default_option.textContent = default_file.name;
+                    default_option.textContent = `${default_file.hid}: ${default_file.name}`;
                 } else {
                     default_option.setAttribute('value', '');
                     default_option.textContent = '--Please choose a file--';
@@ -219,7 +219,7 @@ const populate_visualizations = function (files) {
                         option.setAttribute('class', 'file-list-option');
                         option.setAttribute('data_id', f.id);
                         option.setAttribute('data_name', f.name);
-                        option.textContent = f.name;
+                        option.textContent = `${f.hid}: ${f.name}`;
                         file_select.append(option);
                     }
                 });
