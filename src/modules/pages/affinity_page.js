@@ -4,8 +4,7 @@ import { forceSimulation, forceCollide, forceManyBody, forceX, forceY } from "d3
 import { select, event } from "d3-selection";
 import { drag } from "d3-drag";
 import { htmlToElement, cleanExistingPlot } from '../utilities/html_templates';
-import { isNull } from "plotly.js-gl2d-dist";
-import { build_event } from "../utilities/support_funcs";
+import { parse_tsv } from "../utilities/support_funcs";
 import { get_file_contents } from "../data_manager";
 
 let score_array = undefined;
@@ -274,22 +273,10 @@ const parse_affinity_matrix = function (data) {
     return json_data;
 }
 
-//REFACTOR THIS TO ONE MODULE
-const clean_data = function(data) {
-    let t_arr = data.split('\n');
-    let arr = []
-    t_arr.forEach(d => {
-        if (d.length > 0) {
-            arr.push(d.split('\t')); 
-        }
-    });
-    return arr;
-}
-
 const affinity_page_init = function () {
     addEventListener("TreePageRequest", e => {
         get_file_contents([e.detail.file_id], (file_contents) => {
-                parsed_data = parse_affinity_matrix(clean_data(file_contents[0].data));
+                parsed_data = parse_affinity_matrix(parse_tsv(file_contents[0].data));
                 score_array = [...score_set].sort((a, b) => a - b); //low to high unique affinity scores
                 build_dom();
                 filter_links(parsed_data, score_array[score_array.length - 1]);

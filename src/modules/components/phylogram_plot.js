@@ -1,26 +1,16 @@
-import { scalequantize } from "d3-scale";
-import { forcesimulation, forcecollide, forcemanybody, forcelink, forcex, forcey, forcecenter } from "d3-force";
-import { create, select } from "d3-selection";
-import { drag } from "d3-drag";
-import { mean, max, ascending } from "d3-array";
-import { hierarchy, cluster, tree } from "d3-hierarchy";
-import { scaleLinear, eas } from "d3-scale";
-import { removeChildNodes, cleanExistingPlot, htmlToElement } from "../utilities/html_templates";
-import { css_colors } from "../utilities/colors";
-import { build_event, set_equality, set_background } from "../utilities/support_funcs.js";
+import { removeChildNodes, htmlToElement } from "../utilities/html_templates";
 import { newick_parse, nexus_parse, length_schemes } from "./tree_data_parsing.js"
-import { CloudForestPlot } from "./cloudforest_plot.js";
+import { set_background, set_equality } from "../utilities/support_funcs";
+import * as constants from "../utilities/constants";
 
-class PhylogramPlot extends CloudForestPlot {
+class PhylogramPlot {
 
     static slider_element_id = 'boottree-slider';
     static tree_num_element_id = 'boottree-number';
     static canvas_plot_element_id = 'tree-canvas';
-    // Default color for lines in phylogram.
-    static default_link_style = 'rgba(128, 128, 128, 1)';
-
-    // Radius for tree nodes
-    static tree_node_r = 5;
+    static plot_element_id = 'tree-plot';
+    static default_link_style = 'rgba(128, 128, 128, 1)' // Default color for lines in phylogram.;
+    static tree_node_r = 5; // Radius for tree nodes
 
     boottree_data = {};
     canvas = undefined;
@@ -36,16 +26,16 @@ class PhylogramPlot extends CloudForestPlot {
 
     // DEV Should these be moved back to covariance_page.js?
     selected_bipartitions = [];
-    //current_bipartitions = null;
 
     // Phylogram root
     tree_root = undefined;
 
-    constructor(plot, controls, metadata) {
-        super(plot, controls, metadata);
+    constructor(file_data) {
+
+        this.plot = document.getElementById(PhylogramPlot.plot_element_id);
 
         // Get width of the plot element for phylogram
-        let doc_width = document.getElementById(this.plot).clientWidth;
+        let doc_width = this.plot.clientWidth;
 
         // Create a square canvas with fractional width and height
         let width = doc_width;
@@ -64,6 +54,24 @@ class PhylogramPlot extends CloudForestPlot {
         // Create dummy canvas context
         let C2S = require('canvas2svg');
         this.dummy_ctx = C2S(width, height);
+
+        this.parse_boottree_data(file_data.boottree_data)
+        this.bipartition_taxa = file_data.bipartition_taxa;
+        this.taxa_array = file_data.taxa_array;
+
+        if (this.bipartition_taxa !== undefined) {
+            // Create complementary representation of bipartitions
+            this.unique_taxa_complements = {};
+            for (const [k, bipartition_set] of Object.entries(this.bipartition_taxa)) {
+                let complement = this.taxa_array.filter(t => !bipartition_set.includes(t));
+                let complement_set = new Set(complement);
+                this.unique_taxa_complements[k] = complement;
+            }
+        }
+
+        this.build_trees();
+        this.build_controls();
+        this.draw();
     }
 
     parse_boottree_data(d) {
@@ -115,7 +123,7 @@ class PhylogramPlot extends CloudForestPlot {
     }
 
     build_controls() {
-        let pcc = document.getElementById(this.controls);
+        let pcc = document.getElementById(constants.plot_controls_id);
 
         // Create slider for selecting tree to display.
         let slider_input = document.createElement('input');
@@ -225,7 +233,7 @@ class PhylogramPlot extends CloudForestPlot {
     }
 
     create_bipartition_map(tree_links) {
-        if (this.parsed_bipartition_taxa === undefined) {
+        if (this.bipartition_taxa === undefined) {
             return;
         }
 
@@ -249,7 +257,7 @@ class PhylogramPlot extends CloudForestPlot {
 
             let match_found = false;
 
-            for (const [k, bipartition] of Object.entries(this.parsed_bipartition_taxa)) {
+            for (const [k, bipartition] of Object.entries(this.bipartition_taxa)) {
                 let bipartition_set = new Set(bipartition);
 
                 // If the taxa both from the covariance network bipartition (node), and the phylogram bipartition (link) are equal
@@ -259,7 +267,7 @@ class PhylogramPlot extends CloudForestPlot {
                     this.bipartition_map[this.bipartition_map.length - 1].push(k);
                     match_found = true;
 
-                    //delete this.parsed_bipartition_taxa[k];
+                    //delete this.bipartition_taxa[k];
                     break;
                 }
             }
@@ -276,7 +284,7 @@ class PhylogramPlot extends CloudForestPlot {
                         t.bipartition_id = k;
                         this.bipartition_map[this.bipartition_map.length - 1].push(k);
 
-                        //delete this.parsed_bipartition_taxa[k];
+                        //delete this.bipartition_taxa[k];
                         break;
                     }
                 }
@@ -296,10 +304,10 @@ class PhylogramPlot extends CloudForestPlot {
         set_background(this.dummy_ctx, this.canvas.width, this.canvas.height);
 
         let get_latest_color = function(table, i) {
-            if (i >= this.bipartition_color_table.length) {
-                return this.bipartition_color_table[this.bipartition_color_table.length - 1];
+            if (i >= constants.bipartition_color_table.length) {
+                return constants.bipartition_color_table[constants.bipartition_color_table.length - 1];
             } else {
-                return this.bipartition_color_table[i];
+                return constants.bipartition_color_table[i];
             }
         }.bind(this);
 
@@ -307,12 +315,12 @@ class PhylogramPlot extends CloudForestPlot {
             if (t.bipartition_id !== undefined && t.bipartition_id == this.current_bipartition || this.selected_bipartitions.includes(t.bipartition_id)) {
                 let highlight_link_style = undefined;
 
-                let max_index = this.bipartition_color_table.length - 1;
+                let max_index = constants.bipartition_color_table.length - 1;
                 let selected_bipartition_index = this.selected_bipartitions.indexOf(t.bipartition_id);
                 if (selected_bipartition_index != -1) {
-                    highlight_link_style = this.bipartition_color_table[Math.min(selected_bipartition_index, max_index)];
+                    highlight_link_style = constants.bipartition_color_table[Math.min(selected_bipartition_index, max_index)];
                 } else {
-                    highlight_link_style = this.bipartition_color_table[Math.min(this.selected_bipartitions.length, max_index)];
+                    highlight_link_style = constants.bipartition_color_table[Math.min(this.selected_bipartitions.length, max_index)];
                 }
 
                 this.draw_tree_link(ctx, t.scaled_coord.source.x, t.scaled_coord.source.y, t.scaled_coord.target.x, t.scaled_coord.target.y, highlight_link_style, 4, 2);
@@ -375,7 +383,7 @@ class PhylogramPlot extends CloudForestPlot {
      */
     draw() {
         // Remove child-nodes of cov-plot and recreate canvas as child
-        removeChildNodes(this.plot);
+        removeChildNodes(PhylogramPlot.plot_element_id);
 
         // Get data for current tree
         let tree_data = null;
@@ -383,11 +391,11 @@ class PhylogramPlot extends CloudForestPlot {
 
         // Create title with tree number
         if (this.tree_number) {
-            document.getElementById(this.plot).append(htmlToElement(`<div><h3>Tree ${this.tree_number}</h3></div>`));
+            this.plot.append(htmlToElement(`<div><h3>Tree ${this.tree_number}</h3></div>`));
         }
 
         // Add canvas to document
-        document.getElementById(this.plot).append(this.canvas);
+        this.plot.append(this.canvas);
 
         // Get canvas context and fill entirely white
         let ctx = this.canvas.getContext('2d');

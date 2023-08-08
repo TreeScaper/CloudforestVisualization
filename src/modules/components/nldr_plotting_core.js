@@ -6,7 +6,7 @@ import {
     htmlToElement,
     cleanExistingPlot
 } from '../utilities/html_templates';
-import { build_event } from "../utilities/support_funcs";
+import { parse_tsv, build_event } from "../utilities/support_funcs";
 
 //From plotly python alphabet color sequence
 let color_list = ["#AA0DFE", "#3283FE", "#85660D", "#782AB6", "#565656", "#1C8356", "#16FF32",
@@ -42,11 +42,8 @@ const nldr_clean_data = function (data) {
     let cleaned = {};
     let obj = data[0];
     let key_name = obj.fileName + " : " + obj.header.dimension;
-    let t_arr = obj.data.split('\n'); //string to array or rows. Rows are still strings.
-    let arr = [];
-    t_arr.forEach(d => {
-        arr.push(d.split('\t')) //each array element to array of values.
-    });
+    let arr = parse_tsv(obj.data);
+
     let step1 = arr.map(row => {
         return row.filter(f => f.length > 0).map(i => Number(i)); //string to number
     });

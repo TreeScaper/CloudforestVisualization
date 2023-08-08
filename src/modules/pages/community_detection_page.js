@@ -4,12 +4,11 @@ import * as Plotly3D from 'plotly.js-gl3d-dist';
 import { htmlToElement, cleanExistingPlot, removeChildNodes } from "../utilities/html_templates";
 import { build_event } from "../utilities/support_funcs";
 import { get_file_contents } from "../data_manager";
+import { parse_tsv } from "../utilities/support_funcs";
 import {
     nldr_clean_data,
-    plot_dimensions,
     assign_colors,
     color_list,
-    subtree_by_index,
     build_2d,
     build_3d,
     parse_subset_string,
@@ -269,21 +268,6 @@ const parse_results = function (data) {
     return plot_data;
 }
 
-//REFACTOR THIS TO MODULE
-/*
- * Parses community detection data, separating by newline & tab
- */
-const cd_clean_data = function(data) {
-    let t_arr = data.split('\n');
-    let arr = []
-    t_arr.forEach(d => {
-        if (d.length > 0) {
-            arr.push(d.split('\t')); 
-        }
-    });
-    return arr;
-}
-
 /**
  *  CD plateaus can be computed for bipartitions or trees. 
  *  
@@ -443,7 +427,7 @@ const plot_community_detection = function() {
     }
     
     //Step 2: Prepare the lambda/modularity data
-    let lambda_data = parse_results(cd_clean_data(cd_results_file.data));
+    let lambda_data = parse_results(parse_tsv(cd_results_file.data));
     draw_graph(lambda_data);
 }
 

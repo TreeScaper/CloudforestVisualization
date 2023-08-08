@@ -5,10 +5,10 @@ import { drag } from "d3-drag";
 import { mean, max, ascending, extent } from "d3-array";
 import { hierarchy } from "d3-hierarchy";
 import { scaleLinear } from "d3-scale";
-
 import { removeChildNodes } from "../utilities/html_templates";
 import { set_background } from "../utilities/support_funcs";
-import { CloudForestPlot } from "./cloudforest_plot.js";
+import { parse_tsv } from "../utilities/support_funcs";
+import * as constants from "../utilities/constants";
 
 const getEvent = () => event; // This is necessary when using webpack >> https://github.com/d3/d3-zoom/issues/32
 const d3 = Object.assign(
@@ -44,18 +44,18 @@ class GraphData {
     "all_links" = [];
 }
 
-class CovariancePlot extends CloudForestPlot {
+class CovariancePlot {
 
+    static plot_element_id = 'cov-plot';
     static canvas_plot_element_id = 'covariance-canvas';
-
-    // Radius for covariance plot nodes
-    static cov_node_r = 12;
+    static cov_node_r = 12; // Radius for covariance plot nodes
     static highlight_cov_node_r = 14;
     static cov_node_charge_force = -30;
 
     node_radius_scale = undefined;
     max_covariance = 0;
     taxa_array = [];
+    bipartition_taxa = {};
     canvas = undefined;
     link_scale = undefined;
     cd_groups = undefined;
@@ -72,11 +72,10 @@ class CovariancePlot extends CloudForestPlot {
     // Number of trees for phylogram
     num_trees = 0;
 
-    constructor(plot, controls, metadata, cd_groups) {
-        super(plot, controls, metadata);
+    constructor(file_data, cd_groups) {
 
+        this.plot = document.getElementById(CovariancePlot.plot_element_id);
         this.graph_data = new GraphData();
-
         this.cd_groups = cd_groups;
 
         // Scale for calculating width of covariance network link on canvas.
@@ -85,6 +84,14 @@ class CovariancePlot extends CloudForestPlot {
                 .range([.5, 2, 5, 10]);
 
         this.C2S = require('canvas2svg');
+
+        this.parse_covariance(parse_tsv(file_data.covariance_data));
+        this.parse_bipartition_cov(parse_tsv(file_data.bipartition_matrix));
+        this.parse_taxa_array(file_data.taxa_ids);
+        this.parse_taxa_partitions(parse_tsv(file_data.bipartition_taxa));
+
+        this.draw();
+        this.build_controls();
     }
 
     /**
@@ -170,18 +177,16 @@ class CovariancePlot extends CloudForestPlot {
      * @param {*} m - bipartition count file. An array of strings
      */
     parse_taxa_partitions(m) {
-        let part_taxa = {};
         m.forEach(line => {
             let arr = line[0].split(' ');
             let bp = Number(arr[0]);
-            part_taxa[bp] = [];
+            this.bipartition_taxa[bp] = [];
             arr[1].trim().split("").forEach((e, idx) => {
                 if (e === "1") {
-                    part_taxa[bp].push(this.taxa_array[idx]);
+                    this.bipartition_taxa[bp].push(this.taxa_array[idx]);
                 }
             });
         });
-        return part_taxa;
     }
 
     add_current_bipartition(shift_selected) {
@@ -197,7 +202,7 @@ class CovariancePlot extends CloudForestPlot {
     }
 
     build_controls() {
-        let pcc = document.getElementById(this.controls);
+        let pcc = document.getElementById(constants.plot_controls_id);
 
         let field_div = document.createElement('div');
         field_div.setAttribute('class', 'field has-addons');
@@ -280,7 +285,7 @@ class CovariancePlot extends CloudForestPlot {
      * @param {Object} p Profiled node data
      */
     build_metadata(p) {
-        const elm = document.getElementById(this.metadata);
+        const elm = document.getElementById(constants.plot_metadata_id);
         //elm.classList.add("box");
         let e_string = `
         <h4>Partition ${p.id}</h4>
@@ -360,12 +365,12 @@ class CovariancePlot extends CloudForestPlot {
         if (this.is_highlighted_bipartition(d.id)) {
             let highlight_style = undefined;
 
-            let max_index = this.bipartition_color_table.length - 1;
+            let max_index = constants.bipartition_color_table.length - 1;
             let selected_bipartition_index = this.selected_bipartitions.indexOf(d.id);
             if (selected_bipartition_index != -1) {
-                highlight_style = this.bipartition_color_table[Math.min(selected_bipartition_index, max_index)];
+                highlight_style = constants.bipartition_color_table[Math.min(selected_bipartition_index, max_index)];
             } else {
-                highlight_style = this.bipartition_color_table[Math.min(this.selected_bipartitions.length, max_index)];
+                highlight_style = constants.bipartition_color_table[Math.min(this.selected_bipartitions.length, max_index)];
             }
             return highlight_style;
         }
@@ -472,9 +477,9 @@ class CovariancePlot extends CloudForestPlot {
 
     draw() {
         // Remove child-nodes of cov-plot and recreate canvas as child
-        removeChildNodes(this.plot);
+        removeChildNodes(CovariancePlot.plot_element_id);
 
-        let doc_width = document.getElementById(this.plot).clientWidth;
+        let doc_width = this.plot.clientWidth;
         //let width = Math.floor((doc_width - (.02 * doc_width)) / 100) * 100;
         let width = doc_width;
         let height = width;
@@ -488,7 +493,7 @@ class CovariancePlot extends CloudForestPlot {
         this.canvas.setAttribute("height", height);
 
         // Add canvas to document
-        document.getElementById(this.plot).append(this.canvas);
+        this.plot.append(this.canvas);
 
         // Create dummy canvas context
         let C2S = require('canvas2svg');

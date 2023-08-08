@@ -1,11 +1,5 @@
-import { scaleSequential } from "d3-scale";
-import { interpolatePiYG } from "d3-scale-chromatic";
-import { forceSimulation, forceCollide, forceManyBody, forceX, forceY } from "d3-force";
-import { select, event } from "d3-selection";
-import { drag } from "d3-drag";
 import { htmlToElement, cleanExistingPlot } from '../utilities/html_templates';
-import { isNull } from "plotly.js-gl2d-dist";
-import { build_event } from "../utilities/support_funcs";
+import { parse_tsv } from "../utilities/support_funcs";
 import { get_file_contents } from "../data_manager";
 
 // Percentile threshold for affinity value
@@ -13,20 +7,6 @@ const threshold = .001;
 
 let cd_data = undefined;
 let affinity_data = undefined;
-
-/*
-   Splits data by newline, and tabulates rows.
-*/
-const clean_data = function(data) {
-    let t_arr = data.split('\n');
-    let arr = []
-    t_arr.forEach(d => {
-        if (d.length > 0) {
-            arr.push(d.split('\t'));
-        }
-    });
-    return arr;
-}
 
 /*
  * Parses the following information from community detection results file:
@@ -545,13 +525,13 @@ const affinity_chord_page_init = function () {
         });
 
         // Clean and parse community detection data
-        let cd_data_parsed = parse_cd_results(clean_data(cd_data.data));
+        let cd_data_parsed = parse_cd_results(parse_tsv(cd_data.data));
 
         // Choosing communities from arbitrary lambda value
         let cd_clusters = parse_clusters_from_cd(cd_data_parsed['community_maps'][38]);
 
         // Parse affinity matrix
-        let [matrix, score_array, parsed_data] = parse_affinity_matrix(clean_data(affinity_data.data));
+        let [matrix, score_array, parsed_data] = parse_affinity_matrix(parse_tsv(affinity_data.data));
         // Run clustering
         let [fnodes, flinks] = filter_links(parsed_data, score_array[score_array.length - 50]);
 

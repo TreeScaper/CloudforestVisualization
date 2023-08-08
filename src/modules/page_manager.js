@@ -1,7 +1,7 @@
 //Module to handle UI <-> human
 import { htmlToElement } from "./utilities/html_templates";
 import { build_event } from "./utilities/support_funcs";
-import { CovariancePage } from "./pages/covariance_page.js"
+import { determine_default_cov_files } from "./pages/covariance_page.js"
 import { determine_default_cd_files } from "./pages/community_detection_page.js";
 import { available_files_request } from "./data_manager";
 
@@ -71,7 +71,7 @@ let select_objs = {
     },
     "covariance-select": {
         name: "Covariance Plotting",
-        default_file_function: CovariancePage.determine_default_files,
+        default_file_function: determine_default_cov_files,
         file_set: [
             {
                 name: 'covariance_matrix',
@@ -260,11 +260,7 @@ const process_available_files = function (files) {
 }
 
 const page_mgr_init = function (init_obj) {
-    const { guid_fn } = init_obj;
-    const my_guid = guid_fn();
-
     let available_files = available_files_request();
-
     process_available_files(available_files);
     populate_visualizations(available_files);
 }

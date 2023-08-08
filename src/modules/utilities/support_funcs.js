@@ -7,6 +7,9 @@
  * @param {*} height 
  * @param {*} radius 
  */
+
+import * as constants from "../utilities/constants";
+
 const roundedRect = function (ctx, x, y, width, height, radius) {
     let r = new Path2D();
     r.moveTo(x, y + radius);
@@ -58,7 +61,32 @@ const set_background = function(ctx, width, height) {
     ctx.fillRect(0, 0, width, height);
 }
 
+/**
+ * Creates 2d array from tab-separated data.
+ *
+ * @param {string} data Raw data
+ */
+const parse_tsv = function(data) {
+    let t_arr = data.split('\n');
+    let arr = []
+    t_arr.forEach(d => {
+        if (d.length > 0) {
+            arr.push(d.split('\t'));
+        }
+    });
+    return arr;
+}
+
+const clear_plot = function() {
+    let plot_element = document.getElementById(constants.plot_id);
+    while (plot_element.firstChild) {
+        plot_element.removeChild(plot_element.firstChild);
+    }
+}
+
 export {
+    clear_plot,
+    parse_tsv,
     set_background,
     set_equality,
     roundedRect,
