@@ -363,9 +363,9 @@ const plot_every_nth = function(cut_off, dimension, coordinate_data) {
     let c = assign_colors({"colors": color_list, "default_color": fall_back_color})
     let d = coordinate_data[Object.keys(coordinate_data)[0]];
     let new_colors = [];
-    let current_color = c.assign_color();
+    let current_color = undefined;
     d.forEach((v, idx) => {
-        if ((idx + 1) % cut_off === 0) {
+        if (idx % cut_off === 0) {
             current_color = c.assign_color();
         }
         new_colors.push(current_color);
