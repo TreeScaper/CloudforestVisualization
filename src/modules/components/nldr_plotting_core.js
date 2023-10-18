@@ -14,7 +14,6 @@ let color_list = ["#AA0DFE", "#3283FE", "#85660D", "#782AB6", "#565656", "#1C835
                     "#FEAF16", "#F8A19F", "#90AD1C", "#F6222E", "#1CFFCE", "#2ED9FF", "#B10DA1",
                     "#C075A6", "#FC1CBF", "#B00068", "#FBE426", "#FA0087"];
 
-let fall_back_color = "black";
 /**
  * Object for generating colors for plotting
  */
@@ -355,54 +354,6 @@ const scatter_3d = function (file_contents, in_color) {
     });
 }
 
-/*
- * This color-codes scatter data where every nth point shares the same color.
- */
-const plot_every_nth = function(cut_off, dimension, coordinate_data) {
-
-    let c = assign_colors({"colors": color_list, "default_color": fall_back_color})
-    let d = coordinate_data[Object.keys(coordinate_data)[0]];
-    let new_colors = [];
-    let current_color = undefined;
-    d.forEach((v, idx) => {
-        if (idx % cut_off === 0) {
-            current_color = c.assign_color();
-        }
-        new_colors.push(current_color);
-    });
-    cleanExistingPlot();
-    if (dimension === 2) {
-        build_2d(d, new_colors);
-    }
-    if (dimension === 3) {
-        build_3d(d, new_colors);
-    }
-}
-
-/**
- * User wishes to subset the NLDR trees every nth number of trees.
- *
- * Draw gui, let user enter nth value, execute
- */
-const subtree_every_nth = function(dimension, coordinate_data) {
-    let s = `
-    <div id="user-plot-ctrls" class="tile is-parent">
-        <div class="tile is-child box>
-            <label for="nth-value">Subset Trees every Nth Tree</label>
-            <input id="nth-value" class="input" type="text" placeholder="10">
-            <button id="execute-nth-value" class="button is-small">Execute</button>
-        </div>
-    </div>`;
-    document.getElementById('subset-plots-div').append(htmlToElement(s));
-
-    document.getElementById('execute-nth-value').addEventListener('click', e => {
-        let el = document.getElementById("nth-value");
-        if (el.value.length > 0) {
-            plot_every_nth(Number(el.value), dimension, coordinate_data);
-        }
-    });
-}
-
 /**
  * Parse the user's subset string
  *
@@ -447,78 +398,6 @@ const parse_subset_string = function(s, ar_length) {
     return rval;
 }
 
-
-/**
- * User wishes to subset the NLDR trees by sepcific indexes.
- *
- * Draw gui, let user enter indexes, execute
- */
-const subtree_by_index = function(dimension, pattern_string, coordinate_data) {
-    let s = `
-    <div id="user-plot-ctrls" class="tile is-parent">
-        <div class="tile is-child box>
-            <label for="nth-value">Subset Trees by Index <p class="is-size-7">Group with brackets <strong>[]</strong> - Separate with semicolons <strong>;</strong></p></label>
-            <input id="nth-value" class="input" type="text" placeholder="[1-50: blue];[60-200: green] ;[300,301,302: yellow]" size="40">
-            <button id="execute-index-string" class="button is-small">Execute</button>
-        </div>
-    </div>`;
-
-    document.getElementById('subset-plots-div').append(htmlToElement(s));
-    if (pattern_string) {
-        document.getElementById('nth-value').value = pattern_string;
-    }
-    document.getElementById('execute-index-string').addEventListener('click', e => {
-        let el = document.getElementById("nth-value");
-        if (el.value.length > 0) {
-            let d = coordinate_data[Object.keys(coordinate_data)[0]];
-            let colors = parse_subset_string(el.value, d.length)
-            cleanExistingPlot();
-            if (dimension === 2) {
-                build_2d(d, colors);
-            }
-            if (dimension === 3) {
-                build_3d(d, colors);
-            }
-        }
-    });
-}
-
-/**
- * User wishes to load a text file for creating subsets of trees.
- */
-const subtree_by_file = function (dimesion, coordinate_data) {
-    let s = `
-    <div id="user-plot-ctrls" class="tile is-parent">
-        <div class="tile is-child box>
-            <label for="subset-tree-file">Choose a text file to upload:</label>
-            <input type="file" id="subset-tree-file" name="subset-tree-file" accept="text/plain">
-        </div>
-    </div>`;
-
-    document.getElementById('subset-plots-div').append(htmlToElement(s));
-    document.getElementById('subset-tree-file').addEventListener('change', e => {
-        let file = e.target.files[0];
-        let reader = new FileReader();
-        reader.readAsText(file);
-        reader.onload = function() {
-            console.log(reader.result);
-            let d = coordinate_data[Object.keys(coordinate_data)[0]];
-            let colors = parse_subset_string(reader.result, d.length)
-            cleanExistingPlot();
-            if (dimesion === 2) {
-                build_2d(d, colors);
-            }
-            if (dimesion === 3) {
-                build_3d(d, colors);
-            }
-        }
-        reader.onerror = function() {
-            console.error(reader.error);
-        }
-    });
-
-}
-
 /*
  * Remove plot controls HTML.
  */
@@ -532,7 +411,7 @@ const clean_it = function() {
 /*
  * Builds 3D plotting menu, creates plot element, and scatter plots data.
  */
-const build_3d = function (contents, in_colors=["blue"], build_menu=true) {
+const build_3d = function (contents, colors) {
     if (!document.getElementById("dim-scatter-plot")) {
         let plot_div = "plot";
         if (document.getElementById("inline-plot")) {
@@ -540,13 +419,13 @@ const build_3d = function (contents, in_colors=["blue"], build_menu=true) {
         }
         document.getElementById(plot_div).append(htmlToElement(`<div id="dim-scatter-plot" style="float:center;vertical-align:top;"/>`));
     }
-    scatter_3d(contents, in_colors);
+    scatter_3d(contents, colors);
 }
 
 /*
  * Builds 2D plotting menu, creates plot element, and scatter plots data.
  */
-const build_2d = function (contents, in_colors=["blue"], build_menu=true) {
+const build_2d = function (contents, colors) {
     if (!document.getElementById("dim-scatter-plot")) {
         let plot_div = "plot";
         if (document.getElementById("inline-plot")) {
@@ -554,18 +433,18 @@ const build_2d = function (contents, in_colors=["blue"], build_menu=true) {
         }
         document.getElementById(plot_div).append(htmlToElement(`<div id="dim-scatter-plot" style="float:center;vertical-align:top;"/>`));
     }
-    scatter_2d(contents, in_colors);
+    scatter_2d(contents, colors);
 }
 
 /*
  * Call appropriate plotting function based on dimension.
  */
-const plot_dimensions = function (dims, contents) {
+const plot_dimensions = function (dims, contents, colors=["blue"]) {
     if (dims === 2) {
-        build_2d(contents);
+        build_2d(contents, colors);
     }
     if (dims === 3) {
-        build_3d(contents);
+        build_3d(contents, colors);
     }
     if (dims > 3) {
         parallel_coordinates(contents);
@@ -577,11 +456,6 @@ export {
     plot_dimensions,
     assign_colors,
     color_list,
-    subtree_by_index,
-    subtree_by_file,
-    subtree_every_nth,
-    build_2d,
-    build_3d,
     parse_subset_string,
     create_scatter_3d_data,
     create_scatter_2d_data,

@@ -11,18 +11,15 @@ import {
     nldr_clean_data,
     assign_colors,
     plot_dimensions,
+    parse_subset_string,
     color_list,
-    clean_it,
-    subtree_by_index,
-    subtree_by_file,
-    subtree_every_nth
+    clean_it
 } from '../components/nldr_plotting_core.js';
-import { build_event } from "../utilities/support_funcs";
 import { get_file_contents } from "../data_manager";
 
 let coordinate_data = undefined;
 let subtree_by_index_string = undefined;
-
+let fall_back_color = "black";
 
 /**
  * Create user controls for sub-tree loading and marking.
@@ -65,6 +62,114 @@ const build_subtree_menu = function(dimension) {
             subtree_by_file(dimension, coordinate_data);
         }
     });
+}
+
+/*
+ * This color-codes scatter data where every nth point shares the same color.
+ */
+const plot_every_nth = function(cut_off, dimension, coordinate_data) {
+
+    let c = assign_colors({"colors": color_list, "default_color": fall_back_color})
+    let d = coordinate_data[Object.keys(coordinate_data)[0]];
+    let colors = [];
+    let current_color = undefined;
+    d.forEach((v, idx) => {
+        if (idx % cut_off === 0) {
+            current_color = c.assign_color();
+        }
+        colors.push(current_color);
+    });
+    cleanExistingPlot();
+    build_subtree_menu(dimension);
+    plot_dimensions(dimension, d, colors);
+}
+
+/**
+ * User wishes to subset the NLDR trees every nth number of trees.
+ *
+ * Draw gui, let user enter nth value, execute
+ */
+const subtree_every_nth = function(dimension, coordinate_data) {
+    let s = `
+    <div id="user-plot-ctrls" class="tile is-parent">
+        <div class="tile is-child box>
+            <label for="nth-value">Subset Trees every Nth Tree</label>
+            <input id="nth-value" class="input" type="text" placeholder="10">
+            <button id="execute-nth-value" class="button is-small">Execute</button>
+        </div>
+    </div>`;
+    document.getElementById('subset-plots-div').append(htmlToElement(s));
+
+    document.getElementById('execute-nth-value').addEventListener('click', e => {
+        let el = document.getElementById("nth-value");
+        if (el.value.length > 0) {
+            plot_every_nth(Number(el.value), dimension, coordinate_data);
+        }
+    });
+}
+
+
+/**
+ * User wishes to subset the NLDR trees by sepcific indexes.
+ *
+ * Draw gui, let user enter indexes, execute
+ */
+const subtree_by_index = function(dimension, pattern_string, coordinate_data) {
+    let s = `
+    <div id="user-plot-ctrls" class="tile is-parent">
+        <div class="tile is-child box>
+            <label for="nth-value">Subset Trees by Index <p class="is-size-7">Group with brackets <strong>[]</strong> - Separate with semicolons <strong>;</strong></p></label>
+            <input id="nth-value" class="input" type="text" placeholder="[1-50: blue];[60-200: green] ;[300,301,302: yellow]" size="40">
+            <button id="execute-index-string" class="button is-small">Execute</button>
+        </div>
+    </div>`;
+
+    document.getElementById('subset-plots-div').append(htmlToElement(s));
+    if (pattern_string) {
+        document.getElementById('nth-value').value = pattern_string;
+    }
+    document.getElementById('execute-index-string').addEventListener('click', e => {
+        let el = document.getElementById("nth-value");
+        if (el.value.length > 0) {
+            let d = coordinate_data[Object.keys(coordinate_data)[0]];
+            let colors = parse_subset_string(el.value, d.length)
+            cleanExistingPlot();
+            build_subtree_menu(dimension);
+            plot_dimensions(dimension, d, colors);
+        }
+    });
+}
+
+/**
+ * User wishes to load a text file for creating subsets of trees.
+ */
+const subtree_by_file = function (dimension, coordinate_data) {
+    let s = `
+    <div id="user-plot-ctrls" class="tile is-parent">
+        <div class="tile is-child box>
+            <label for="subset-tree-file">Choose a text file to upload:</label>
+            <input type="file" id="subset-tree-file" name="subset-tree-file" accept="text/plain">
+        </div>
+    </div>`;
+
+    document.getElementById('subset-plots-div').append(htmlToElement(s));
+    document.getElementById('subset-tree-file').addEventListener('change', e => {
+        let file = e.target.files[0];
+        let reader = new FileReader();
+        reader.readAsText(file);
+        reader.onload = function() {
+            console.log(reader.result);
+            let d = coordinate_data[Object.keys(coordinate_data)[0]];
+            let colors = parse_subset_string(reader.result, d.length)
+            cleanExistingPlot();
+            build_subtree_menu(dimension);
+            plot_dimensions(dimension, d, colors);
+        }
+        reader.onerror = function() {
+            console.error(reader.error);
+        }
+    });
+
 }
 
 const nldr_page_init = function () {

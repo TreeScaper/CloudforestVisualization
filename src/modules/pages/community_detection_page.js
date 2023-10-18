@@ -9,8 +9,7 @@ import {
     nldr_clean_data,
     assign_colors,
     color_list,
-    build_2d,
-    build_3d,
+    plot_dimensions,
     parse_subset_string,
     create_scatter_3d_data,
     create_scatter_2d_data
@@ -67,12 +66,7 @@ const plot_nldr = function (cd_groups) {
     // WAGNERR: We should update instead of creating a new plot. Currently it just
     // overwrites the old.
     if (!document.getElementById("dim-scatter-plot")) {
-        if (plot_dimension === 2) {
-            build_2d(d, colors, false);
-        }
-        if (plot_dimension === 3) {
-            build_3d(d, colors, false);
-        }
+        plot_dimensions(plot_dimension, d, colors);
     } else {
         if (plot_dimension === 2) {
             let new_marker = create_scatter_2d_data(d, colors)[0]['marker'];
