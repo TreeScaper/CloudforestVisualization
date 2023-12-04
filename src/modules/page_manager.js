@@ -3,18 +3,26 @@ import { htmlToElement } from "./utilities/html_templates";
 import { build_event } from "./utilities/support_funcs";
 import { determine_default_cov_files } from "./pages/covariance_page.js"
 import { determine_default_cd_files } from "./pages/community_detection_page.js";
-import { available_files_request } from "./data_manager";
+import { determine_default_nldr_files } from "./pages/nldr_page.js";
+import { available_files } from "./data_manager";
 
 let current_visualization = undefined;
 
 let select_objs = {
     "nldr-select": {
         name: "NLDR",
+        default_file_function: determine_default_nldr_files,
         file_set:  [
             {
                 name: 'nldr_coordinates',
                 display_name: 'NLDR Coordinates',
                 regex: [RegExp(/^NLDR Coordinates/)],
+                files: []
+            },
+            {
+                name: 'tree_file',
+                display_name: 'Tree File',
+                regex: [RegExp(/cloudforest\.trees/)],
                 files: []
             }
         ],
@@ -112,8 +120,8 @@ let select_objs = {
 const get_selected_file_ids = function () {
     let file_select = document.getElementsByClassName('file-select');
     let selected_files = {};
-    for (const f of file_select) {
-        selected_files[f.id] = f.options[f.selectedIndex].getAttribute('data_id');
+    for (const select of file_select) {
+        selected_files[select.id] = select.options[select.selectedIndex].getAttribute('data_id');
     }
     return selected_files;
 }
@@ -196,7 +204,7 @@ const populate_visualizations = function (files) {
                 if (default_files != undefined && default_files[set_item.name] != undefined) {
                     default_file = default_files[set_item.name];
                     default_option.setAttribute('class', 'file-list-option');
-                    default_option.setAttribute('data_id', default_file.id);
+                    default_option.setAttribute('data_id', default_file.dataset_id);
                     default_option.setAttribute('data_name', default_file.name);
                     default_option.textContent = `${default_file.hid}: ${default_file.name}`;
                 } else {
@@ -214,10 +222,10 @@ const populate_visualizations = function (files) {
                 // For the selection visualization file set item, add the associated files
                 // DEV we should have a function for each visualization that tries to determine the best default options
                 set_item.files.forEach(f => {
-                    if (default_file == undefined || f.id != default_file.id) {
+                    if (default_file == undefined || f.dataset_id != default_file.dataset_id) {
                         let option = document.createElement('option');
                         option.setAttribute('class', 'file-list-option');
-                        option.setAttribute('data_id', f.id);
+                        option.setAttribute('data_id', f.dataset_id);
                         option.setAttribute('data_name', f.name);
                         option.textContent = `${f.hid}: ${f.name}`;
                         file_select.append(option);
@@ -260,7 +268,6 @@ const process_available_files = function (files) {
 }
 
 const page_mgr_init = function (init_obj) {
-    let available_files = available_files_request();
     process_available_files(available_files);
     populate_visualizations(available_files);
 }

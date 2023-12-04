@@ -1,12 +1,9 @@
 // Module for parsing and plotting NLDR coordinate data.
-import * as Plotly2D from 'plotly.js-basic-dist';
-import * as Plotly3D from 'plotly.js-gl3d-dist';
-import * as PlotlyParallel from 'plotly.js-gl2d-dist';
 import {
     htmlToElement,
     cleanExistingPlot
 } from '../utilities/html_templates';
-
+import { PhylogramPlot } from "../components/phylogram_plot.js"
 import {
     nldr_clean_data,
     assign_colors,
@@ -15,7 +12,8 @@ import {
     color_list,
     clean_it
 } from '../components/nldr_plotting_core.js';
-import { get_file_contents } from "../data_manager";
+import { get_file_contents, get_input_hcontent } from "../data_manager";
+import * as constants from "../utilities/constants";
 
 let coordinate_data = undefined;
 let subtree_by_index_string = undefined;
@@ -172,6 +170,24 @@ const subtree_by_file = function (dimension, coordinate_data) {
 
 }
 
+const determine_default_nldr_files = function(files) {
+
+    // Find the NLDR coordinate history item.
+    let nldr_coord_hcontent = files.filter(obj => obj.extension === 'cloudforest.coordinates')[0];
+    if (nldr_coord_hcontent === undefined) {
+        return undefined;
+    }
+
+    // Find the original tree file used to generate the NDLR coordinates.
+    let distance_matrix_hcontent = get_input_hcontent(nldr_coord_hcontent, files);
+    let trees_hcontent = get_input_hcontent(distance_matrix_hcontent, files);
+
+    return {
+        'nldr_coordinates': nldr_coord_hcontent,
+        'tree_file': trees_hcontent
+    }
+}
+
 const nldr_page_init = function () {
 
     //User has requested that CD groups be used in plotting.
@@ -203,15 +219,29 @@ const nldr_page_init = function () {
 
     addEventListener("NLDRPageRequest", e => {
         get_file_contents(Object.entries(e.detail.file_ids).map(entry => entry[1]), (contents) => {
-            coordinate_data = nldr_clean_data(contents);
+
+            let coordinate_file_obj = contents.filter(file_object => file_object.fileExt === 'cloudforest.coordinates')[0];
+            let tree_file_obj = contents.filter(file_object => file_object.fileExt === 'cloudforest.trees')[0];
+
+            let node_click_function = function (data) {
+                let plot_element = document.getElementById(constants.plot_id);
+                plot_element.append(htmlToElement(`<div id="tree-plot" style="vertical-align: top; width: 50%; margin: 0px; padding-right: 0px; font-size:0; border: 0px; display:inline-block; overflow: visible"/>`));
+                let tree_idx = data.points[0]['pointNumber'];
+                let phylogram_plot = new PhylogramPlot({"boottree_data": tree_file_obj.data});
+                phylogram_plot.tree_number = tree_idx;
+                phylogram_plot.draw();
+            }
+
+            coordinate_data = nldr_clean_data(coordinate_file_obj);
             let plot_dimension = coordinate_data[Object.keys(coordinate_data)[0]][0].length;
             cleanExistingPlot();
             build_subtree_menu(plot_dimension);
-            plot_dimensions(plot_dimension, coordinate_data[Object.keys(coordinate_data)[0]]);
+            plot_dimensions(plot_dimension, coordinate_data[Object.keys(coordinate_data)[0]], ['blue'], node_click_function);
         });
     });
 }
 
 export {
-    nldr_page_init
+    nldr_page_init,
+    determine_default_nldr_files
 };

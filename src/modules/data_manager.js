@@ -24,16 +24,36 @@
  */
 import { build_event } from "./utilities/support_funcs";
 
-let file_objects = undefined; //Holds array of file objects from history
+let available_files = undefined; //Holds array of file objects from history
 let href = undefined;
 let history_id = undefined;
-let bipartition_files = undefined;
-let nldr_coordinate_files = undefined;
-let community_detection_files = undefined;
-let affinity_matrix_files = undefined;
 
 const admin_key = "?key=admin";
 const USE_KEY = false;
+
+/*
+    Find input file for given file object.
+*/
+const get_input_hcontent = function(hcontent, hcontent_list) {
+    return hcontent_list.filter(obj => {
+        if (hcontent.inputs.input_file === undefined) {
+            return false;
+        }
+        return obj.id === hcontent.inputs.input_file.id;
+    })[0]
+};
+
+/*
+    The reverse of get_input_hcontent(), finds the hcontent that was run on a given input.
+*/
+const get_hcontent_with_input = function(hcontent_id, hcontent_list) {
+    return hcontent_list.filter(obj => {
+        if (obj.inputs.input_file === undefined) {
+            return false;
+        }
+        return obj.inputs.input_file.id === hcontent_id;
+    });
+}
 
 /**
  * Parses the header on CLVTreescaper data files.
@@ -90,11 +110,10 @@ const fetch_decode = (f_obj) => {
     }
 }
 
-
 const get_file_contents = async (files, callback) => {
     let funcs = [];
     files.forEach(file_id => {
-        const g_f_obj = file_objects.filter(fo => fo.dataset_id === file_id);
+        const g_f_obj = available_files.filter(fo => fo.dataset_id === file_id);
         funcs.push(fetch_decode(g_f_obj[0]));
     });
     let file_contents = [];
@@ -151,17 +170,20 @@ const filter_data = function (raw_data) {
     return r_val;
 };
 
-const process_history_contents = function (data) {
+const process_history_contents = async function (data) {
     let f_data = filter_data(data);
-    file_objects = f_data;
+    available_files = f_data;
 
-    // Get all files to allow module to find correct items.
-    bipartition_files = file_objects;
-    nldr_coordinate_files = file_objects.filter(obj => RegExp(/cloudforest\.coordinates/).test(obj.extension));
-
-    // Get all files to allow module to find correct items.
-    community_detection_files = file_objects;
-    affinity_matrix_files = file_objects.filter(obj => RegExp(/cloudforest\.cd/).test(obj.extension) || RegExp(/cloudforest\.affinity/).test(obj.extension));
+    for (const f of available_files) {
+        let contents_obj = await fetch(f.url)
+                                .then(response => {return response.text()})
+                                .then(response => {return JSON.parse(response)});
+        let creating_job = contents_obj.creating_job;
+        let job_obj = await fetch(`${href}/api/jobs/${creating_job}`)
+                                .then(response => {return response.text()})
+                                .then(response => {return JSON.parse(response)});
+        f.inputs = job_obj.inputs;
+    }
 
     dispatchEvent(build_event("DataPrimed", {}));
 };
@@ -183,14 +205,6 @@ const parse_galaxy_history = function (href, history_id) {
         });
 
 }
-
-const file_identifiers = function () {
-    let r_val = [];
-    file_objects.forEach(f_obj => {
-        r_val.push({ name: f_obj.name, id: f_obj.dataset_id, extension: f_obj.extension, hid: f_obj.hid });
-    });
-    return r_val;
-};
 
 const galaxy_upload = function (data, file_name) {
     let payload = {
@@ -228,10 +242,6 @@ const galaxy_upload = function (data, file_name) {
         });
 }
 
-const available_files_request = function () {
-    return file_identifiers();
-}
-
 const data_manager_init = function (init_obj) {
     let { conf_elem_id } = init_obj;
 
@@ -243,6 +253,8 @@ const data_manager_init = function (init_obj) {
 
 export {
     data_manager_init,
-    available_files_request,
-    get_file_contents
+    get_file_contents,
+    get_input_hcontent,
+    get_hcontent_with_input,
+    available_files
 }

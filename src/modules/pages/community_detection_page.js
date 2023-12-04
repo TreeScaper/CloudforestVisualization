@@ -3,7 +3,7 @@ import * as Plotly2D from 'plotly.js-basic-dist';
 import * as Plotly3D from 'plotly.js-gl3d-dist';
 import { htmlToElement, cleanExistingPlot, removeChildNodes } from "../utilities/html_templates";
 import { build_event } from "../utilities/support_funcs";
-import { get_file_contents } from "../data_manager";
+import { get_file_contents, get_input_hcontent, get_hcontent_with_input } from "../data_manager";
 import { parse_tsv } from "../utilities/support_funcs";
 import {
     nldr_clean_data,
@@ -51,7 +51,7 @@ const plot_nldr = function (cd_groups) {
     let subtree_by_index_string = str;
 
     // Clean NLDR coordinate data
-    let coordinate_data = nldr_clean_data([nldr_coordinate_file]);
+    let coordinate_data = nldr_clean_data(nldr_coordinate_file);
 
     // Determine dimension of coordinates. Each item in the coordinates a tree with n coordinates.
     let plot_dimension = coordinate_data[Object.keys(coordinate_data)[0]][0].length;
@@ -426,42 +426,43 @@ const plot_community_detection = function() {
 }
 
 const determine_default_cd_files = function(files) {
-    // Find which history item plateau file points to.
-    let plateau_file_regex = /CD Plateaus/i;
-    let plateau_file_obj = files.filter(obj => plateau_file_regex.test(obj.name))[0];
 
-    if (plateau_file_obj == undefined) {
+    // Find the CD Plateau history item.
+    let plateau_hcontent = files.filter(obj => obj.extension === 'cloudforest.cd_plateaus')[0];
+    if (plateau_hcontent == undefined) {
         return undefined;
     }
 
-    let plateau_history_item_string = plateau_file_obj.name.match(/data [0-9]+/)[0];
-    let plateau_target_history_number = parseInt(plateau_history_item_string.match(/[0-9]+/));
-
-    // Find which history item the result of the above block points to.
-    let plateau_target_file_obj = files.filter(obj => obj.hid == plateau_target_history_number)[0];
-    let covariance_matrix_file_regex = /Covariance Matrix/i;
+    // Get history content item for input to CD job.
+    let plateau_input_hcontent = get_input_hcontent(plateau_hcontent, files);
 
     // If community detection was run on covariance network, NLDR would be run on the same input.
-    let nldr_target_history_number = null;
-    if (covariance_matrix_file_regex.test(plateau_target_file_obj.name)) {
-        nldr_target_history_number = plateau_target_history_number;
+    // Otherwise, it is run on input file down the chain.
+    //
+    // For example, the input scenarios are as such:
+    // #1
+    // CD Plateau <- Covariance Matrix <- Tree File
+    // NDLR Coord <- Covariance Matrix <- Tree File
+    //
+    // #2
+    // CD Plateau <- Affinity Matrix <- Distance Matrix <- Tree File
+    // NDLR Coord <-------------------- Distance Matrix <- Tree File
+    let nldr_input_hcontent_id = null;
+    if (plateau_input_hcontent.extension == 'cloudforest.covariance') {
+        nldr_input_hcontent_id = plateau_input_hcontent.id;
     } else {
-        let plateau_target_history_item_string = plateau_target_file_obj.name.match(/data [0-9]+/)[0];
-        nldr_target_history_number = parseInt(plateau_target_history_item_string.match(/[0-9]+/));
+        let next_input_hcontent = get_input_hcontent(plateau_input_hcontent, files);
+        nldr_input_hcontent_id = next_input_hcontent.id;
     }
 
-    // Find NLDR results pointing to the same history item as the above.
-    let nldr_regex = new RegExp(`NLDR Coordinates.*${nldr_target_history_number}$`);
-    let nldr_coordinate_file_obj = files.filter(obj => nldr_regex.test(obj.name))[0];
-
-    // Find CD Results pointing to same history item as Plateau file.
-    let cd_results_regex = new RegExp(`CD Results.*${plateau_target_history_number}$`);
-    let cd_results_file_obj = files.filter(obj => cd_results_regex.test(obj.name))[0];
+    // Find the matching NLDR and CD results given the inputs we found for the CD Plateaus.
+    let nldr_coordinate_hcontent = get_hcontent_with_input(nldr_input_hcontent_id, files).filter(c => c.extension === 'cloudforest.coordinates')[0];
+    let cd_results_hcontent = get_hcontent_with_input(plateau_input_hcontent.id, files).filter(c => c.extension === 'cloudforest.cd_results')[0];
 
     return {
-        'plateaus': plateau_file_obj,
-        'nldr_coordinate_file': nldr_coordinate_file_obj,
-        'cd_results': cd_results_file_obj
+        'plateaus': plateau_hcontent,
+        'nldr_coordinate_file': nldr_coordinate_hcontent,
+        'cd_results': cd_results_hcontent
     }
 }
 
@@ -473,7 +474,7 @@ const community_detection_page_init = function () {
 
     let file_contents_callback = (contents) => {
         contents.forEach(entry => {
-            if (RegExp(/CD Plateaus/i).test(entry.fileName)) {
+            if (RegExp(/CD Plateaus/i).test(entry.name)) {
                 plateau_file = entry;
             }
             if (RegExp(/CD with NLDR Coordinates/i).test(entry.fileName)) {

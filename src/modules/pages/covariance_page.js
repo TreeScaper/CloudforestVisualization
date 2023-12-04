@@ -1,5 +1,5 @@
 import { htmlToElement } from "../utilities/html_templates";
-import { get_file_contents } from "../data_manager";
+import { get_file_contents, get_input_hcontent, get_hcontent_with_input } from "../data_manager";
 import { clear_plot } from "../utilities/support_funcs";
 import { PhylogramPlot } from "../components/phylogram_plot.js"
 import { CovariancePlot } from "../components/covariance_plot.js"
@@ -129,41 +129,26 @@ const build_controls = function() {
 
 const determine_default_cov_files = function(files) {
 
-    // DEV test no match
-    let covariance_matrix_regex = /Covariance Matrix/i
-    let covariance_matrix_file_obj = files.filter(obj => covariance_matrix_regex.test(obj.name))[0];
-
-    if (covariance_matrix_file_obj == undefined) {
+    // Find the covariance matrix history item.
+    let covariance_hcontent = files.filter(obj => obj.extension === 'cloudforest.covariance')[0];
+    if (covariance_hcontent === undefined) {
         return undefined;
     }
 
-    // History item name for the covariance matrix file
-    let history_item_string = covariance_matrix_file_obj.name.match(/data [0-9]+/)[0];
+    // Get input trees history content item
+    let trees_hcontent = get_input_hcontent(covariance_hcontent, files);
 
-    // Number of the history item used as input for the Covariance Matrix file
-    let history_number = parseInt(history_item_string.match(/[0-9]+/));
-
-    // Find Bipartition Matrix file generated from the same history item
-    let bip_matrix_regex = new RegExp(`Bipartition Matrix.*${history_item_string}$`);
-    let bip_matrix_file_obj = files.filter(obj => bip_matrix_regex.test(obj.name))[0];
-
-    // Find Bipartition Counts file generated from the same history item
-    let bip_counts_regex = new RegExp(`Bipartition Counts.*${history_item_string}$`);
-    let bip_counts_file_obj= files.filter(obj => bip_counts_regex.test(obj.name))[0];
-
-    // Find Taxa IDs  file generated from the same history item
-    let taxa_ids_regex = new RegExp(`Taxa IDs.*${history_item_string}$`);
-    let taxa_ids_file_obj = files.filter(obj => taxa_ids_regex.test(obj.name))[0];
-
-    // Find the original input history item used to generate the above files
-    let trees_file_obj = files.filter(obj => obj.hid == history_number)[0];
+    // Get bipartition outputs from given trees file.
+    let bip_matrix_hcontent = get_hcontent_with_input(trees_hcontent.id, files).filter(c => c.extension === 'cloudforest.bipartition')[0];
+    let bip_counts_hcontent = get_hcontent_with_input(trees_hcontent.id, files).filter(c => c.extension === 'cloudforest.counts')[0];
+    let taxa_ids_hcontent = get_hcontent_with_input(trees_hcontent.id, files).filter(c => c.extension === 'cloudforest.taxids')[0];
 
     return {
-        'covariance_matrix': covariance_matrix_file_obj,
-        'bipartition_matrix': bip_matrix_file_obj,
-        'bipartition_counts': bip_counts_file_obj,
-        'taxa_ids': taxa_ids_file_obj,
-        'tree_file': trees_file_obj
+        'covariance_matrix': covariance_hcontent,
+        'bipartition_matrix': bip_matrix_hcontent,
+        'bipartition_counts': bip_counts_hcontent,
+        'taxa_ids': taxa_ids_hcontent,
+        'tree_file': trees_hcontent
     }
 }
 
