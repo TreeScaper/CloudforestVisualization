@@ -37,9 +37,8 @@ const assign_colors = function(spec) {
 
 // Data coming from treescaper is often poorly formatted. Need to
 // do some cleaning here, mostly remove the artificats from having extra tabs in output.
-const nldr_clean_data = function (data) {
+const nldr_clean_data = function (obj) {
     let cleaned = {};
-    let obj = data[0];
     let key_name = obj.fileName + " : " + obj.header.dimension;
     let arr = parse_tsv(obj.data);
 
