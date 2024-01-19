@@ -7,6 +7,7 @@ import {
     cleanExistingPlot
 } from '../utilities/html_templates';
 import { parse_tsv, build_event } from "../utilities/support_funcs";
+import * as constants from "../utilities/constants";
 
 //From plotly python alphabet color sequence
 let color_list = ["#AA0DFE", "#3283FE", "#85660D", "#782AB6", "#565656", "#1C8356", "#16FF32",
@@ -73,7 +74,9 @@ const rows_to_dimensions = function (row_data) {
  */
 const parallel_coordinates = function (file_contents) {
     if (!document.getElementById("dim-scatter-plot")) {
-        document.getElementById("plot").append(htmlToElement(`<div id="dim-scatter-plot" style="float:center;vertical-align:top;display:inline-block;"/>`));
+        let scatter_plot_div = document.createElement('div');
+        scatter_plot_div.setAttribute('id', constants.scatter_plot_id);
+        document.getElementById("plot").append(scatter_plot_div);
     }
     let dims = [];
     let dim_data = rows_to_dimensions(file_contents);
@@ -148,7 +151,7 @@ const create_scatter_2d_data = function (file_contents, in_color) {
  *
  * @param {number[][]} file_contents
  */
-const scatter_2d = function (file_contents, in_color) {
+const scatter_2d = function (file_contents, in_color, click_function) {
 
     let data = create_scatter_2d_data(file_contents, in_color);
 
@@ -200,15 +203,7 @@ const scatter_2d = function (file_contents, in_color) {
     const s_plot = document.getElementById("dim-scatter-plot");
     Plotly2D.newPlot("dim-scatter-plot", data, layout, config);
 
-    s_plot.on("plotly_click", function (data) {
-        let tree_idx = data.points[0]['pointNumber'];
-        console.log(`Draw ${data.points[0].text}`);
-        dispatchEvent(
-            build_event("TreeRequest", {
-                guid: "",
-                tree_number: tree_idx
-            }));
-    });
+    s_plot.on("plotly_click", click_function);
 };
 
 /*
@@ -339,18 +334,8 @@ const scatter_3d = function (file_contents, in_color) {
     }
     const s_plot = document.getElementById(three_d_dom);
     Plotly3D.newPlot(three_d_dom, data, layout, btns);
-    s_plot.on("plotly_click", function (data) {
-        let tree_idx = data.points[0]['pointNumber'];
-        console.log(`Draw ${data.points[0].text}`);
-        if (data.points.length > 1) {
-            console.log(`There are ${data.points.length} trees within this one data point marker.`)
-        }
-        dispatchEvent(
-            build_event("TreeRequest", {
-                guid: "",
-                tree_number: tree_idx
-            }));
-    });
+
+    s_plot.on("plotly_click", click_function);
 }
 
 /**
@@ -408,45 +393,25 @@ const clean_it = function() {
 }
 
 /*
- * Builds 3D plotting menu, creates plot element, and scatter plots data.
- */
-const build_3d = function (contents, colors) {
-    if (!document.getElementById("dim-scatter-plot")) {
-        let plot_div = "plot";
-        if (document.getElementById("inline-plot")) {
-            plot_div = "inline-plot";
-        }
-        document.getElementById(plot_div).append(htmlToElement(`<div id="dim-scatter-plot" style="float:center;vertical-align:top;"/>`));
-    }
-    scatter_3d(contents, colors);
-}
-
-/*
- * Builds 2D plotting menu, creates plot element, and scatter plots data.
- */
-const build_2d = function (contents, colors) {
-    if (!document.getElementById("dim-scatter-plot")) {
-        let plot_div = "plot";
-        if (document.getElementById("inline-plot")) {
-            plot_div = "inline-plot";
-        }
-        document.getElementById(plot_div).append(htmlToElement(`<div id="dim-scatter-plot" style="float:center;vertical-align:top;"/>`));
-    }
-    scatter_2d(contents, colors);
-}
-
-/*
  * Call appropriate plotting function based on dimension.
  */
-const plot_dimensions = function (dims, contents, colors=["blue"]) {
-    if (dims === 2) {
-        build_2d(contents, colors);
-    }
-    if (dims === 3) {
-        build_3d(contents, colors);
-    }
+const plot_dimensions = function (dims, contents, colors, click_function=null) {
     if (dims > 3) {
         parallel_coordinates(contents);
+    } else {
+        if (!document.getElementById("dim-scatter-plot")) {
+            let plot_div = "plot";
+            if (document.getElementById("inline-plot")) {
+                plot_div = "inline-plot";
+            }
+            document.getElementById(plot_div).append(htmlToElement(`<div id="dim-scatter-plot" style="float:center;vertical-align:top;"/>`));
+        }
+        if (dims === 2) {
+            scatter_2d(contents, colors, click_function);
+        }
+        if (dims === 3) {
+            scatter_3d(contents, colors, click_function);
+        }
     }
 }
 

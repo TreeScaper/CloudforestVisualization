@@ -18,7 +18,6 @@ class PhylogramPlot {
     scale_y = undefined;
     length_scheme = 'raw';
     trees = {}
-    tree_number = 1;
     normalized = false;
 
     // Links in phylogram
@@ -30,7 +29,9 @@ class PhylogramPlot {
     // Phylogram root
     tree_root = undefined;
 
-    constructor(file_data) {
+    constructor(file_data, tree_number = 1) {
+
+        this.tree_number = tree_number;
 
         this.plot = document.getElementById(PhylogramPlot.plot_element_id);
 
@@ -123,7 +124,8 @@ class PhylogramPlot {
     }
 
     build_controls() {
-        let pcc = document.getElementById(constants.plot_controls_id);
+        let tree_controls_div = document.createElement('div');
+        tree_controls_div.setAttribute('id', 'tree-controls');
 
         // Create slider for selecting tree to display.
         let slider_input = document.createElement('input');
@@ -142,7 +144,7 @@ class PhylogramPlot {
         tree_number_input.setAttribute('id', PhylogramPlot.tree_num_element_id);
         tree_number_input.setAttribute('min', 1);
         tree_number_input.setAttribute('max', this.boottree_data.raw.length);
-        tree_number_input.setAttribute('value', 1);
+        tree_number_input.setAttribute('value', this.tree_number);
         tree_number_input.setAttribute('size', 4);
 
         // <label for="${PhylogramPlot.slider_element_id}">Tree Number: <span id="${PhylogramPlot.tree_number_element_id}">1</span></label>
@@ -160,17 +162,17 @@ class PhylogramPlot {
         field_div.setAttribute('class', 'field');
         field_div.append(control_div);
 
-        pcc.append(field_div);
+        tree_controls_div.append(field_div);
 
         // Add event handler for the tree number slide. Redraw the tree with draw_tree() each time it changes.
-        document.getElementById(PhylogramPlot.slider_element_id).addEventListener("input", () => {
+        slider_input.addEventListener("input", () => {
             this.tree_number = Number(document.getElementById(PhylogramPlot.slider_element_id).value);
             document.getElementById(PhylogramPlot.tree_num_element_id).value = this.tree_number;
 
             this.draw();
         });
 
-        document.getElementById(PhylogramPlot.tree_num_element_id).addEventListener("input", () => {
+        tree_number_input.addEventListener("input", () => {
             this.tree_number = Number(document.getElementById(PhylogramPlot.tree_num_element_id).value);
             document.getElementById(PhylogramPlot.slider_element_id).value = this.tree_number;
 
@@ -202,16 +204,30 @@ class PhylogramPlot {
         let label_text = document.createTextNode('Branch length scheme');
         branch_length_select.append(label_text);
 
-        pcc.append(branch_length_select);
+        tree_controls_div.append(branch_length_select);
 
-        pcc.append(htmlToElement(`<div class="field has-addons">
-        <div class="control">
-            <button id="next-tree" class="button is-info">Next tree with selected bipartitions</button>
-        </div>`));
-        document.getElementById("next-tree").addEventListener("click", () => {
+        // Add button to find next tree with selected bipartitions.
+        let next_tree_field_div = document.createElement('div');
+        next_tree_field_div.setAttribute('class', 'field has-addons');
+
+        let next_tree_control_div = document.createElement('div');
+        next_tree_control_div.setAttribute('class', 'control');
+        next_tree_field_div.append(next_tree_control_div);
+
+        let next_tree_button = document.createElement('button');
+        next_tree_button.setAttribute('id', 'next-tree');
+        next_tree_button.setAttribute('class', 'button is-info');
+        next_tree_button.textContent = 'Next tree with selected bipartitions';
+        next_tree_button.addEventListener("click", () => {
             this.find_next_tree();
         });
+        next_tree_field_div.append(next_tree_button);
 
+        tree_controls_div.append(next_tree_field_div);
+
+        // Add phylogram controls to controls div
+        let pcc = document.getElementById(constants.plot_controls_id);
+        pcc.append(tree_controls_div);
     }
 
     //update_tree_list() {
@@ -368,7 +384,6 @@ class PhylogramPlot {
         this.bipartition_map = [];
         // for tree_number in numbers
         for (const s of length_schemes) {
-            console.log(s);
             this.trees[s.name] = [];
             for (let tree_number = 0; tree_number < this.boottree_data.raw.length; tree_number++) {
                 let tree_data = this.boottree_data[s.name][tree_number];

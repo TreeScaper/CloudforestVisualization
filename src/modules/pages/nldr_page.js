@@ -225,11 +225,24 @@ const nldr_page_init = function () {
 
             let node_click_function = function (data) {
                 let plot_element = document.getElementById(constants.plot_id);
-                plot_element.append(htmlToElement(`<div id="tree-plot" style="vertical-align: top; width: 50%; margin: 0px; padding-right: 0px; font-size:0; border: 0px; display:inline-block; overflow: visible"/>`));
+
+                let plot_element_children = Array.from(plot_element.children);
+                let old_tree_plot_element = plot_element_children.find((element) => element.id == 'tree-plot');
+                let new_tree_plot_element = document.createElement('div');
+                new_tree_plot_element.setAttribute('id', 'tree-plot');
+
+                if (old_tree_plot_element !== undefined) {
+                    old_tree_plot_element.replaceWith(new_tree_plot_element)
+                    let tree_controls_element = document.getElementById(constants.tree_controls_id);
+                    if (tree_controls_element !== null) {
+                        tree_controls_element.remove();
+                    }
+                }  else {
+                    plot_element.append(new_tree_plot_element);
+                }
+
                 let tree_idx = data.points[0]['pointNumber'];
-                let phylogram_plot = new PhylogramPlot({"boottree_data": tree_file_obj.data});
-                phylogram_plot.tree_number = tree_idx;
-                phylogram_plot.draw();
+                let phylogram_plot = new PhylogramPlot({"boottree_data": tree_file_obj.data}, tree_idx + 1);
             }
 
             coordinate_data = nldr_clean_data(coordinate_file_obj);

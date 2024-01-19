@@ -45,6 +45,7 @@ div.tooltip {
 #dim-scatter-plot {
     display: inline-block;
     vertical-align: top;
+    width: 50%;
 }
 
 #boottree-slider {
@@ -53,4 +54,11 @@ div.tooltip {
 
 #bipartition-list {
     margin-top: 20px;
+}
+
+#tree-plot {
+    vertical-align: top;
+    width: 50%;
+    display: inline-block;
+    overflow: visible;
 }
